@@ -1,0 +1,3 @@
+・SQLで管理する情報
+
+{"ID": ID, "name": 表示名, "type": 権限, "embedding": 顔データ, "states": 在室か}
