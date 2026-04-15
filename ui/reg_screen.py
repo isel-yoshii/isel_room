@@ -1,5 +1,5 @@
 # 新規登録画面
-
+# 今は名前と顔の登録のみ
 
 import cv2
 from deepface import DeepFace

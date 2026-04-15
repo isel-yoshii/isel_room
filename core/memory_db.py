@@ -1,3 +1,6 @@
+# メモリ上のデータベースクラス　プログラム終了したら消えます
+# 将来的には使いません
+
 class MemoryDB:
     def __init__(self):
         # 登録済みユーザー: {ID: {"name": 名前, "type": 権限, "embedding": 顔データ}}
