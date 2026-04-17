@@ -1,4 +1,5 @@
 class SQLDatabase:
+    # データベース接続やクエリ実行の基本的な機能を提供するクラス(読み出しと書き込み両方)
     def __init__(self):
         self.logs = []
 
@@ -19,7 +20,7 @@ class SQLDatabase:
         # ここでは仮にIDを名前に変換して返す
         return f"User{user_id}"  # 仮の表示名
     
-    def get_users_type(self, user_id):
+    def get_usertype(self, user_id):
         # IDからユーザーの権限を取得する（実際にはSQLクエリでデータベースから取得する）
         # ここでは仮にユーザーの権限を返す
         return "一般"  # 仮のユーザー権限
@@ -28,3 +29,51 @@ class SQLDatabase:
         # IDからユーザーの顔データを取得する（実際にはSQLクエリでデータベースから取得する）
         # ここでは仮に顔データを返す
         return [0.0] * 128  # 仮の顔データ（128次元のベクトル）
+    
+    def add_last_status(self, user_id, status):
+        # 入退室のログをデータベースに追加する（実際にはSQLクエリでデータベースに追加する）
+        # ここでは仮にログを保存する処理をここに追加する
+        self.logs.append({"user_id": user_id, "type": status, "time": "現在の時刻"})  # 仮の時刻
+    
+    def add_ID(self, name, user_type, embedding):
+        # 名前、ユーザーの権限、顔データをデータベースに追加する（実際にはSQLクエリでデータベースに追加する）
+        # ここでは仮にIDを生成して返す
+        user_id = self.get_ID(name)
+        # データベースにユーザー情報を保存する処理をここに追加する
+        return user_id
+    
+    def add_display_name(self, user_id, disp_name):
+        # IDと表示名をデータベースに追加する（実際にはSQLクエリでデータベースに追加する）
+        # ここでは仮に表示名を保存する処理をここに追加する
+        pass
+    
+    def add_usertype(self, user_id, usertype):
+        # IDとユーザーの権限をデータベースに追加する（実際にはSQLクエリでデータベースに追加する）
+        # ここでは仮にユーザーの権限を保存する処理をここに追加する
+        pass
+    
+    def add_embedding_data(self, user_id, embedding):
+        # IDと顔データをデータベースに追加する（実際にはSQLクエリでデータベースに追加する）
+        # ここでは仮に顔データを保存する処理をここに追加する
+        pass
+    
+    def delete_db(self, user_id):
+        # IDに対応するユーザーをデータベースから削除する（実際にはSQLクエリでデータベースから削除する）
+        # ここでは仮にユーザーを削除する処理をここに追加する
+        pass
+    
+
+
+
+class Add_User(SQLDatabase):
+    def __init__(self, disp_name, user_type, embedding):
+        super().__init__()
+        self.disp_name = disp_name
+        self.user_type = user_type
+        self.embedding = embedding
+        
+        
+class Delete_User(SQLDatabase):
+    def __init__(self, user_id):
+        super().__init__()
+        self.user_id = user_id
