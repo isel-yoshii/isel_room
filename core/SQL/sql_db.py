@@ -3,15 +3,16 @@ import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-class SQLDatabase:
+Base = declarative_base()
+
+class SQLDatabase():
     # データベース接続やクエリ実行の基本的な機能を提供するクラス(読み出しと書き込み両方)
     def __init__(self):
         self.logs = []
         DATABASE_URL = 'mysql+pymysql://user_name:host_name/db_name'
         self.engine = sqlalchemy.create_engine(DATABASE_URL)
         self.SessionLocal = sessionmaker(bind=self.engine, autoflush=False, autocommit=False)
-        self.Base = declarative_base()
-
+        
     def get_last_status(self, user_id):
         # 最後のログを見て、次は入室か退室かを判断する 
         user_logs = [l for l in self.logs if l["user_id"] == user_id]
