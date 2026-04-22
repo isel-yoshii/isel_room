@@ -1,13 +1,16 @@
 #import pymysql
 import sqlalchemy
-
-DATABASE_URL = 'mysql+pymysql://user_name:host_name/db_name'
-engine = sqlalchemy.create_engine(DATABASE_URL)
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 class SQLDatabase:
     # データベース接続やクエリ実行の基本的な機能を提供するクラス(読み出しと書き込み両方)
     def __init__(self):
         self.logs = []
+        DATABASE_URL = 'mysql+pymysql://user_name:host_name/db_name'
+        self.engine = sqlalchemy.create_engine(DATABASE_URL)
+        self.SessionLocal = sessionmaker(bind=self.engine, autoflush=False, autocommit=False)
+        self.Base = declarative_base()
 
     def get_last_status(self, user_id):
         # 最後のログを見て、次は入室か退室かを判断する 
@@ -24,6 +27,12 @@ class SQLDatabase:
     def get_display_name(self, user_id):
         # IDから表示名を取得する（実際にはSQLクエリでデータベースから取得する）
         # ここでは仮にIDを名前に変換して返す
+        return f"User{user_id}"  # 仮の表示名
+    
+    def get_display_name_by_embedding(self, embedding):
+        # 顔データから表示名を取得する（実際にはSQLクエリでデータベースから取得する）
+        # ここでは仮にIDを名前に変換して返す
+        user_id = self.get_ID_by_embedding(embedding)
         return f"User{user_id}"  # 仮の表示名
     
     def get_usertype(self, user_id):
