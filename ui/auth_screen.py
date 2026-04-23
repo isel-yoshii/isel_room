@@ -1,4 +1,7 @@
 # 入退室認証画面
+# カメラから顔を認識し、登録したユーザの顔が映っている時にEnterを押すと処理が行われます
+# 今後は、顔を読み取ったら自動で完了画面に進み、放置またはEnterで処理確定、Escでキャンセルの流れにしたい
+# 顔認証処理がayth_screenとreg_screenで重複しているので、この部分はcoreに移したい
 
 import cv2
 from deepface import DeepFace
