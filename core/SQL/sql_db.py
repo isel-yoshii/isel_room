@@ -2,11 +2,13 @@
 #import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from model import User, TimeLog
+from datetime import datetime
 
 # データベースの接続先を指定
 DATABASE_URL = 'mysql+pymysql://user_name:host_name/db_name'
 engine = create_engine(DATABASE_URL)
-# データベースセッションのクラスを作成
+# DB操作用のセッションを作るためのクラスを定義
 SessionClass = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 # テーブルモデルのベースクラスを作成
 Base = declarative_base()
@@ -83,15 +85,38 @@ class SQLDatabase():
 
 
 
-class Add_User(SQLDatabase):
-    def __init__(self, disp_name, user_type, embedding):
-        super().__init__()
-        self.disp_name = disp_name
-        self.user_type = user_type
-        self.embedding = embedding
+class UserService:
+    def __init__(self, session):
+        self.session = session
+
+    def add_user(self, name, user_type, embedding):
+        user = User(name=name, user_type=user_type, embedding=embedding)
+        self.session.add(user)
+        self.session.commit()
+        return user
+
+    def delete_user(self, user_id):
+        user = self.session.get(User, user_id)
+        self.session.delete(user)
+        self.session.commit()
         
-        
-class Delete_User(SQLDatabase):
-    def __init__(self, user_id):
-        super().__init__()
-        self.user_id = user_id
+class AttendanceService:
+    def __init__(self, session):
+        self.session = session
+
+    def toggle_entry(self, user_id):
+        user = self.session.get(User, user_id)
+
+        if user.status == False:
+            user.status = True
+            event = "IN"
+        else:
+            user.status = False
+            event = "OUT"
+
+        log = TimeLog(user=user, event_type=event, timestamp=datetime.now())
+
+        self.session.add(log)
+        self.session.commit()
+
+        return event
