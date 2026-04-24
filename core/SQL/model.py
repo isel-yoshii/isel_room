@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, Foreign
 from sqlalchemy.orm import relationship
 from sql_db import Base
 
-# ユーザーテーブルのモデルを定義するクラス
+# Userテーブルのモデルを定義するクラス
 class User(Base):
     __tablename__ = 'users'
     
