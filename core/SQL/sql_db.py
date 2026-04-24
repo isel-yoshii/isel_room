@@ -1,7 +1,8 @@
 #import pymysql
 import sqlalchemy
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from model import User  # フォルダ構造に合わせたインポート
 
 Base = declarative_base()
 
@@ -45,11 +46,25 @@ class SQLDatabase():
         # IDからユーザーの顔データを取得する（実際にはSQLクエリでデータベースから取得する）
         # ここでは仮に顔データを返す
         return [0.0] * 128  # 仮の顔データ（128次元のベクトル）
-    
+        
+    def get_present_users(self, name):
+        # 現在在室しているユーザーのリストを取得する
+        session = self.SessionLocal()
+        try:
+            present_users = session.query(User).filter(User.status == True).all
+            names = [user.name for user in present_users]
+            return names
+        except Exception as e:
+            print(f"データ取得エラー: {e}")
+            return []
+        finally :
+            session.close()
+
     def add_last_status(self, user_id, status):
         # 入退室のログをデータベースに追加する（実際にはSQLクエリでデータベースに追加する）
         # ここでは仮にログを保存する処理をここに追加する
         self.logs.append({"user_id": user_id, "type": status, "time": "現在の時刻"})  # 仮の時刻
+
     
     def add_ID(self, name, user_type, embedding):
         # 名前、ユーザーの権限、顔データをデータベースに追加する（実際にはSQLクエリでデータベースに追加する）
