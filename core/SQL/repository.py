@@ -15,10 +15,8 @@ class UserRepository:
     def add(self, user):
         self.session.add(user)
 
-    def delete(self, user_id):
-        user = self.get_by_id(user_id)
-        if user:
-            self.session.delete(user)
+    def delete(self, user):
+        self.session.delete(user)
             
             
 class TimeLogRepository:

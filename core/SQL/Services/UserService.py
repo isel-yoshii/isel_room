@@ -13,5 +13,7 @@ class UserService:
         return user
 
     def delete_user(self, user_id):
-        self.user_repo.delete(user_id)
+        user = self.user_repo.get_by_id(user_id)
+        if user:
+            self.user_repo.delete(user_id)
         self.session.commit()
