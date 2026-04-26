@@ -16,7 +16,7 @@ class User(Base):
     
     logs = relationship("TimeLog", back_populates="user")  # TimeLogオブジェクトと紐付け(userと連動)
 
-    
+# TimeLogテーブルのモデルを定義するクラス   
 class TimeLog(Base):
     __tablename__ = 'logs'
     

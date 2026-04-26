@@ -120,3 +120,24 @@ class AttendanceService:
         self.session.commit()
 
         return event
+    
+class AttendanceService:
+    def __init__(self, user_repo, session):
+        self.user_repo = user_repo
+        self.session = session
+
+    def toggle_entry(self, user_id):
+        user = self.user_repo.get_by_id(user_id)
+
+        if user.status:
+            user.status = False
+            event = "OUT"
+        else:
+            user.status = True
+            event = "IN"
+
+        log = TimeLog(user_id=user_id, event_type=event)
+        self.session.add(log)
+        self.session.commit()
+
+        return event
