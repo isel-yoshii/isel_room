@@ -1,3 +1,5 @@
+# 画面遷移制御
+
 import sys
 from ui.main_screen import MainScreen
 from ui.auth_screen import AuthScreen
