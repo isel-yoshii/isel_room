@@ -13,7 +13,7 @@ db = SQLDatabase()
 
 def send_slack_message(text):
     try:
-        app.client.chat_postMassage(text=text)
+        app.client.chat_postMessage(text=text)
     except Exception as e:
         print(f"Slack送信失敗...: {e}")
 

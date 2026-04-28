@@ -1,5 +1,6 @@
 # メモリ上のデータベースクラス　プログラム終了したら消えます
 # 将来的には使いません
+from SQL.model import User  # フォルダ構造に合わせたインポート
 
 class MemoryDB:
     def __init__(self):
@@ -26,7 +27,7 @@ class MemoryDB:
         # 現在在室しているユーザーのリストを取得する
         session = self.SessionLocal()
         try:
-            present_users = session.query(User).filter(User.status == True).all
+            present_users = session.query(User).filter(User.status == True).all()
             names = [user.name for user in present_users]
             return names
         except Exception as e:
