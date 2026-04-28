@@ -82,3 +82,54 @@ class SQLDatabase:
         names = [u.name for u in users]
         session.close()
         return names
+
+    def get_present_users_detailed(self):
+        """Returns present users with name and how long they've been in (for UI strip/dashboard)."""
+        from core.SQL.models.model import User, TimeLog
+        from datetime import datetime
+        session = SessionClass()
+        users = session.query(User).filter(User.status == True).all()
+        result = []
+        for u in users:
+            last_in = (
+                session.query(TimeLog)
+                .filter(TimeLog.user_id == u.user_id, TimeLog.event_type == 'IN')
+                .order_by(TimeLog.timestamp.desc())
+                .first()
+            )
+            duration = None
+            if last_in:
+                mins = int((datetime.now() - last_in.timestamp).total_seconds() / 60)
+                duration = f"{mins // 60}h {mins % 60:02d}m"
+            result.append({'id': u.user_id, 'name': u.name, 'type': u.user_type, 'duration': duration})
+        session.close()
+        return result
+
+    def get_all_users_info(self):
+        """Returns all users (id, name, type, status) for the admin panel."""
+        session = SessionClass()
+        user_repo = UserRepository(session)
+        users = user_repo.get_all_users()
+        result = [{'id': u.user_id, 'name': u.name, 'type': u.user_type, 'status': u.status} for u in users]
+        session.close()
+        return result
+
+    def get_today_log(self):
+        """Returns today's activity log sorted newest-first (for dashboard activity feed)."""
+        from core.SQL.models.model import TimeLog, User
+        from datetime import datetime, date
+        session = SessionClass()
+        today_start = datetime.combine(date.today(), datetime.min.time())
+        rows = (
+            session.query(TimeLog, User)
+            .join(User)
+            .filter(TimeLog.timestamp >= today_start)
+            .order_by(TimeLog.timestamp.desc())
+            .all()
+        )
+        result = [
+            {'name': u.name, 'event_type': l.event_type, 'timestamp': l.timestamp.strftime('%H:%M')}
+            for l, u in rows
+        ]
+        session.close()
+        return result

@@ -3,67 +3,223 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ISEL Room</title>
+  <title>ISEL 在室管理</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+  <!--
+    CSS is split into three files:
+      style.css      — design tokens, reset, top-nav, modal, shared buttons
+      checkin.css    — kiosk / face-recognition screen
+      dashboard.css  — presence dashboard + admin tab
+  -->
   <link rel="stylesheet" href="/ui/style.css" />
+  <link rel="stylesheet" href="/ui/checkin.css" />
+  <link rel="stylesheet" href="/ui/dashboard.css" />
 </head>
 <body>
 
-  <header>
-    <h1>ISEL Room</h1>
-    <span id="clock"></span>
+  <!-- ═══════════════════════════════════════════════════
+       TOP NAVIGATION
+       Shared across both screens. The screen switcher
+       (Kiosk | Dashboard) lives here.
+  ═══════════════════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-mark">IS</div>
+      <div>
+        <div class="logo-text">isel 在室管理</div>
+        <div class="logo-sub">KIT · Intelligent Software Engineering Lab</div>
+      </div>
+    </div>
+
+    <div class="screen-switcher">
+      <button class="sw-btn active" id="sw-kiosk"     onclick="switchScreen('kiosk')">Kiosk</button>
+      <button class="sw-btn"        id="sw-dashboard" onclick="switchScreen('dashboard')">Dashboard</button>
+    </div>
+
+    <div class="topbar-right">
+      <div class="live-dot"></div>
+      <span id="clock">--:--:--</span>
+    </div>
   </header>
 
-  <!-- ===== MAIN VIEW ===== -->
-  <main id="view-main" class="view active">
-    <section class="present-panel">
-      <h2>現在在室中</h2>
-      <ul id="present-list"></ul>
-      <button class="btn-secondary small" onclick="loadPresent()">更新</button>
-    </section>
 
-    <section class="action-panel">
-      <button class="btn-primary large" onclick="showView('auth')">入退室</button>
-      <button class="btn-secondary large" onclick="showView('register')">新規登録</button>
-    </section>
-  </main>
+  <!-- ═══════════════════════════════════════════════════
+       SCREEN 1 — KIOSK (face recognition / check-in)
+       Intended to run on the lab's always-on display.
+       Logic: ui/checkin.js
+  ═══════════════════════════════════════════════════ -->
+  <div id="screen-kiosk" class="screen active">
 
-  <!-- ===== AUTH VIEW ===== -->
-  <main id="view-auth" class="view">
-    <div class="camera-wrap">
-      <video id="auth-video" autoplay playsinline muted></video>
-      <canvas id="auth-canvas" hidden></canvas>
+    <div class="checkin-area">
+
+      <!-- Live camera feed with animated face-tracking overlay -->
+      <div class="cam-feed">
+        <video id="checkin-video" autoplay playsinline muted></video>
+        <div class="face-box state-idle" id="face-box">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <!-- Animated bar shown only in 'scanning' state -->
+          <div class="scan-line" id="scan-line" style="display:none"></div>
+        </div>
+        <div class="cam-label">camera feed</div>
+      </div>
+
+      <!-- Status panel: tag, big text, user card, scan button -->
+      <div class="state-panel">
+        <div class="state-tag tag-idle" id="state-tag">
+          <div class="dot dot-gray" id="state-dot"></div>
+          <span id="tag-text">waiting</span>
+        </div>
+
+        <div class="state-name" id="state-name">Stand in front<br>of camera</div>
+        <div class="state-sub"  id="state-sub">face recognition ready</div>
+
+        <!-- Populated by checkin.js after a scan result -->
+        <div id="result-card"></div>
+
+        <button class="btn-scan" id="btn-scan" onclick="scanFace()">Scan Face</button>
+
+        <div class="hint-row">
+          <div class="hint"><span>Enter</span> · scan</div>
+          <div class="hint"><span>Esc</span> · reset</div>
+        </div>
+      </div>
+
+    </div><!-- /checkin-area -->
+
+    <!-- Strip at the bottom showing who's currently in the lab -->
+    <div class="member-strip" id="member-strip">
+      <span class="strip-empty">loading…</span>
     </div>
 
-    <div class="controls">
-      <div id="auth-result" class="result-box">カメラに顔を向けて「スキャン」を押してください</div>
-      <button class="btn-primary" id="btn-scan" onclick="scanFace()">顔をスキャン</button>
-      <button class="btn-confirm" id="btn-confirm" hidden onclick="confirmToggle()">入退室を確定する</button>
-      <button class="btn-back" onclick="backToMain()">← 戻る</button>
-    </div>
-  </main>
+  </div><!-- /screen-kiosk -->
 
-  <!-- ===== REGISTER VIEW ===== -->
-  <main id="view-register" class="view">
-    <div class="register-form">
-      <input type="text" id="reg-name" placeholder="名前を入力してください" />
-      <select id="reg-type">
-        <option value="学生">学生</option>
-        <option value="管理者">管理者</option>
-      </select>
-    </div>
 
-    <div class="camera-wrap">
-      <video id="reg-video" autoplay playsinline muted></video>
-      <canvas id="reg-canvas" hidden></canvas>
+  <!-- ═══════════════════════════════════════════════════
+       SCREEN 2 — DASHBOARD
+       Overview of who's in the lab + activity log.
+       Admin tab lets you add / view all members.
+       Logic: ui/dashboard.js
+  ═══════════════════════════════════════════════════ -->
+  <div id="screen-dashboard" class="screen">
+
+    <!-- Sub-tabs: Dashboard | Admin -->
+    <div class="dash-tabs">
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchDashTab('overview', this)">Dashboard</button>
+        <button class="nav-tab"        onclick="switchDashTab('admin', this)">Admin</button>
+      </div>
     </div>
 
-    <div class="controls">
-      <div id="reg-result" class="result-box">名前を入力してカメラに顔を向けてください</div>
-      <button class="btn-primary" id="btn-register" onclick="captureAndRegister()">顔を撮影して登録</button>
-      <button class="btn-back" onclick="backToMain()">← 戻る</button>
-    </div>
-  </main>
+    <div class="dashboard-content">
 
+      <!-- ── Overview page ── -->
+      <div class="db-page active" id="db-overview">
+
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-label">in the lab</div>
+            <div class="stat-value green" id="stat-in">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">check-ins today</div>
+            <div class="stat-value" id="stat-today">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">total members</div>
+            <div class="stat-value" id="stat-total">–</div>
+          </div>
+        </div>
+
+        <div class="section-label">members</div>
+        <div class="member-grid" id="member-grid">
+          <div class="grid-empty">loading…</div>
+        </div>
+
+        <div class="section-label">today's log</div>
+        <div class="log-section">
+          <div class="log-header" id="log-header">Activity</div>
+          <div id="log-body"><div class="log-empty">loading…</div></div>
+        </div>
+
+      </div><!-- /db-overview -->
+
+      <!-- ── Admin page ── -->
+      <div class="db-page" id="db-admin">
+        <button class="add-btn" onclick="openRegModal()">+ add member</button>
+        <div class="section-label">all members</div>
+        <div class="admin-grid" id="admin-grid">
+          <div class="log-empty">loading…</div>
+        </div>
+      </div><!-- /db-admin -->
+
+    </div><!-- /dashboard-content -->
+
+  </div><!-- /screen-dashboard -->
+
+
+  <!-- ═══════════════════════════════════════════════════
+       REGISTRATION MODAL
+       Opened from the Admin tab. Starts its own camera
+       stream (independent of the kiosk stream).
+       Logic: ui/dashboard.js — openRegModal / closeRegModal
+  ═══════════════════════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="reg-modal" onclick="closeRegModalOnBg(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">Add member</div>
+
+      <div class="modal-field">
+        <label>Name</label>
+        <input type="text" id="reg-name" placeholder="e.g. Naimi" autocomplete="off" />
+      </div>
+
+      <div class="modal-field">
+        <label>Role</label>
+        <select id="reg-type">
+          <option value="学生">Student (学生)</option>
+          <option value="管理者">Admin (管理者)</option>
+        </select>
+      </div>
+
+      <div class="modal-field">
+        <label>Face photo — look at the camera, then click Register</label>
+        <div class="modal-cam">
+          <video id="reg-video" autoplay playsinline muted></video>
+        </div>
+      </div>
+
+      <div class="modal-msg" id="reg-msg"></div>
+
+      <div class="modal-actions">
+        <button class="btn-ghost"   onclick="closeRegModal()">Cancel</button>
+        <button class="btn-primary" id="btn-register" onclick="captureAndRegister()">Capture &amp; Register</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Off-screen canvas used to grab JPEG frames from any video element -->
+  <canvas id="capture-canvas" hidden></canvas>
+
+  <!--
+    JS is split into three files (loaded in order):
+      app.js       — camera, API fetch helpers, clock, screen switching
+      checkin.js   — check-in state machine (scanFace, setState, member strip)
+      dashboard.js — dashboard data loading + admin / registration modal
+  -->
   <script src="/ui/app.js"></script>
+  <script src="/ui/checkin.js"></script>
+  <script src="/ui/dashboard.js"></script>
+
+  <script>
+    /* Boot: start kiosk camera and member strip auto-refresh */
+    initCheckin();
+    startCamera('checkin-video');
+    loadMemberStrip();
+    setInterval(loadMemberStrip, 30_000);
+  </script>
+
 </body>
 </html>

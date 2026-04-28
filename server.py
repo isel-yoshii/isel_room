@@ -51,6 +51,21 @@ def toggle():
     return jsonify(result)
 
 
+@app.route('/api/present-detailed')
+def get_present_detailed():
+    return jsonify(db.get_present_users_detailed())
+
+
+@app.route('/api/users')
+def get_users():
+    return jsonify(db.get_all_users_info())
+
+
+@app.route('/api/log/today')
+def get_today_log():
+    return jsonify(db.get_today_log())
+
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
