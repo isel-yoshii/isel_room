@@ -11,7 +11,9 @@ class UserService:
         user = User(name=name, user_type=user_type, embedding=embedding)
         try:
             self.user_repo.add(user)
-            self.session.commit()   # commit()でDBに反映させる
+            self.session.commit()
+            self.session.refresh(user)  # commit後にDBが採番したIDをuserオブジェクトに反映させる
+            return user
         except SQLAlchemyError as e:
             self.session.rollback()
             raise e
