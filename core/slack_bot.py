@@ -1,7 +1,7 @@
 import os
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-from SQL.sql_db import SQLDatabase
+from memory_db import SQLDatabase
 import re
 
 # 取得した2つのトークンを設定
@@ -13,7 +13,7 @@ db = SQLDatabase()
 
 def send_slack_message(text):
     try:
-        app.client.chat_postMassage(text=text)
+        app.client.chat_postMessage(text=text)
     except Exception as e:
         print(f"Slack送信失敗...: {e}")
 

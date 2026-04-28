@@ -11,3 +11,4 @@ SessionClass = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 # テーブルモデルのベースクラスを作成
 Base = declarative_base()
 
+
