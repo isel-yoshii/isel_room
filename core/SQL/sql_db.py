@@ -2,7 +2,6 @@
 #import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
-from model import User  # フォルダ構造に合わせたインポート
 
 # データベースの接続先を指定
 DATABASE_URL = 'mysql+pymysql://user_name:host_name/db_name'
