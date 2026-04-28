@@ -4,11 +4,14 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from core.SQL.repositories.repository import UserRepository
 from core.SQL.sql_db import SessionClass, Base, engine
 import re
+from dotenv import load_dotenv
+
+# .envファイルから環境変数を読み込む
+load_dotenv()
 
 # 取得した2つのトークンを設定
-SLACK_BOT_TOKEN = "xoxb-6746580839446-10981992072273-0JmdBu8iYcCYxr8gpxbFjjnD"
-SLACK_APP_TOKEN = "xapp-1-A0AU1HAP26B-10962708501571-13f855ac3c040488e50078b8511db5257cfa9f009c7056148c8b9c9a3f8615f1"
-
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+SLACK_APP_TOKEN = os.getenv("SLACK_APP_TOKEN")
 app = App(token=SLACK_BOT_TOKEN)
 db = UserRepository(session=SessionClass())
 
