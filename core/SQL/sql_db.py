@@ -1,15 +1,15 @@
 #import pymysql
-import sqlalchemy
+#import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from model import User  # フォルダ構造に合わせたインポート
 
+# データベースの接続先を指定
+DATABASE_URL = 'mysql+pymysql://user_name:host_name/db_name'
+engine = create_engine(DATABASE_URL)
+# DB操作用のセッションを作るためのクラスを定義
+SessionClass = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+# テーブルモデルのベースクラスを作成
 Base = declarative_base()
 
-class SQLDatabase():
-    # データベース接続やクエリ実行の基本的な機能を提供するクラス(読み出しと書き込み両方)
-    def __init__(self):
-        self.logs = []
-        DATABASE_URL = 'mysql+pymysql://user_name:host_name/db_name'
-        self.engine = sqlalchemy.create_engine(DATABASE_URL)
-        self.SessionLocal = sessionmaker(bind=self.engine, autoflush=False, autocommit=False)
+

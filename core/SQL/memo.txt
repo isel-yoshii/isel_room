@@ -3,3 +3,6 @@
 {"ID": ID, "name": 表示名, "type": 権限, "embedding": 顔データ, "status": 在室か, "time": 在室時間}
 
 add, delete, login, logout
+
+# id 付与
+id = Column(Integer, primary_key=True, autoincrement=True)
