@@ -1,4 +1,4 @@
-from core.SQL.model import User
+from core.SQL.models.model import User
 
 # Userテーブルを使用した処理を行うクラス
 class UserService:

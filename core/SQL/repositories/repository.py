@@ -1,5 +1,5 @@
 # Repositoryクラスは、データベースのテーブルごとに作成されるクラスで、テーブルへのアクセスや操作を行うためのメソッドを提供します。
-from model import User, TimeLog
+from core.SQL.models.model import User, TimeLog
 
 class UserRepository:
     def __init__(self, session):

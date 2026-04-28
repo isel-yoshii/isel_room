@@ -2,7 +2,7 @@
 #import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from model import User, TimeLog
+from core.SQL.models.model import User, TimeLog
 from datetime import datetime
 
 # データベースの接続先を指定

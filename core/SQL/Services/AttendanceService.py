@@ -1,4 +1,4 @@
-from model import User, TimeLog
+from core.SQL.models.model import User, TimeLog
 from datetime import datetime
 
 # ユーザーの入退室を管理するためのクラス(User, TimeLogテーブルを使用した処理を行う)
@@ -33,7 +33,7 @@ class AttendanceService:
             "timestamp": timelog.timestamp.isoformat()
         }
     
-    def get_log_by_user_id(self, user_id):
+    def get_logs_by_user_id(self, user_id):
         user = self.user_repo.get_by_id(user_id)
         if user:
             return user.logs
