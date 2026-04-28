@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import relationship
-from sql_db import Base
+from core.SQL.sql_db import Base
 
 # Userテーブルのモデルを定義するクラス
 class User(Base):
