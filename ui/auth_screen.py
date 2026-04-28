@@ -5,6 +5,7 @@
 
 import cv2
 from core.face_engine import FaceEngine
+from core.slack_bot import send_slack_message
 
 class AuthScreen:
     def __init__(self, db):
@@ -46,6 +47,8 @@ class AuthScreen:
                 status = self.db.get_last_status(identified_user_id)
                 self.db.logs.append({"user_id": identified_user_id, "type": status})
                 print(f"【{status}】{user_name}さん")
+                send_slack_message(f"{user_name}さんが入室しました")
+
                 break
             elif key == 27: 
                 break
