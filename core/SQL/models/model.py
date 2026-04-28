@@ -14,7 +14,7 @@ class User(Base):
     status = Column(Boolean, default=False)  # 入室状態
     totaltime = Column(Integer, default=0)  # 合計滞在時間
     
-    logs = relationship("TimeLog", back_populates="user")  # TimeLogオブジェクトと紐付け(userと連動)
+    logs = relationship("TimeLog", back_populates="user", cascade="all, delete-orphan")  # TimeLogオブジェクトと紐付け(userと連動)
 
 # TimeLogテーブルのモデルを定義するクラス   
 class TimeLog(Base):
