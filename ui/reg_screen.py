@@ -2,12 +2,12 @@
 # 今は名前と顔の登録のみ
 
 import cv2
-from deepface import DeepFace
-from scipy.spatial import distance
+from core.face_engine import FaceEngine
 
 class RegScreen:
     def __init__(self, db):
         self.db = db
+        self.engine = FaceEngine(db)
         self.duplicate_threshold = 0.65
 
     def run(self):
@@ -47,32 +47,21 @@ class RegScreen:
             key = cv2.waitKey(1) & 0xFF
 
             if key == ord('s'):
-                try:
-                    # 1. 今映っている顔の特徴を抽出
-                    results = DeepFace.represent(frame, model_name="ArcFace", enforce_detection=True)
-                    new_embedding = results[0]["embedding"]
-
-                    # 2. 重複チェック（登録済みの全ユーザと比較）
-                    is_duplicate = False
-                    duplicate_name = ""
-
-                    for u_id, info in self.db.users.items():
-                        # メモリ内のデータと比較（保存されているのがリストなら[0]などで比較）
-                        dist = distance.cosine(new_embedding, info["embedding"])
-                        if dist < self.duplicate_threshold:
-                            is_duplicate = True
-                            duplicate_name = info["name"]
-                            break
-
-                    if is_duplicate:
-                        print(f"【エラー】この方は既に「{duplicate_name}」として登録されています！")
+                # 1. エンジンで特徴を抽出
+                new_embedding = self.engine.extract_embedding(frame, enforce=True)
+                
+                if new_embedding is not None:
+                    # 2. エンジンで重複チェック（reg_thresholdを使用）
+                    dup_id, dup_name = self.engine.find_match(new_embedding, self.engine.reg_threshold)
+                    
+                    if dup_id is not None:
+                        print(f"【エラー】この方は既に「{dup_name}」として登録されています！")
                     else:
                         # 3. 重複がなければ登録
-                        self.db.add_user(name, "学生", new_embedding) # 種類は一旦「学生」固定
+                        self.db.add_user(name, "学生", new_embedding)
                         print(f"【成功】{name}さんを登録しました。")
-                        break # ループを抜けて完了
-
-                except Exception as e:
+                        break 
+                else:
                     print("顔を検出できませんでした。もう少し近づいてください。")
             
             elif key == 27: # Escで中止
