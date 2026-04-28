@@ -23,18 +23,28 @@ class UserRepository:
     def get_embedding_table(self):
         return self.session.query(User.user_id, User.embedding).all()
     
+<<<<<<< HEAD
     def get_present_users(self, name):
         # 現在在室しているユーザーのリストを取得する
         session = self.SessionLocal()
         try:
             present_users = session.query(User).filter(User.status == True).all()
+=======
+    def get_present_users(self):
+        # 現在在室しているユーザーのリストを取得する
+        try:
+            present_users = self.session.query(User).filter(User.status == True).all()
+>>>>>>> origin
             names = [user.name for user in present_users]
             return names
         except Exception as e:
             print(f"データ取得エラー: {e}")
             return []
+<<<<<<< HEAD
         finally :
             session.close()
+=======
+>>>>>>> origin
 
     def add(self, user):
         self.session.add(user)
