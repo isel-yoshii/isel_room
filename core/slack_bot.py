@@ -1,7 +1,7 @@
 import os
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-from SQL.sql_db import SQLDatabase
+from memory_db import SQLDatabase
 import re
 
 # 取得した2つのトークンを設定
