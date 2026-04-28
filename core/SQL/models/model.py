@@ -7,7 +7,7 @@ class User(Base):
     __tablename__ = 'users'
     
     user_id = Column(Integer, primary_key=True, index=True)  # ユーザーID
-    name = Column(String(255), unique=True, index=True)  # ユーザーの表示名
+    name = Column(String(255), index=True)  # ユーザーの表示名
     user_type = Column(String(50)) # ユーザーの権限（例: "学生", "管理者"など）
     embedding = Column(JSON)  # 顔データをJSON形式で保存
     # embeddingは　JSON型（MySQLならJSON）OR BLOB OR 別テーブル or 外部ストレージ（推奨）が良いかも
