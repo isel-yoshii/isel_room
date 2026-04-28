@@ -17,7 +17,6 @@ def send_slack_message(text):
     except Exception as e:
         print(f"Slack送信失敗...: {e}")
 
-# "こんにちは" というメッセージに反応する
 @app.message(re.compile("(在室|メンバー|だれ|誰)"))
 def show_present_users(message, say):
     users = db.get_present_users()
