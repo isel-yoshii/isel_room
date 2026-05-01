@@ -37,3 +37,7 @@ def test_DB():
     
     # セッションを閉じる
     session.close()
+    
+    
+    if __name__ == "__main__":
+        test_DB()
