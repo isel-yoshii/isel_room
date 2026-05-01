@@ -1,14 +1,16 @@
-#import pymysql
-#import sqlalchemy
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# データベースの接続先を指定
-DATABASE_URL = "mysql+pymysql://myuser:password@localhost/isel_room"
-engine = create_engine(DATABASE_URL)
-# DB操作用のセッションを作るためのクラスを定義
+# SQLiteはファイル1つで動く。プロジェクトルートに isel_room.db が作られる
+# 将来MySQLに切り替える場合: 'mysql+pymysql://username:password@localhost/isel_room'
+DATABASE_URL = 'sqlite:///isel_room.db'
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionClass = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-# テーブルモデルのベースクラスを作成
 Base = declarative_base()
 
 
+def init_db():
+    """テーブルが存在しない場合に作成する。アプリ起動時に1回呼ぶ。"""
+    from core.SQL.models.model import User, TimeLog  # ここでimportしないと循環importになる
+    Base.metadata.create_all(engine)

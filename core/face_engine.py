@@ -27,7 +27,7 @@ class FaceEngine:
         matched_id = None
         matched_name = None
 
-        for u_id, info in self.db.users.items():
+        for u_id, info in self.db.get_all_embeddings().items():
             dist = distance.cosine(target_embedding, info["embedding"])
             if dist < min_dist:
                 min_dist = dist

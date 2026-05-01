@@ -1,0 +1,204 @@
+/*
+ * dashboard.css — Styles for the Dashboard screen (overview + admin tab).
+ * Loaded alongside style.css.
+ */
+
+/* ── Sub-nav tabs (Dashboard | Admin) ── */
+.dash-tabs {
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  padding: 0 20px;
+  background: var(--color-background-primary);
+}
+
+.nav-tabs { display: flex; gap: 2px; padding: 8px 0; }
+
+.nav-tab {
+  padding: 6px 14px;
+  font-size: 12px; font-weight: 500;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  border: none; background: transparent;
+  font-family: 'Sora', sans-serif;
+  transition: all 0.15s;
+}
+
+.nav-tab.active { background: #E1F5EE; color: #0F6E56; }
+
+/* ── Inner page switcher ── */
+.db-page { display: none; }
+.db-page.active { display: block; }
+
+/* ── Scrollable content area ── */
+.dashboard-content {
+  padding: 20px;
+  max-width: 700px; width: 100%;
+  margin: 0 auto;
+  overflow-y: auto;
+}
+
+/* ── Stats row ── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--color-background-primary);
+  border-radius: var(--border-radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+  padding: 14px 16px;
+}
+
+.stat-label {
+  font-size: 11px; color: var(--color-text-secondary);
+  font-family: 'DM Mono', monospace; margin-bottom: 4px;
+}
+
+.stat-value { font-size: 24px; font-weight: 600; line-height: 1; }
+.stat-value.green { color: #0F6E56; }
+
+/* ── Section heading ── */
+.section-label {
+  font-size: 11px; font-weight: 500;
+  color: var(--color-text-secondary);
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+/* ── Member grid ── */
+.member-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+
+.member-card {
+  background: var(--color-background-primary);
+  border-radius: var(--border-radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+  padding: 14px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 8px;
+}
+
+.member-card.present { border-left: 2px solid #1D9E75; }
+.member-card.absent  { opacity: 0.5; }
+
+/* Avatar circles — colours are assigned by index */
+.avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600;
+}
+
+.av-teal   { background: #E1F5EE; color: #0F6E56; }
+.av-blue   { background: #E6F1FB; color: #185FA5; }
+.av-amber  { background: #FAEEDA; color: #854F0B; }
+.av-pink   { background: #FBEAF0; color: #993556; }
+.av-purple { background: #EEEDFE; color: #534AB7; }
+.av-gray   { background: #2A2A2A; color: #888; }
+
+.member-name { font-size: 12px; font-weight: 500; text-align: center; }
+
+.member-time {
+  font-size: 11px; color: var(--color-text-secondary);
+  font-family: 'DM Mono', monospace;
+}
+
+.status-pill {
+  font-size: 10px; padding: 2px 8px;
+  border-radius: 999px; font-family: 'DM Mono', monospace;
+}
+
+.pill-in  { background: #E1F5EE; color: #0F6E56; }
+.pill-out { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+
+/* ── Activity log ── */
+.log-section {
+  background: var(--color-background-primary);
+  border-radius: var(--border-radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+  overflow: hidden; margin-bottom: 20px;
+}
+
+.log-header {
+  padding: 12px 16px;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  font-size: 12px; font-weight: 500;
+}
+
+.log-row {
+  display: flex; align-items: center;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  gap: 12px;
+}
+
+.log-row:last-child { border-bottom: none; }
+
+.log-icon {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0;
+}
+
+.log-in  { background: #E1F5EE; color: #0F6E56; }
+.log-out { background: #FCEBEB; color: #A32D2D; }
+
+.log-name { font-size: 13px; font-weight: 500; flex: 1; }
+.log-ts   { font-size: 11px; color: var(--color-text-secondary); font-family: 'DM Mono', monospace; }
+
+.log-empty, .grid-empty {
+  padding: 20px 16px;
+  font-size: 12px; color: var(--color-text-secondary);
+  font-family: 'DM Mono', monospace; text-align: center;
+}
+
+/* ── Admin panel ── */
+.add-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--color-accent); color: var(--color-accent-light);
+  border: none; padding: 8px 14px;
+  border-radius: var(--border-radius-md);
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: 'Sora', sans-serif;
+  margin-bottom: 14px; transition: opacity 0.15s;
+}
+
+.add-btn:hover { opacity: 0.85; }
+
+.admin-grid { display: grid; gap: 10px; }
+
+.user-row {
+  background: var(--color-background-primary);
+  border-radius: var(--border-radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+
+.user-info { flex: 1; }
+.user-name { font-size: 13px; font-weight: 500; }
+.user-role { font-size: 11px; color: var(--color-text-secondary); font-family: 'DM Mono', monospace; }
+
+.role-badge {
+  font-size: 10px; padding: 2px 7px;
+  border-radius: 999px; font-family: 'DM Mono', monospace;
+  margin-left: 4px;
+}
+
+.badge-admin   { background: #FAEEDA; color: #854F0B; }
+.badge-student { background: #E6F1FB; color: #185FA5; }
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%; flex-shrink: 0;
+}
+
+.status-dot.in  { background: #1D9E75; }
+.status-dot.out { background: #333; }
