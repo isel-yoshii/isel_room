@@ -13,6 +13,7 @@ class User(Base):
     # embeddingは　JSON型（MySQLならJSON）OR BLOB OR 別テーブル or 外部ストレージ（推奨）が良いかも
     status = Column(Boolean, default=False)  # 入室状態
     totaltime = Column(Integer, default=0)  # 合計滞在時間
+    totaldays = Column(Integer, default=0)  # 合計滞在日数
     
     logs = relationship("TimeLog", back_populates="user", cascade="all, delete-orphan")  # TimeLogオブジェクトと紐付け(userと連動)
 
