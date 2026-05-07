@@ -10,15 +10,18 @@ class AttendanceService:
 
     def toggle_entry(self, user_id):
         user = self.user_repo.get_by_id(user_id)
+        nowtime = datetime.now()
 
-        if user.status:
+        if user.status:  # 退室するとき
             user.status = False
             event = "OUT"
-        else:
+            lasttime = self.timelog_repo.get_latest_log_by_user_id(user_id).timestamp
+            user.totaltime = self.get_staying_time(nowtime, lasttime)
+        else:            # 入室するとき
             user.status = True
             event = "IN"
 
-        log = TimeLog(user_id=user_id, event_type=event, timestamp=datetime.now())
+        log = TimeLog(user_id=user_id, event_type=event, timestamp=nowtime)
         self.timelog_repo.add(log)
         self.session.commit()
 
@@ -32,6 +35,12 @@ class AttendanceService:
             "event_type": timelog.event_type,
             "timestamp": timelog.timestamp.isoformat()
         }
+        
+    def get_staying_time(self, nowtime:datetime, lasttime:datetime):
+        diff = nowtime - lasttime
+        hours = diff.total_seconds() / 3600
+        return hours
+        
     
     def get_logs_by_user_id(self, user_id):
         user = self.user_repo.get_by_id(user_id)

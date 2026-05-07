@@ -1,5 +1,6 @@
 # Repositoryクラスは、データベースのテーブルごとに作成されるクラスで、テーブルへのアクセスや操作を行うためのメソッドを提供します。
 from core.SQL.models.model import User, TimeLog
+from sqlalchemy import desc
 
 class UserRepository:
     def __init__(self, session):
@@ -36,6 +37,14 @@ class UserRepository:
 class TimeLogRepository:
     def __init__(self, session):
         self.session = session
+        
+    def get_latest_log_by_user_id(self, user_id):
+        return (
+            self.session.query(TimeLog)
+            .filter(TimeLog.user_id == user_id)
+            .order_by(desc(TimeLog.timestamp))
+            .first()
+        )
 
     def add(self, log):
         self.session.add(log)

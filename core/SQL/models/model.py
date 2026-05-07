@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from core.SQL.sql_db import Base
 
@@ -12,7 +12,7 @@ class User(Base):
     embedding = Column(JSON)  # 顔データをJSON形式で保存
     # embeddingは　JSON型（MySQLならJSON）OR BLOB OR 別テーブル or 外部ストレージ（推奨）が良いかも
     status = Column(Boolean, default=False)  # 入室状態
-    totaltime = Column(Integer, default=0)  # 合計滞在時間
+    totaltime = Column(Float, default=0)  # 合計滞在時間
     totaldays = Column(Integer, default=0)  # 合計滞在日数
     
     logs = relationship("TimeLog", back_populates="user", cascade="all, delete-orphan")  # TimeLogオブジェクトと紐付け(userと連動)
