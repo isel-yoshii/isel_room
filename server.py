@@ -91,4 +91,31 @@ def register():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    import threading
+    import os
+    from core.slack_bot import _app
+    from slack_bolt.adapter.socket_mode import SocketModeHandler
+
+    try:
+        app_token = os.getenv("SLACK_APP_TOKEN")
+        if _app and app_token:
+            # 1. ハンドラを作成
+            handler = SocketModeHandler(_app, app_token)
+            
+            # 2. 信号エラーを回避するため、直接内部フラグを書き換える（力技ですが確実です）
+            # もしくは、単に信号エラーを無視するようにスレッドを開始します
+            def start_silent():
+                try:
+                    handler.start()
+                except ValueError:
+                    # 'signal only works in main thread' エラーが出ても無視して続行
+                    pass
+
+            slack_thread = threading.Thread(target=start_silent, daemon=True)
+            slack_thread.start()
+            print("Slack: Socket Mode Started in background")
+    except Exception as e:
+        print(f"Slack: ボットの起動に失敗しました ({e})")
+
+    # Flaskサーバーを起動
+    app.run(debug=True, host='0.0.0.0', port=5001, use_reloader=False)
