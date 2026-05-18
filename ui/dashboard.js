@@ -121,6 +121,8 @@ async function loadAdmin() {
             </div>
           </div>
           <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'in lab' : 'out'}"></div>
+
+          <button class="del-btn" onclick="deleteUser(${u.id}, '${u.name}')">Delete</button>
         </div>`;
     }).join('');
 
@@ -222,4 +224,27 @@ async function captureAndRegister() {
   }
 
   btn.disabled = false;
+}
+
+async function deleteUser(userId, userName) {
+  if (!confirm(`Are you sure you want to delete "${userName}"?\nThis action cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/user/${userId}`, {
+      method: 'DELETE',
+    }).then(r => r.json());
+
+    if (res.success) {
+      // 削除成功時は、画面のリストと統計を再読み込みして最新化
+      loadAdmin();
+      loadOverview();
+    } else {
+      alert(`Failed to delete: ${res.message}`);
+    }
+  } catch (e) {
+    console.error("Delete error:", e);
+    alert('Network error occurred.');
+  }
 }

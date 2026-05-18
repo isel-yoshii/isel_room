@@ -105,7 +105,6 @@ def register():
 
 @app.route('/api/user/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
-    data = request.json or {}
 
     try:
         db.delete_user(user_id)
