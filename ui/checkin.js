@@ -102,25 +102,78 @@ function setStateResult(name, eventType) {
 
 /* ── scanFace: one full scan → toggle cycle ─────────── */
 
+let pendingCommit = null; // 保留中の処理を保持
+
 async function scanFace() {
+  // すでにスキャン中、または確定待ち(pending)の間は入力を受け付けない
+  if (pendingCommit) return;
+
   setState('scanning');
 
   try {
-    const image    = captureFrame('checkin-video');
+    const image = captureFrame('checkin-video');
     const authData = await api.post('/api/auth', { image });
 
     if (authData.matched) {
-      const toggleData = await api.post('/api/toggle', { user_id: authData.user_id });
-      setStateResult(authData.name, toggleData.event_type);
-      loadMemberStrip();                    // refresh bottom strip immediately
-      setTimeout(() => setState('idle'), 4000);
+      // 1. まず画面演出（IN/OUT）を先に出す（ここではまだDB更新しない）
+      // 仮のeventTypeを判定するために、現在のUI上のステータス等を参照するか、
+      // サーバーから「次どっちになるか」の予測を受け取る必要があります。
+      // ここでは、仮にサーバーが authData.next_event を返してくれると想定するか、
+      // 確定前でも一度 toggle API を叩かずに演出だけ行います。
+      
+      // 演出用のダミー表示 (例: 現在が在室なら次は退室と仮定)
+      const isCurrentlyIn = checkUserIsPresent(authData.name); 
+      const guestEventType = isCurrentlyIn ? 'OUT' : 'IN';
+      
+      setStateResult(authData.name, guestEventType);
+
+      // 2. 確定処理を保留する（5秒待機）
+      pendingCommit = {
+        userId: authData.user_id,
+        timer: setTimeout(() => {
+          commitToggle(authData.user_id);
+        }, 5000) // 5秒猶予
+      };
+
     } else {
       setState('fail');
       setTimeout(() => setState('idle'), 3000);
     }
-  } catch {
+  } catch (e) {
+    console.error(e);
     setState('idle');
   }
+}
+
+// 実際にDBを更新する関数
+async function commitToggle(userId) {
+  if (!pendingCommit) return;
+  
+  try {
+    await api.post('/api/toggle', { user_id: userId });
+    loadMemberStrip(); // 下のバーを更新
+  } catch (e) {
+    console.error("確定失敗:", e);
+  } finally {
+    pendingCommit = null;
+    setState('idle'); // 次の認証へ
+  }
+}
+
+// キャンセル処理（Escキーで呼ばれる）
+function cancelToggle() {
+  if (pendingCommit) {
+    clearTimeout(pendingCommit.timer);
+    pendingCommit = null;
+    setState('idle');
+    console.log("キャンセルされました。DBは更新されません。");
+  }
+}
+
+// ヘルパー：現在のメンバーリストから在室中か判定
+function checkUserIsPresent(name) {
+  const strip = document.getElementById('member-strip');
+  return strip.textContent.includes(name);
 }
 
 /* ── loadMemberStrip: populates the bottom presence bar ─ */
@@ -148,6 +201,7 @@ async function loadMemberStrip() {
 /* ── initCheckin: keyboard shortcuts, called once at boot ── */
 
 function initCheckin() {
+  /*
   document.addEventListener('keydown', e => {
     if (!document.getElementById('screen-kiosk').classList.contains('active')) return;
 
@@ -155,4 +209,5 @@ function initCheckin() {
     if (e.key === 'Enter' && !btn.disabled) scanFace();
     if (e.key === 'Escape')                 setState('idle');
   });
+  */
 }

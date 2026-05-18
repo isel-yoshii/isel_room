@@ -219,6 +219,29 @@
     startCamera('checkin-video');
     loadMemberStrip();
     setInterval(loadMemberStrip, 30_000);
+
+    window.addEventListener('keydown', (e) => {
+      if (!document.getElementById('screen-kiosk').classList.contains('active')) return;
+
+      if (e.key === 'Enter') {
+        if (e.repeat) return; 
+        
+        if (pendingCommit) {
+          // 猶予期間中にEnterを押したら、待たずに即確定
+          clearTimeout(pendingCommit.timer);
+          commitToggle(pendingCommit.userId);
+        } else {
+          // 通常時はスキャン
+          if (document.getElementById('reg-modal').classList.contains('hidden')) {
+            scanFace();
+          }
+        }
+      }
+
+      if (e.key === 'Escape') {
+        cancelToggle(); // 保留があれば破棄してidleへ
+      }
+    });
   </script>
 
 </body>

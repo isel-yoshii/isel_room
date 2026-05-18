@@ -90,6 +90,17 @@ def register():
     return jsonify({'success': True, 'message': f'{name}さんを登録しました'})
 
 
+@app.route('/api/user/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    data = request.json or {}
+
+    try:
+        db.delete_user(user_id)
+        return jsonify({'success': True, 'message': 'ユーザーを削除しました'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 if __name__ == '__main__':
     import threading
     import os
