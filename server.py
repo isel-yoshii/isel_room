@@ -9,6 +9,7 @@ import cv2
 from core.database import SQLDatabase
 from core.face_engine import FaceEngine
 from core.slack_bot import send_slack_message
+from core.log_generator import append_attendance_log  
 
 from datetime import datetime
 import threading
@@ -61,6 +62,7 @@ def toggle():
     result = db.toggle_entry(request.json['user_id'])
     event = result['event_type']
     send_slack_message(f"{result['name']}さんが{'入室' if event == 'IN' else '退室'}しました")
+    append_attendance_log(result['user_id'], result['name'], {'入室' if event == 'IN' else '退室'})
     return jsonify(result)
 
 
@@ -99,8 +101,9 @@ def register():
     if dup_id is not None:
         return jsonify({'success': False, 'message': f'この方は既に「{dup_name}」として登録されています'})
 
-    db.add_user(name, user_type, embedding)
-    return jsonify({'success': True, 'message': f'{name}さんを登録しました'})
+    new_user_id = db.add_user(name, user_type, embedding)
+    append_attendance_log(new_user_id, name, '登録')
+    return jsonify({'success': True, 'message': f'{name}さんを登録しました', 'user_id': new_user_id})
 
 
 @app.route('/api/user/<int:user_id>', methods=['DELETE'])
