@@ -2,6 +2,8 @@ from core.SQL.sql_db import SessionClass, init_db
 from core.SQL.repositories.repository import UserRepository, TimeLogRepository
 from core.SQL.Services.UserService import UserService
 from core.SQL.Services.AttendanceService import AttendanceService
+from datetime import datetime, timedelta, time
+import os
 
 
 class SQLDatabase:
@@ -119,7 +121,17 @@ class SQLDatabase:
         from core.SQL.models.model import TimeLog, User
         from datetime import datetime, date
         session = SessionClass()
-        today_start = datetime.combine(date.today(), datetime.min.time())
+        now = datetime.now()
+
+        reset_hour = int(os.getenv("DAY_RESET_HOUR", 4))
+
+        if now.hour < reset_hour:
+            logical_date = now.date() - timedelta(days=1)
+        else:
+            logical_date = now.date()
+            
+        today_start = datetime.combine(logical_date, time(reset_hour, 0))
+
         rows = (
             session.query(TimeLog, User)
             .join(User)
@@ -133,3 +145,26 @@ class SQLDatabase:
         ]
         session.close()
         return result
+    
+    def force_checkout_all(self):
+        """在室中の全員を強制的に退室（OUT）にする（指定時間の自動処理用）"""
+        from core.SQL.models.model import User, TimeLog
+        session = SessionClass()
+        try:
+            # 在室中（status == True）のユーザーを取得
+            present_users = session.query(User).filter(User.status == True).all()
+            now = datetime.now()
+            
+            for user in present_users:
+                user.status = False
+                log = TimeLog(user_id=user.user_id, event_type="OUT", timestamp=now)
+                session.add(log)
+                
+            session.commit()
+            if present_users:
+                print(f"[{now.strftime('%H:%M:%S')}] {len(present_users)}名の自動退室処理を完了しました。")
+        except Exception as e:
+            session.rollback()
+            print(f"自動退室処理でエラー: {e}")
+        finally:
+            session.close()
