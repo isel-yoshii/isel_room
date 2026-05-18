@@ -9,17 +9,11 @@ import cv2
 from core.database import SQLDatabase
 from core.face_engine import FaceEngine
 from core.slack_bot import send_slack_message
-
-from datetime import datetime
-import threading
-import time as time_module
+from core.log_generator import append_attendance_log    
 
 app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
 db = SQLDatabase()
 engine = FaceEngine(db)
-
-# Kioskで最後に認証アクションが起きた時間を記録（初期値は過去）
-last_kiosk_activity = datetime.min
 
 
 def decode_image(data_url):
@@ -40,9 +34,6 @@ def get_present():
 
 @app.route('/api/auth', methods=['POST'])
 def auth():
-    global last_kiosk_activity
-    last_kiosk_activity = datetime.now()
-
     frame = decode_image(request.json['image'])
     emb = engine.extract_embedding(frame, enforce=False)
     if emb is None:
@@ -55,14 +46,12 @@ def auth():
 
 @app.route('/api/toggle', methods=['POST'])
 def toggle():
-    global last_kiosk_activity
-    last_kiosk_activity = datetime.now()
-
     result = db.toggle_entry(request.json['user_id'])
     event = result['event_type']
     send_slack_message(f"{result['name']}さんが{'入室' if event == 'IN' else '退室'}しました")
+    append_attendance_log(result['user_id'], result['name'], '入室' if event == 'IN' else '退室')
     return jsonify(result)
-
+    
 
 @app.route('/api/present-detailed')
 def get_present_detailed():
@@ -99,46 +88,9 @@ def register():
     if dup_id is not None:
         return jsonify({'success': False, 'message': f'この方は既に「{dup_name}」として登録されています'})
 
-    db.add_user(name, user_type, embedding)
+    new_user_id = db.add_user(name, user_type, embedding)
+    append_attendance_log(new_user_id, name, '登録')   
     return jsonify({'success': True, 'message': f'{name}さんを登録しました'})
-
-
-@app.route('/api/user/<int:user_id>', methods=['DELETE'])
-def delete_user(user_id):
-    data = request.json or {}
-
-    try:
-        db.delete_user(user_id)
-        return jsonify({'success': True, 'message': 'ユーザーを削除しました'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-    
-def schedule_checkout():
-    """毎日自動退室処理を実行。ただし認証処理中は安全のため待機する"""
-    global last_kiosk_activity
-    reset_hour = int(os.getenv("DAY_RESET_HOUR", 4))
-    
-    while True:
-        now = datetime.now()
-        
-        # 指定された時間0分の場合に実行
-        if now.hour == reset_hour and now.minute == 0:
-            # 最後の認証(またはトグル)から15秒以上経過しているか確認 (フロントの猶予は3秒なので十分なマージン)
-            time_since_last = (now - last_kiosk_activity).total_seconds()
-            
-            if time_since_last < 15:
-                print(f"[{now.strftime('%H:%M:%S')}] ユーザーの入退室猶予期間中のため、自動退室処理を10秒延期します...")
-                time_module.sleep(10)
-                continue # 10秒後にループの先頭に戻り、指定された時間0分であれば再チェック
-            
-            # 誰も認証中でなければ安全に強制退室を実行
-            db.force_checkout_all()
-            
-            # 指定された時間1分になるまで待機して、1日に何度も実行されるのを防ぐ
-            time_module.sleep(60)
-        else:
-            # 指定された時間以外は30秒ごとに時間を確認
-            time_module.sleep(30)
 
 
 if __name__ == '__main__':
@@ -146,10 +98,6 @@ if __name__ == '__main__':
     import os
     from core.slack_bot import _app
     from slack_bolt.adapter.socket_mode import SocketModeHandler
-
-    checkout_thread = threading.Thread(target=schedule_checkout, daemon=True)
-    checkout_thread.start()
-    print("Auto-checkout scheduler started")
 
     try:
         app_token = os.getenv("SLACK_APP_TOKEN")
