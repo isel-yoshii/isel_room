@@ -3,7 +3,7 @@ from deepface import DeepFace
 from scipy.spatial import distance
 
 class FaceEngine:
-    def __init__(self, db, auth_threshold=0.68, reg_threshold=0.65):
+    def __init__(self, db, auth_threshold=0.50, reg_threshold=0.50):
         self.db = db
         self.auth_threshold = auth_threshold  # 入退室用の閾値
         self.reg_threshold = reg_threshold    # 登録の重複チェック用の閾値
