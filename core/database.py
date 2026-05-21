@@ -335,6 +335,39 @@ class SQLDatabase:
         session.close()
         return count or 0
 
+    def export_sessions_csv(self, year, month):
+        """Returns session rows for a given month as a list of dicts for CSV export."""
+        from core.SQL.models.model import Session as LabSession, User
+        import calendar
+        session = SessionClass()
+        start = datetime(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end = datetime(year, month, last_day, 23, 59, 59)
+
+        rows = (
+            session.query(LabSession, User)
+            .join(User, LabSession.user_id == User.user_id)
+            .filter(LabSession.checked_in_at >= start, LabSession.checked_in_at <= end)
+            .order_by(LabSession.checked_in_at)
+            .all()
+        )
+
+        result = []
+        for lab_sess, user in rows:
+            duration = ''
+            if lab_sess.checked_out_at:
+                duration = int((lab_sess.checked_out_at - lab_sess.checked_in_at).total_seconds() / 60)
+            result.append({
+                'name': user.name,
+                'date': lab_sess.checked_in_at.strftime('%Y-%m-%d'),
+                'checked_in_at': lab_sess.checked_in_at.strftime('%H:%M'),
+                'checked_out_at': lab_sess.checked_out_at.strftime('%H:%M') if lab_sess.checked_out_at else '',
+                'duration_minutes': duration,
+                'check_in_method': lab_sess.check_in_method or '',
+            })
+        session.close()
+        return result
+
     def get_audit_log(self, limit=50):
         from core.SQL.models.model import AuditLog
         session = SessionClass()

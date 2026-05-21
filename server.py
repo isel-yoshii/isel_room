@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, Response
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -10,11 +10,12 @@ import cv2
 from core.database import SQLDatabase
 from core.face_engine import FaceEngine
 from core.slack_bot import send_slack_message
-from core.log_generator import append_attendance_log  
 
 from datetime import datetime
 import threading
 import time as time_module
+import csv
+import io
 
 app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')
@@ -142,7 +143,6 @@ def register():
         return jsonify({'success': False, 'message': f'この方は既に「{dup_name}」として登録されています'})
 
     new_user_id = db.add_user(name, user_type, embedding)
-    append_attendance_log(new_user_id, name, '登録')
     db.add_audit_log('REGISTER', new_user_id, name)
     return jsonify({'success': True, 'message': f'{name}さんを登録しました', 'user_id': new_user_id})
 
@@ -173,7 +173,27 @@ def weekly_stats():
 @app.route('/api/stats/today')
 def today_stats():
     return jsonify({'unique_checkins': db.get_today_unique_checkins()})
-    
+
+
+@app.route('/api/export/csv')
+def export_csv():
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    year  = int(request.args.get('year',  datetime.now().year))
+    month = int(request.args.get('month', datetime.now().month))
+    rows = db.export_sessions_csv(year, month)
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=['name', 'date', 'checked_in_at', 'checked_out_at', 'duration_minutes', 'check_in_method'])
+    writer.writeheader()
+    writer.writerows(rows)
+    filename = f'attendance_{year}-{month:02d}.csv'
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'},
+    )
+
+
 def schedule_checkout():
     """毎日自動退室処理を実行。ただし認証処理中は安全のため待機する"""
     global last_kiosk_activity
