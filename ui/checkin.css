@@ -9,13 +9,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 20px;
-  gap: 32px;
+  padding: clamp(20px, 3vw, 48px) clamp(16px, 3vw, 40px);
+  gap: clamp(24px, 4vw, 72px);
 }
 
 /* ── Camera feed box ── */
 .cam-feed {
-  width: 240px; height: 240px;
+  width: clamp(240px, 32vw, 520px);
+  height: clamp(240px, 32vw, 520px);
   background: #0D0D0D;
   border-radius: var(--border-radius-lg);
   border: 0.5px solid #222;
@@ -41,7 +42,7 @@
 /* ── Face-tracking box (corner bracket overlay) ── */
 .face-box {
   position: absolute;
-  width: 108px; height: 128px;
+  width: 45%; height: 53%;
   top: 50%; left: 50%;
   transform: translate(-50%, -58%);
   border-radius: 8px;
@@ -50,7 +51,8 @@
 
 .corner {
   position: absolute;
-  width: 14px; height: 14px;
+  width: clamp(12px, 1.1vw, 20px);
+  height: clamp(12px, 1.1vw, 20px);
 }
 
 .corner.tl { top: 0; left: 0;  border-top: 2px solid; border-left: 2px solid;  border-radius: 3px 0 0 0; }
@@ -74,13 +76,13 @@
 }
 
 @keyframes scandown {
-  0%   { top: 8px; }
-  100% { top: 120px; }
+  0%   { top: 6%; }
+  100% { top: 94%; }
 }
 
 /* ── State panel (right of camera) ── */
 .state-panel {
-  flex: 1; max-width: 320px;
+  flex: 1; max-width: clamp(300px, 28vw, 480px);
   display: flex; flex-direction: column;
   justify-content: center;
   gap: 14px; min-width: 0;
@@ -106,12 +108,12 @@
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
 .state-name {
-  font-size: 28px; font-weight: 600;
+  font-size: clamp(24px, 2.6vw, 44px); font-weight: 600;
   color: #E8E8E8; line-height: 1.1;
 }
 
 .state-sub {
-  font-size: 13px; color: #555;
+  font-size: clamp(12px, 1.1vw, 15px); color: #555;
   font-family: 'DM Mono', monospace;
 }
 
@@ -152,8 +154,8 @@
   color: var(--color-accent-light);
   border: none;
   border-radius: var(--border-radius-md);
-  padding: 10px 20px;
-  font-size: 13px; font-weight: 500;
+  padding: clamp(9px, 0.9vw, 14px) clamp(18px, 1.8vw, 30px);
+  font-size: clamp(12px, 1.1vw, 15px); font-weight: 500;
   font-family: 'Sora', sans-serif;
   cursor: pointer;
   transition: opacity 0.15s;
