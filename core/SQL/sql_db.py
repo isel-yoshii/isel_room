@@ -13,5 +13,5 @@ Base = declarative_base()
 
 def init_db():
     """テーブルが存在しない場合に作成する。アプリ起動時に1回呼ぶ。"""
-    from core.SQL.models.model import User, TimeLog, AuditLog, Session  # ここでimportしないと循環importになる
+    from core.SQL.models.model import User, AuditLog, Session  # noqa: F401
     Base.metadata.create_all(engine)

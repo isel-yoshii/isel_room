@@ -1,5 +1,5 @@
 from core.SQL.sql_db import SessionClass, init_db
-from core.SQL.repositories.repository import UserRepository, TimeLogRepository
+from core.SQL.repositories.repository import UserRepository
 from core.SQL.Services.UserService import UserService
 from core.SQL.Services.AttendanceService import AttendanceService
 from datetime import datetime, timedelta, time
@@ -61,16 +61,15 @@ class SQLDatabase:
 
     # ---- 入退室 ----
 
-    def toggle_entry(self, user_id):
+    def toggle_entry(self, user_id, check_in_method='face'):
         """
-        入室 or 退室を切り替えてログを記録する。
+        入室 or 退室を切り替えてセッションを記録する。
         戻り値: {"user_id": ..., "name": ..., "event_type": "IN"/"OUT", "timestamp": ...}
         """
         session = SessionClass()
         user_repo = UserRepository(session)
-        timelog_repo = TimeLogRepository(session)
-        service = AttendanceService(user_repo, timelog_repo, session)
-        result = service.toggle_entry(user_id)
+        service = AttendanceService(user_repo, session)
+        result = service.toggle_entry(user_id, check_in_method)
         session.close()
         return result
 
@@ -87,21 +86,21 @@ class SQLDatabase:
 
     def get_present_users_detailed(self):
         """Returns present users with name and how long they've been in (for UI strip/dashboard)."""
-        from core.SQL.models.model import User, TimeLog
+        from core.SQL.models.model import User, Session as LabSession
         from datetime import datetime
         session = SessionClass()
         users = session.query(User).filter(User.status == True).all()
         result = []
         for u in users:
-            last_in = (
-                session.query(TimeLog)
-                .filter(TimeLog.user_id == u.user_id, TimeLog.event_type == 'IN')
-                .order_by(TimeLog.timestamp.desc())
+            open_sess = (
+                session.query(LabSession)
+                .filter(LabSession.user_id == u.user_id, LabSession.checked_out_at == None)
+                .order_by(LabSession.checked_in_at.desc())
                 .first()
             )
             duration = None
-            if last_in:
-                mins = int((datetime.now() - last_in.timestamp).total_seconds() / 60)
+            if open_sess:
+                mins = int((datetime.now() - open_sess.checked_in_at).total_seconds() / 60)
                 duration = f"{mins // 60}h {mins % 60:02d}m"
             result.append({'id': u.user_id, 'name': u.name, 'type': u.user_type, 'duration': duration})
         session.close()
@@ -121,8 +120,9 @@ class SQLDatabase:
 
         date_str: 'YYYY-MM-DD' for a specific date, or None for today.
         A logical day runs from DAY_RESET_HOUR to the same hour next day.
+        Each session contributes up to two events: a check-in and a check-out.
         """
-        from core.SQL.models.model import TimeLog, User
+        from core.SQL.models.model import Session as LabSession, User
         session = SessionClass()
         now = datetime.now()
         reset_hour = int(os.getenv("DAY_RESET_HOUR", 4))
@@ -138,17 +138,41 @@ class SQLDatabase:
         day_start = datetime.combine(logical_date, time(reset_hour, 0))
         day_end   = datetime.combine(logical_date + timedelta(days=1), time(reset_hour, 0))
 
-        rows = (
-            session.query(TimeLog, User)
-            .join(User)
-            .filter(TimeLog.timestamp >= day_start, TimeLog.timestamp < day_end)
-            .order_by(TimeLog.timestamp.desc())
+        checkins = (
+            session.query(LabSession, User)
+            .join(User, LabSession.user_id == User.user_id)
+            .filter(LabSession.checked_in_at >= day_start, LabSession.checked_in_at < day_end)
             .all()
         )
-        result = [
-            {'name': u.name, 'event_type': l.event_type, 'timestamp': l.timestamp.strftime('%H:%M')}
-            for l, u in rows
-        ]
+        checkouts = (
+            session.query(LabSession, User)
+            .join(User, LabSession.user_id == User.user_id)
+            .filter(
+                LabSession.checked_out_at >= day_start,
+                LabSession.checked_out_at < day_end,
+                LabSession.checked_out_at != None,
+            )
+            .all()
+        )
+
+        events = []
+        for lab_sess, u in checkins:
+            events.append({
+                'name': u.name,
+                'event_type': 'IN',
+                'timestamp': lab_sess.checked_in_at.strftime('%H:%M'),
+                '_sort': lab_sess.checked_in_at,
+            })
+        for lab_sess, u in checkouts:
+            events.append({
+                'name': u.name,
+                'event_type': 'OUT',
+                'timestamp': lab_sess.checked_out_at.strftime('%H:%M'),
+                '_sort': lab_sess.checked_out_at,
+            })
+
+        events.sort(key=lambda e: e['_sort'], reverse=True)
+        result = [{'name': e['name'], 'event_type': e['event_type'], 'timestamp': e['timestamp']} for e in events]
         session.close()
         return result
 
@@ -159,8 +183,8 @@ class SQLDatabase:
         """Returns per-user stats for a given month using the sessions table.
 
         Only closed sessions (checked_out_at IS NOT NULL) that started in the
-        given month are counted. This avoids the cross-month boundary bug where
-        an auto-checkout OUT TimeLog landed in the next month.
+        given month are counted. This avoids counting sessions that started in
+        one month and auto-checked-out the next.
         """
         from core.SQL.models.model import Session as LabSession, User
         from collections import defaultdict
@@ -208,9 +232,8 @@ class SQLDatabase:
         return result
     
     def force_checkout_all(self):
-        """在室中の全員を強制的に退室（OUT）にする（指定時間の自動処理用）"""
-        from core.SQL.models.model import User, TimeLog, Session as LabSession
-        from core.log_generator import append_attendance_log
+        """在室中の全員を強制的に退室にする（指定時間の自動処理用）"""
+        from core.SQL.models.model import User, Session as LabSession
         session = SessionClass()
         try:
             present_users = session.query(User).filter(User.status == True).all()
@@ -218,10 +241,6 @@ class SQLDatabase:
 
             for user in present_users:
                 user.status = False
-                log = TimeLog(user_id=user.user_id, event_type="OUT", timestamp=now)
-                session.add(log)
-
-                # Open Session を閉じて totaltime を更新
                 open_sess = (
                     session.query(LabSession)
                     .filter_by(user_id=user.user_id, checked_out_at=None)
@@ -233,9 +252,6 @@ class SQLDatabase:
                     open_sess.check_in_method = 'auto_checkout'
 
             session.commit()
-
-            for user in present_users:
-                append_attendance_log(user.user_id, user.name, '退室(自動)')
 
             if present_users:
                 print(f"[{now.strftime('%H:%M:%S')}] {len(present_users)}名の自動退室処理を完了しました。")
