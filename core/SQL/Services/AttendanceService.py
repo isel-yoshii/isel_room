@@ -20,7 +20,6 @@ class AttendanceService:
         if open_sess:
             open_sess.checked_out_at = now
             minutes = int((now - open_sess.checked_in_at).total_seconds() / 60)
-            user.totaltime = (user.totaltime or 0) + minutes
             return minutes
         return 0
 
@@ -32,19 +31,7 @@ class AttendanceService:
             user.status = False
             event = "OUT"
 
-            # Session を閉じて totaltime を更新
-            closed = self._close_open_session(user_id, now)
-            if not closed:
-                # 移行前データ: Session がない場合は TimeLog で計算(フォールバック)
-                last_in = (
-                    self.session.query(TimeLog)
-                    .filter_by(user_id=user_id, event_type="IN")
-                    .order_by(TimeLog.timestamp.desc())
-                    .first()
-                )
-                if last_in:
-                    minutes = int((now - last_in.timestamp).total_seconds() / 60)
-                    user.totaltime = (user.totaltime or 0) + minutes
+            self._close_open_session(user_id, now)
 
         else:  # 現在 OUT → IN へ切り替え
             # 安全策: 前回チェックアウト忘れのセッションがあれば先に閉じる

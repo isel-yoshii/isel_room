@@ -231,8 +231,6 @@ class SQLDatabase:
                 if open_sess:
                     open_sess.checked_out_at = now
                     open_sess.check_in_method = 'auto_checkout'
-                    mins = int((now - open_sess.checked_in_at).total_seconds() / 60)
-                    user.totaltime = (user.totaltime or 0) + mins
 
             session.commit()
 
