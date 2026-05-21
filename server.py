@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from dotenv import load_dotenv
 load_dotenv()
 
+import os
 import base64
 import numpy as np
 import cv2
@@ -16,6 +17,7 @@ import threading
 import time as time_module
 
 app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')
 db = SQLDatabase()
 engine = FaceEngine(db)
 
@@ -37,6 +39,29 @@ def index():
 @app.route('/api/present')
 def get_present():
     return jsonify(db.get_present_users())
+
+
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    pin = request.json.get('pin', '')
+    correct_pin = os.getenv('ADMIN_PIN', '')
+    if not correct_pin:
+        return jsonify({'success': False, 'message': 'ADMIN_PIN not set in .env'}), 500
+    if pin == correct_pin:
+        session['admin'] = True
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'message': 'Wrong PIN'}), 401
+
+
+@app.route('/api/admin/logout', methods=['POST'])
+def admin_logout():
+    session.pop('admin', None)
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/status')
+def admin_status():
+    return jsonify({'authenticated': session.get('admin', False)})
 
 
 @app.route('/api/auth', methods=['POST'])
@@ -83,6 +108,8 @@ def get_today_log():
 
 @app.route('/api/register', methods=['POST'])
 def register():
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
     data = request.json
     name = data['name'].strip()
     user_type = data.get('user_type', '学生')
@@ -108,7 +135,8 @@ def register():
 
 @app.route('/api/user/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
-
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
     try:
         db.delete_user(user_id)
         return jsonify({'success': True, 'message': 'ユーザーを削除しました'})
@@ -145,7 +173,6 @@ def schedule_checkout():
 
 if __name__ == '__main__':
     import threading
-    import os
     from core.slack_bot import _app
     from slack_bolt.adapter.socket_mode import SocketModeHandler
 

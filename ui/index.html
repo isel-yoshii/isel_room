@@ -149,7 +149,10 @@
 
       <!-- ── Admin page ── -->
       <div class="db-page" id="db-admin">
-        <button class="add-btn" onclick="openRegModal()">+ add member</button>
+        <div class="admin-header">
+          <button class="add-btn" onclick="openRegModal()">+ add member</button>
+          <button class="btn-ghost admin-logout-btn" onclick="adminLogout()">Logout</button>
+        </div>
         <div class="section-label">all members</div>
         <div class="admin-grid" id="admin-grid">
           <div class="log-empty">loading…</div>
@@ -196,6 +199,23 @@
       <div class="modal-actions">
         <button class="btn-ghost"   onclick="closeRegModal()">Cancel</button>
         <button class="btn-primary" id="btn-register" onclick="captureAndRegister()">Capture &amp; Register</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN Modal — guards access to the Admin tab -->
+  <div class="modal-overlay hidden" id="pin-modal" onclick="closePinModalOnBg(event)">
+    <div class="modal-box modal-sm" onclick="event.stopPropagation()">
+      <div class="modal-title">Admin access</div>
+      <div class="modal-field">
+        <label>PIN</label>
+        <input type="password" id="pin-input" maxlength="8" placeholder="Enter PIN"
+               autocomplete="off" onkeydown="if(event.key==='Enter') submitPin()" />
+      </div>
+      <div class="modal-msg" id="pin-msg"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost"   onclick="closePinModal()">Cancel</button>
+        <button class="btn-primary" id="btn-pin-submit" onclick="submitPin()">Unlock</button>
       </div>
     </div>
   </div>

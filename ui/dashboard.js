@@ -134,10 +134,94 @@ async function loadAdmin() {
 /* ── Sub-tab switching (Dashboard | Admin) ───────────── */
 
 function switchDashTab(name, btn) {
+  if (name === 'admin') {
+    checkAdminAndProceed(() => activateDashTab('admin', btn));
+    return;
+  }
+  activateDashTab(name, btn);
+}
+
+function activateDashTab(name, btn) {
   document.querySelectorAll('.db-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('db-' + name).classList.add('active');
   btn.classList.add('active');
+}
+
+async function checkAdminAndProceed(callback) {
+  try {
+    const status = await api.get('/api/admin/status');
+    if (status.authenticated) {
+      callback();
+    } else {
+      openPinModal(callback);
+    }
+  } catch {
+    openPinModal(callback);
+  }
+}
+
+/* ── Admin PIN modal ─────────────────────────────────── */
+
+let _pinCallback = null;
+
+function openPinModal(callback) {
+  _pinCallback = callback;
+  document.getElementById('pin-input').value = '';
+  const msg = document.getElementById('pin-msg');
+  msg.textContent = '';
+  msg.className = 'modal-msg';
+  document.getElementById('pin-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('pin-input').focus(), 50);
+}
+
+function closePinModal() {
+  document.getElementById('pin-modal').classList.add('hidden');
+  _pinCallback = null;
+}
+
+function closePinModalOnBg(event) {
+  if (event.target === document.getElementById('pin-modal')) closePinModal();
+}
+
+async function submitPin() {
+  const pin   = document.getElementById('pin-input').value;
+  const msg   = document.getElementById('pin-msg');
+  const btn   = document.getElementById('btn-pin-submit');
+
+  if (!pin) {
+    msg.textContent = 'Enter a PIN';
+    msg.className   = 'modal-msg err';
+    return;
+  }
+
+  btn.disabled    = true;
+  msg.textContent = '';
+
+  try {
+    const data = await api.post('/api/admin/login', { pin });
+    if (data.success) {
+      closePinModal();
+      if (_pinCallback) _pinCallback();
+    } else {
+      msg.textContent = data.message || 'Wrong PIN';
+      msg.className   = 'modal-msg err';
+      document.getElementById('pin-input').value = '';
+      document.getElementById('pin-input').focus();
+    }
+  } catch {
+    msg.textContent = 'Server error';
+    msg.className   = 'modal-msg err';
+  }
+
+  btn.disabled = false;
+}
+
+async function adminLogout() {
+  await api.post('/api/admin/logout', {});
+  const overviewBtn = document.querySelector('.nav-tab');
+  activateDashTab('overview', overviewBtn);
+  loadOverview();
 }
 
 /* ── Registration modal ──────────────────────────────── */
