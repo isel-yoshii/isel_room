@@ -29,6 +29,18 @@ class TimeLog(Base):
     user = relationship("User", back_populates="logs")  # Userオブジェクトと紐付け(logsと連動)
 
 
+# Sessionsテーブル: 1行 = 1回の入室セッション (checked_in_at → checked_out_at)
+# duration は computed (checked_out_at - checked_in_at)、保存しない
+class Session(Base):
+    __tablename__ = 'sessions'
+
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    user_id         = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    checked_in_at   = Column(DateTime, nullable=False)
+    checked_out_at  = Column(DateTime, nullable=True)   # NULL = 現在入室中
+    check_in_method = Column(String(20), default='face') # face | manual | auto_checkout
+
+
 # AuditLogテーブル: 管理者操作(登録・削除)の記録
 class AuditLog(Base):
     __tablename__ = 'audit_log'
