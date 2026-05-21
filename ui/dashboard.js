@@ -262,6 +262,11 @@ async function loadStats() {
   }
 }
 
+function fmtMins(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 function renderStats(data) {
   const content = document.getElementById('stats-content');
   if (!data.length) {
@@ -269,10 +274,7 @@ function renderStats(data) {
     return;
   }
 
-  const fmt = mins => {
-    const h = Math.floor(mins / 60), m = mins % 60;
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
-  };
+  const fmt = fmtMins;
 
   content.innerHTML = `
     <div class="stats-table">
@@ -635,4 +637,71 @@ async function deleteUser(userId, userName) {
     console.error("Delete error:", e);
     alert('Network error occurred.');
   }
+}
+
+/* ── Member profile modal ────────────────────────────── */
+
+async function openProfileModal(userId) {
+  try {
+    const data = await api.get(`/api/user/${userId}/profile`);
+
+    document.getElementById('profile-name').textContent = data.name;
+
+    const isAdmin = data.type === '管理者';
+    document.getElementById('profile-badges').innerHTML = `
+      <span class="role-badge ${isAdmin ? 'badge-admin' : 'badge-student'}" style="margin-right:4px">
+        ${isAdmin ? 'admin' : 'student'}
+      </span>
+      <span class="face-badge ${data.has_face ? 'badge-face-ok' : 'badge-face-none'}">
+        ${data.has_face ? 'enrolled' : 'no face'}
+      </span>`;
+
+    const ms = data.monthly_stats;
+    document.getElementById('profile-monthly').innerHTML = `
+      <div class="profile-stats-row">
+        <div class="profile-stat">
+          <div class="profile-stat-val">${ms.sessions}</div>
+          <div class="profile-stat-lbl">sessions this month</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-val">${fmtMins(ms.total_minutes)}</div>
+          <div class="profile-stat-lbl">total time this month</div>
+        </div>
+        ${ms.sessions > 0 ? `<div class="profile-stat">
+          <div class="profile-stat-val">${fmtMins(Math.round(ms.total_minutes / ms.sessions))}</div>
+          <div class="profile-stat-lbl">avg per session</div>
+        </div>` : ''}
+      </div>`;
+
+    if (!data.recent_sessions.length) {
+      document.getElementById('profile-sessions').innerHTML = '<div class="log-empty">no sessions recorded yet</div>';
+    } else {
+      document.getElementById('profile-sessions').innerHTML = `
+        <div class="profile-sess-table">
+          <div class="profile-sess-header">
+            <div>Date</div><div>In</div><div>Out</div><div>Duration</div><div>Method</div>
+          </div>
+          ${data.recent_sessions.map(s => `
+            <div class="profile-sess-row">
+              <div>${s.date}</div>
+              <div>${s.checked_in_at}</div>
+              <div>${s.checked_out_at}</div>
+              <div>${fmtMins(s.duration_minutes)}</div>
+              <div>${s.check_in_method}</div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    document.getElementById('profile-modal').classList.remove('hidden');
+  } catch (err) {
+    console.error('openProfileModal error:', err);
+  }
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-modal').classList.add('hidden');
+}
+
+function closeProfileModalOnBg(event) {
+  if (event.target === document.getElementById('profile-modal')) closeProfileModal();
 }

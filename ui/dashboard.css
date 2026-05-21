@@ -457,3 +457,38 @@
   border-color: #c87f20;
   color: #7a4f08;
 }
+
+/* ── Profile modal ── */
+.profile-box { max-width: 640px; width: 100%; }
+
+.profile-header { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.profile-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.profile-stats-row {
+  display: flex; gap: 20px; flex-wrap: wrap;
+  padding: 12px 0; border-top: 1px solid var(--color-border-tertiary);
+  border-bottom: 1px solid var(--color-border-tertiary);
+  margin-bottom: 4px;
+}
+.profile-stat { display: flex; flex-direction: column; gap: 2px; }
+.profile-stat-val { font-size: 20px; font-weight: 700; color: var(--color-text-primary); font-family: 'DM Mono', monospace; }
+.profile-stat-lbl { font-size: 11px; color: var(--color-text-secondary); }
+
+.profile-sess-table { margin-top: 8px; }
+.profile-sess-header,
+.profile-sess-row {
+  display: grid;
+  grid-template-columns: 100px 50px 50px 80px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.profile-sess-header {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+}
+.profile-sess-row { color: var(--color-text-primary); }
+.profile-sess-row:last-child { border-bottom: none; }

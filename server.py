@@ -111,6 +111,14 @@ def get_users():
     return jsonify(db.get_all_users_info())
 
 
+@app.route('/api/user/<int:user_id>/profile')
+def get_user_profile(user_id):
+    data = db.get_user_profile(user_id)
+    if data is None:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify(data)
+
+
 @app.route('/api/log/today')
 def get_today_log():
     return jsonify(db.get_today_log())

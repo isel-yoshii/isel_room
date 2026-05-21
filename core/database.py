@@ -398,6 +398,68 @@ class SQLDatabase:
         session.close()
         return count or 0
 
+    def get_user_profile(self, user_id):
+        """Returns profile data for a single user: info, current-month stats, last 10 sessions."""
+        from core.SQL.models.model import User, Session as LabSession
+        import calendar
+        session = SessionClass()
+        user = session.get(User, user_id)
+        if not user:
+            session.close()
+            return None
+
+        now = datetime.now()
+        month_start = datetime(now.year, now.month, 1)
+        last_day = calendar.monthrange(now.year, now.month)[1]
+        month_end = datetime(now.year, now.month, last_day, 23, 59, 59)
+
+        monthly_rows = (
+            session.query(LabSession)
+            .filter(
+                LabSession.user_id == user_id,
+                LabSession.checked_in_at >= month_start,
+                LabSession.checked_in_at <= month_end,
+                LabSession.checked_out_at != None,
+            )
+            .all()
+        )
+        total_minutes = sum(
+            int((r.checked_out_at - r.checked_in_at).total_seconds() / 60)
+            for r in monthly_rows
+        )
+
+        recent = (
+            session.query(LabSession)
+            .filter(LabSession.user_id == user_id, LabSession.checked_out_at != None)
+            .order_by(LabSession.checked_in_at.desc())
+            .limit(10)
+            .all()
+        )
+        recent_sessions = [
+            {
+                'date': r.checked_in_at.strftime('%Y-%m-%d'),
+                'checked_in_at': r.checked_in_at.strftime('%H:%M'),
+                'checked_out_at': r.checked_out_at.strftime('%H:%M'),
+                'duration_minutes': int((r.checked_out_at - r.checked_in_at).total_seconds() / 60),
+                'check_in_method': r.check_in_method or 'face',
+            }
+            for r in recent
+        ]
+
+        result = {
+            'id': user.user_id,
+            'name': user.name,
+            'type': user.user_type,
+            'has_face': bool(user.embedding),
+            'monthly_stats': {
+                'sessions': len(monthly_rows),
+                'total_minutes': total_minutes,
+            },
+            'recent_sessions': recent_sessions,
+        }
+        session.close()
+        return result
+
     def export_sessions_csv(self, year, month):
         """Returns session rows for a given month as a list of dicts for CSV export."""
         from core.SQL.models.model import Session as LabSession, User
