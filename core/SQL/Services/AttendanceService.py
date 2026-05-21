@@ -1,4 +1,4 @@
-from core.SQL.models.model import User, Session as LabSession
+from core.SQL.models.model import User, Session as LabSession, AuditLog
 from datetime import datetime
 
 
@@ -39,6 +39,25 @@ class AttendanceService:
             self.session.add(new_sess)
 
         self.session.commit()
+
+        action_map = {
+            ('IN',  'face'):   'CHECKIN',
+            ('IN',  'manual'): 'MANUAL_CHECKIN',
+            ('OUT', 'face'):   'CHECKOUT',
+            ('OUT', 'manual'): 'MANUAL_CHECKOUT',
+        }
+        action = action_map.get((event, check_in_method), 'CHECKIN')
+        user = self.user_repo.get_by_id(user_id)
+        audit = AuditLog(
+            action_type=action,
+            target_user_id=user_id,
+            target_name=user.name,
+            performed_by='kiosk',
+            timestamp=now,
+        )
+        self.session.add(audit)
+        self.session.commit()
+
         return self.get_log_json(user_id, event, now)
 
     def get_log_json(self, user_id, event, now):

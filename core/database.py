@@ -233,7 +233,7 @@ class SQLDatabase:
     
     def force_checkout_all(self):
         """在室中の全員を強制的に退室にする（指定時間の自動処理用）"""
-        from core.SQL.models.model import User, Session as LabSession
+        from core.SQL.models.model import User, Session as LabSession, AuditLog
         session = SessionClass()
         try:
             present_users = session.query(User).filter(User.status == True).all()
@@ -250,6 +250,13 @@ class SQLDatabase:
                 if open_sess:
                     open_sess.checked_out_at = now
                     open_sess.check_in_method = 'auto_checkout'
+                session.add(AuditLog(
+                    action_type='AUTO_CHECKOUT',
+                    target_user_id=user.user_id,
+                    target_name=user.name,
+                    performed_by='system',
+                    timestamp=now,
+                ))
 
             session.commit()
 

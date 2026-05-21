@@ -126,16 +126,23 @@ async function loadAuditLog() {
       return;
     }
 
+    const ACTION_LABEL = {
+      REGISTER: 'registered', DELETE: 'deleted',
+      CHECKIN: 'check-in', CHECKOUT: 'check-out',
+      MANUAL_CHECKIN: 'manual in', MANUAL_CHECKOUT: 'manual out',
+      AUTO_CHECKOUT: 'auto-out', FORCE_CHECKOUT: 'force-out',
+    };
+    const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
+
     body.innerHTML = rows.map(r => {
-      const isReg = r.action === 'REGISTER';
+      const isIn = IN_ACTIONS.has(r.action);
+      const label = ACTION_LABEL[r.action] ?? r.action;
       return `
         <div class="log-row">
-          <div class="log-icon ${isReg ? 'log-in' : 'log-out'}">${isReg ? '+' : '×'}</div>
+          <div class="log-icon ${isIn ? 'log-in' : 'log-out'}">${isIn ? '+' : '×'}</div>
           <div class="log-name">${r.name}</div>
           <div class="log-ts">${r.timestamp}</div>
-          <div class="status-pill ${isReg ? 'pill-in' : 'pill-out'}">
-            ${isReg ? 'registered' : 'deleted'}
-          </div>
+          <div class="status-pill ${isIn ? 'pill-in' : 'pill-out'}">${label}</div>
         </div>`;
     }).join('');
   } catch (err) {
