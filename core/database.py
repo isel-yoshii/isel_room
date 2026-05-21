@@ -156,8 +156,13 @@ class SQLDatabase:
         return self.get_log_for_date()
 
     def get_monthly_stats(self, year, month):
-        """Returns per-user stats for a given month: sessions, total minutes."""
-        from core.SQL.models.model import TimeLog, User
+        """Returns per-user stats for a given month using the sessions table.
+
+        Only closed sessions (checked_out_at IS NOT NULL) that started in the
+        given month are counted. This avoids the cross-month boundary bug where
+        an auto-checkout OUT TimeLog landed in the next month.
+        """
+        from core.SQL.models.model import Session as LabSession, User
         from collections import defaultdict
         import calendar
 
@@ -167,40 +172,36 @@ class SQLDatabase:
         end = datetime(year, month, last_day, 23, 59, 59)
 
         rows = (
-            session.query(TimeLog, User)
-            .join(User)
-            .filter(TimeLog.timestamp >= start, TimeLog.timestamp <= end)
-            .order_by(User.user_id, TimeLog.timestamp)
+            session.query(LabSession, User)
+            .join(User, LabSession.user_id == User.user_id)
+            .filter(
+                LabSession.checked_in_at >= start,
+                LabSession.checked_in_at <= end,
+                LabSession.checked_out_at.isnot(None),
+            )
+            .order_by(User.user_id, LabSession.checked_in_at)
             .all()
         )
 
-        user_logs = defaultdict(list)
+        user_data = defaultdict(lambda: {'sessions': 0, 'total_minutes': 0})
         user_meta = {}
-        for log, user in rows:
-            user_logs[user.user_id].append(log)
-            user_meta[user.user_id] = {'name': user.name, 'type': user.user_type}
+        for lab_sess, user in rows:
+            uid = user.user_id
+            user_meta[uid] = {'name': user.name, 'type': user.user_type}
+            user_data[uid]['sessions'] += 1
+            mins = int((lab_sess.checked_out_at - lab_sess.checked_in_at).total_seconds() / 60)
+            user_data[uid]['total_minutes'] += mins
 
-        result = []
-        for uid, logs in user_logs.items():
-            sessions      = 0
-            total_minutes = 0
-            last_in       = None
-
-            for log in logs:
-                if log.event_type == 'IN':
-                    last_in = log.timestamp
-                    sessions += 1
-                elif log.event_type == 'OUT' and last_in is not None:
-                    total_minutes += int((log.timestamp - last_in).total_seconds() / 60)
-                    last_in = None
-
-            result.append({
+        result = [
+            {
                 'id':            uid,
                 'name':          user_meta[uid]['name'],
                 'type':          user_meta[uid]['type'],
-                'sessions':      sessions,
-                'total_minutes': total_minutes,
-            })
+                'sessions':      data['sessions'],
+                'total_minutes': data['total_minutes'],
+            }
+            for uid, data in user_data.items()
+        ]
 
         session.close()
         result.sort(key=lambda x: x['total_minutes'], reverse=True)
@@ -208,7 +209,7 @@ class SQLDatabase:
     
     def force_checkout_all(self):
         """在室中の全員を強制的に退室（OUT）にする（指定時間の自動処理用）"""
-        from core.SQL.models.model import User, TimeLog
+        from core.SQL.models.model import User, TimeLog, Session as LabSession
         from core.log_generator import append_attendance_log
         session = SessionClass()
         try:
@@ -219,6 +220,19 @@ class SQLDatabase:
                 user.status = False
                 log = TimeLog(user_id=user.user_id, event_type="OUT", timestamp=now)
                 session.add(log)
+
+                # Open Session を閉じて totaltime を更新
+                open_sess = (
+                    session.query(LabSession)
+                    .filter_by(user_id=user.user_id, checked_out_at=None)
+                    .order_by(LabSession.checked_in_at.desc())
+                    .first()
+                )
+                if open_sess:
+                    open_sess.checked_out_at = now
+                    open_sess.check_in_method = 'auto_checkout'
+                    mins = int((now - open_sess.checked_in_at).total_seconds() / 60)
+                    user.totaltime = (user.totaltime or 0) + mins
 
             session.commit()
 
@@ -264,6 +278,48 @@ class SQLDatabase:
         session.add(log)
         session.commit()
         session.close()
+
+    def get_weekly_checkins(self):
+        """Returns unique-user check-in counts per day for the past 7 calendar days.
+
+        Counts distinct members who had at least one session start on each day,
+        so a person who checks in/out 3 times on the same day counts as 1.
+        """
+        from core.SQL.models.model import Session as LabSession
+        from datetime import datetime, timedelta, time as dt_time
+        from sqlalchemy import func
+        session = SessionClass()
+        result = []
+        for i in range(6, -1, -1):
+            day   = (datetime.now() - timedelta(days=i)).date()
+            start = datetime.combine(day, dt_time(0, 0, 0))
+            end   = datetime.combine(day, dt_time(23, 59, 59))
+            count = (
+                session.query(func.count(func.distinct(LabSession.user_id)))
+                .filter(
+                    LabSession.checked_in_at >= start,
+                    LabSession.checked_in_at <= end,
+                )
+                .scalar()
+            )
+            result.append({'date': day.strftime('%m/%d'), 'count': count or 0})
+        session.close()
+        return result
+
+    def get_today_unique_checkins(self):
+        """Returns distinct member count who checked in today (for stat-today UI)."""
+        from core.SQL.models.model import Session as LabSession
+        from datetime import date, time as dt_time
+        from sqlalchemy import func
+        session = SessionClass()
+        today_start = datetime.combine(date.today(), dt_time(0, 0))
+        count = (
+            session.query(func.count(func.distinct(LabSession.user_id)))
+            .filter(LabSession.checked_in_at >= today_start)
+            .scalar()
+        )
+        session.close()
+        return count or 0
 
     def get_audit_log(self, limit=50):
         from core.SQL.models.model import AuditLog
