@@ -310,6 +310,26 @@ async function loadMemberStrip() {
   }
 }
 
+/* ── Camera error overlay ────────────────────────────── */
+
+function showCameraError() {
+  const feed = document.querySelector('.cam-feed');
+  if (!feed) return;
+
+  const existing = feed.querySelector('.cam-error-overlay');
+  if (existing) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'cam-error-overlay';
+  overlay.innerHTML = `
+    <div class="cam-error-icon">⚠</div>
+    <div class="cam-error-msg">Camera unavailable</div>
+    <div class="cam-error-hint">Press Space to check in manually</div>`;
+  feed.appendChild(overlay);
+
+  setState('fail');
+}
+
 /* ── initCheckin: called once at boot ───────────────── */
 
 function initCheckin() {

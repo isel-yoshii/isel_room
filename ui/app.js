@@ -15,6 +15,7 @@ async function startCamera(videoId) {
     document.getElementById(videoId).srcObject = activeStream;
   } catch {
     console.warn('Camera access denied or unavailable.');
+    if (typeof showCameraError === 'function') showCameraError();
   }
 }
 
