@@ -165,6 +165,15 @@ def get_audit_log():
     return jsonify(db.get_audit_log())
 
 
+@app.route('/api/admin/force-checkout/<int:user_id>', methods=['POST'])
+def force_checkout_user(user_id):
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    result = db.force_checkout_user(user_id)
+    status_code = 200 if result['success'] else 400
+    return jsonify(result), status_code
+
+
 @app.route('/api/stats/weekly')
 def weekly_stats():
     return jsonify(db.get_weekly_checkins())

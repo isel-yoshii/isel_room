@@ -107,6 +107,7 @@ async function loadAdminUsers() {
             </div>
           </div>
           <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'in lab' : 'out'}"></div>
+          ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${u.name}')">Force out</button>` : ''}
           <button class="del-btn" onclick="deleteUser(${u.id}, '${u.name}')">Delete</button>
         </div>`;
     }).join('');
@@ -577,6 +578,22 @@ function renderBarChart(data) {
       }
     }
   });
+}
+
+async function forceCheckout(userId, userName) {
+  if (!confirm(`Force "${userName}" out of the lab?`)) return;
+  try {
+    const res = await api.post(`/api/admin/force-checkout/${userId}`, {});
+    if (res.success) {
+      loadAdmin();
+      loadOverview();
+    } else {
+      alert(`Failed: ${res.message}`);
+    }
+  } catch (e) {
+    console.error('forceCheckout error:', e);
+    alert('Network error occurred.');
+  }
 }
 
 async function deleteUser(userId, userName) {

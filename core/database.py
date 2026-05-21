@@ -231,6 +231,42 @@ class SQLDatabase:
         result.sort(key=lambda x: x['total_minutes'], reverse=True)
         return result
     
+    def force_checkout_user(self, user_id):
+        """Force a single user out. Returns {'success': bool, 'message': str}."""
+        from core.SQL.models.model import User, Session as LabSession, AuditLog
+        session = SessionClass()
+        try:
+            user = session.get(User, user_id)
+            if not user:
+                return {'success': False, 'message': 'User not found'}
+            if not user.status:
+                return {'success': False, 'message': 'User is not currently in the lab'}
+            now = datetime.now()
+            user.status = False
+            open_sess = (
+                session.query(LabSession)
+                .filter_by(user_id=user_id, checked_out_at=None)
+                .order_by(LabSession.checked_in_at.desc())
+                .first()
+            )
+            if open_sess:
+                open_sess.checked_out_at = now
+                open_sess.check_in_method = 'auto_checkout'
+            session.add(AuditLog(
+                action_type='FORCE_CHECKOUT',
+                target_user_id=user_id,
+                target_name=user.name,
+                performed_by='admin',
+                timestamp=now,
+            ))
+            session.commit()
+            return {'success': True, 'message': f'{user.name} checked out'}
+        except Exception as e:
+            session.rollback()
+            return {'success': False, 'message': str(e)}
+        finally:
+            session.close()
+
     def force_checkout_all(self):
         """在室中の全員を強制的に退室にする（指定時間の自動処理用）"""
         from core.SQL.models.model import User, Session as LabSession, AuditLog
