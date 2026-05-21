@@ -11,6 +11,20 @@
  * Depends on app.js (api, captureFrame).
  */
 
+/* ── Last-seen formatter ─────────────────────────────── */
+
+function formatLastSeen(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins  = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days  = Math.floor(diff / 86400000);
+  if (mins  < 60)  return `${mins}m ago`;
+  if (hours < 24)  return `${hours}h ago`;
+  if (days  === 1) return 'yesterday';
+  return `${days} days ago`;
+}
+
 /* ── Avatar colour palette (cycles by index) ─────────── */
 
 const AV_COLORS = ['av-teal', 'av-blue', 'av-amber', 'av-pink', 'av-purple'];
@@ -57,11 +71,12 @@ async function loadOverview() {
       grid.innerHTML = sorted.map((u, i) => {
         const here = presentNames.has(u.name);
         const dur  = durationMap[u.name] ?? '–';
+        const timeLabel = here ? dur : (formatLastSeen(u.last_seen) || '–');
         return `
-          <div class="member-card ${here ? 'present' : 'absent'}">
+          <div class="member-card ${here ? 'present' : 'absent'}" onclick="openProfileModal(${u.id})" style="cursor:pointer">
             <div class="avatar ${avColor(i)}">${initials(u.name)}</div>
             <div class="member-name">${u.name}</div>
-            <div class="member-time">${here ? dur : '–'}</div>
+            <div class="member-time">${timeLabel}</div>
             <div class="status-pill ${here ? 'pill-in' : 'pill-out'}">${here ? 'in lab' : 'out'}</div>
           </div>`;
       }).join('');

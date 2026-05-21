@@ -107,11 +107,31 @@ class SQLDatabase:
         return result
 
     def get_all_users_info(self):
-        """Returns all users (id, name, type, status) for the admin panel."""
+        """Returns all users with id, name, type, status, has_face, last_seen."""
+        from core.SQL.models.model import Session as LabSession
+        from sqlalchemy import func
         session = SessionClass()
         user_repo = UserRepository(session)
         users = user_repo.get_all_users()
-        result = [{'id': u.user_id, 'name': u.name, 'type': u.user_type, 'status': u.status, 'has_face': bool(u.embedding)} for u in users]
+
+        last_seen_rows = (
+            session.query(LabSession.user_id, func.max(LabSession.checked_out_at))
+            .group_by(LabSession.user_id)
+            .all()
+        )
+        last_seen_map = {uid: ts for uid, ts in last_seen_rows if ts is not None}
+
+        result = [
+            {
+                'id': u.user_id,
+                'name': u.name,
+                'type': u.user_type,
+                'status': u.status,
+                'has_face': bool(u.embedding),
+                'last_seen': last_seen_map[u.user_id].isoformat() if u.user_id in last_seen_map else None,
+            }
+            for u in users
+        ]
         session.close()
         return result
 
