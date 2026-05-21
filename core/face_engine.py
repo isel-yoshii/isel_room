@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 from deepface import DeepFace
 from scipy.spatial import distance
 
@@ -27,8 +28,14 @@ class FaceEngine:
         matched_id = None
         matched_name = None
 
+        target_vec = np.array(target_embedding, dtype=float).flatten()
+
         for u_id, info in self.db.get_all_embeddings().items():
-            dist = distance.cosine(target_embedding, info["embedding"])
+            stored = info["embedding"]
+            if stored is None:
+                continue
+            stored_vec = np.array(stored, dtype=float).flatten()
+            dist = distance.cosine(target_vec, stored_vec)
             if dist < min_dist:
                 min_dist = dist
                 matched_id = u_id
