@@ -75,7 +75,7 @@ def auth():
         return jsonify({'matched': False, 'message': '顔を検出できませんでした'})
     uid, uname = engine.find_match(emb, engine.auth_threshold)
     if uid:
-        return jsonify({'matched': True, 'user_id': uid, 'name': uname})
+        return jsonify({'matched': True, 'user_id': uid, 'name': uname, 'status': db.get_user_status(uid)})
     return jsonify({'matched': False, 'message': '未登録のユーザーです'})
 
 

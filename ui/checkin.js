@@ -2,9 +2,10 @@
  * checkin.js — Kiosk / check-in screen logic.
  *
  * State machine:
- *   idle  →  scanning  →  checkin | checkout | fail  →  (auto-reset to idle)
+ *   idle  →  scanning  →  confirmation  →  commit → success → idle
+ *                      ↘  fail          →  (Space: manual picker) → commit → success → idle
  *
- * Depends on app.js (api, captureFrame, loadMemberStrip via member-strip refresh).
+ * Depends on app.js (api, captureFrame).
  */
 
 /* ── State definitions ───────────────────────────────── */
@@ -34,18 +35,21 @@ const CHECKIN_STATES = {
         <div class="checkin-avatar av-red">?</div>
         <div class="checkin-info">
           <div class="checkin-name">Unknown person</div>
-          <div class="checkin-detail">ask an admin to register you</div>
+          <div class="checkin-detail">press Space to check in manually</div>
         </div>
       </div>`,
     btnText: 'Try Again', btnDisabled: false,
   },
 };
 
-/* ── setState: updates every UI element for a given state ── */
+/* ── setState ─────────────────────────────────────────── */
+
+let _currentState = 'idle';
 
 function setState(key) {
   const s = CHECKIN_STATES[key];
   if (!s) return;
+  _currentState = key;
 
   const tag = document.getElementById('state-tag');
   tag.className = 'state-tag ' + s.tagClass;
@@ -64,12 +68,42 @@ function setState(key) {
   btn.disabled    = s.btnDisabled;
 }
 
-/* ── setStateResult: builds the success card after recognition ── */
+/* ── setStateConfirmation: shown after a match, before commit ── */
+
+function setStateConfirmation(name, predictedEvent) {
+  _currentState = 'confirmation';
+  const isIn = predictedEvent === 'IN';
+
+  const tag = document.getElementById('state-tag');
+  tag.className = 'state-tag tag-scanning';
+  document.getElementById('state-dot').className = 'dot dot-amber';
+  document.getElementById('tag-text').textContent = 'confirm?';
+
+  document.getElementById('state-name').innerHTML = `Is this<br>${name}?`;
+  document.getElementById('state-sub').textContent = `will ${isIn ? 'check in' : 'check out'}`;
+
+  document.getElementById('result-card').innerHTML = `
+    <div class="hint-row">
+      <div class="hint"><span>Enter</span> · confirm</div>
+      <div class="hint"><span>Space</span> · choose manually</div>
+      <div class="hint"><span>Esc</span> · cancel</div>
+    </div>`;
+
+  document.getElementById('face-box').className = 'face-box state-scanning';
+  document.getElementById('scan-line').style.display = 'none';
+
+  const btn = document.getElementById('btn-scan');
+  btn.textContent = 'Confirm (Enter)';
+  btn.disabled    = false;
+}
+
+/* ── setStateResult: shown briefly after a successful commit ── */
 
 function setStateResult(name, eventType) {
-  const isIn   = eventType === 'IN';
-  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  const time   = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  _currentState = 'success';
+  const isIn     = eventType === 'IN';
+  const inits    = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const time     = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
 
   const tag = document.getElementById('state-tag');
   tag.className = 'state-tag tag-success';
@@ -86,7 +120,7 @@ function setStateResult(name, eventType) {
 
   document.getElementById('result-card').innerHTML = `
     <div class="checkin-card">
-      <div class="checkin-avatar av-green">${initials}</div>
+      <div class="checkin-avatar av-green">${inits}</div>
       <div class="checkin-info">
         <div class="checkin-name">${name}</div>
         <div class="checkin-detail">${isIn ? 'checked in' : 'checked out'}</div>
@@ -96,48 +130,34 @@ function setStateResult(name, eventType) {
 
   document.getElementById('face-box').className = 'face-box state-checkin';
   document.getElementById('scan-line').style.display = 'none';
-  document.getElementById('btn-scan').textContent = 'Scan Next';
-  document.getElementById('btn-scan').disabled    = false;
+
+  const btn = document.getElementById('btn-scan');
+  btn.textContent = 'Scan Next';
+  btn.disabled    = false;
 }
 
-/* ── scanFace: one full scan → toggle cycle ─────────── */
+/* ── Core scan / commit / cancel ─────────────────────── */
 
-let pendingCommit = null; // 保留中の処理を保持
+let pendingConfirm = null;
 
 async function scanFace() {
-  // すでにスキャン中、または確定待ち(pending)の間は入力を受け付けない
-  if (pendingCommit) return;
+  if (pendingConfirm) return;
 
   setState('scanning');
 
   try {
-    const image = captureFrame('checkin-video');
+    const image    = captureFrame('checkin-video');
     const authData = await api.post('/api/auth', { image });
 
     if (authData.matched) {
-      // 1. まず画面演出（IN/OUT）を先に出す（ここではまだDB更新しない）
-      // 仮のeventTypeを判定するために、現在のUI上のステータス等を参照するか、
-      // サーバーから「次どっちになるか」の予測を受け取る必要があります。
-      // ここでは、仮にサーバーが authData.next_event を返してくれると想定するか、
-      // 確定前でも一度 toggle API を叩かずに演出だけ行います。
-      
-      // 演出用のダミー表示 (例: 現在が在室なら次は退室と仮定)
-      const isCurrentlyIn = checkUserIsPresent(authData.name); 
-      const guestEventType = isCurrentlyIn ? 'OUT' : 'IN';
-      
-      setStateResult(authData.name, guestEventType);
-
-      // 2. 確定処理を保留する（5秒待機）
-      pendingCommit = {
-        userId: authData.user_id,
-        timer: setTimeout(() => {
-          commitToggle(authData.user_id);
-        }, 5000) // 5秒猶予
-      };
-
+      // authData.status = true means currently IN → next event is OUT
+      const predictedEvent = authData.status ? 'OUT' : 'IN';
+      setStateConfirmation(authData.name, predictedEvent);
+      pendingConfirm = { userId: authData.user_id };
     } else {
       setState('fail');
-      setTimeout(() => setState('idle'), 3000);
+      // auto-reset after 8 s if user does nothing
+      setTimeout(() => { if (_currentState === 'fail') setState('idle'); }, 8000);
     }
   } catch (e) {
     console.error(e);
@@ -145,38 +165,121 @@ async function scanFace() {
   }
 }
 
-// 実際にDBを更新する関数
 async function commitToggle(userId) {
-  if (!pendingCommit) return;
-  
+  pendingConfirm = null;
   try {
-    await api.post('/api/toggle', { user_id: userId });
-    loadMemberStrip(); // 下のバーを更新
+    const result = await api.post('/api/toggle', { user_id: userId });
+    setStateResult(result.name, result.event_type);
+    loadMemberStrip();
+    setTimeout(() => setState('idle'), 3000);
   } catch (e) {
-    console.error("確定失敗:", e);
-  } finally {
-    pendingCommit = null;
-    setState('idle'); // 次の認証へ
-  }
-}
-
-// キャンセル処理（Escキーで呼ばれる）
-function cancelToggle() {
-  if (pendingCommit) {
-    clearTimeout(pendingCommit.timer);
-    pendingCommit = null;
+    console.error('commitToggle error:', e);
     setState('idle');
-    console.log("キャンセルされました。DBは更新されません。");
   }
 }
 
-// ヘルパー：現在のメンバーリストから在室中か判定
-function checkUserIsPresent(name) {
-  const strip = document.getElementById('member-strip');
-  return strip.textContent.includes(name);
+function cancelToggle() {
+  pendingConfirm = null;
+  setState('idle');
 }
 
-/* ── loadMemberStrip: populates the bottom presence bar ─ */
+/* ── onScanBtnClick: routes button click based on state ── */
+
+function onScanBtnClick() {
+  if (pendingConfirm) {
+    commitToggle(pendingConfirm.userId);
+  } else {
+    scanFace();
+  }
+}
+
+/* ── Manual picker ───────────────────────────────────── */
+
+let _pickerUsers  = [];
+let _pickerFiltered = [];
+let _pickerIndex  = 0;
+
+async function openManualPicker() {
+  try {
+    const users = await api.get('/api/users');
+    // Present (IN) members first, then alphabetical
+    _pickerUsers = [...users].sort((a, b) =>
+      (b.status ? 1 : 0) - (a.status ? 1 : 0) || a.name.localeCompare(b.name)
+    );
+    _pickerIndex  = 0;
+    _pickerFiltered = _pickerUsers;
+
+    const search = document.getElementById('picker-search');
+    search.value = '';
+    renderPickerList(_pickerFiltered);
+    document.getElementById('picker-modal').classList.remove('hidden');
+    setTimeout(() => search.focus(), 50);
+
+    search.oninput = () => {
+      const q = search.value.toLowerCase();
+      _pickerFiltered = _pickerUsers.filter(u => u.name.toLowerCase().includes(q));
+      _pickerIndex = 0;
+      renderPickerList(_pickerFiltered);
+    };
+
+    search.onkeydown = (e) => {
+      const rows = document.querySelectorAll('#picker-list .picker-row');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        _pickerIndex = Math.min(_pickerIndex + 1, rows.length - 1);
+        updatePickerHighlight(rows);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        _pickerIndex = Math.max(_pickerIndex - 1, 0);
+        updatePickerHighlight(rows);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const active = document.querySelector('#picker-list .picker-row.active');
+        if (active) active.click();
+      }
+    };
+  } catch (err) {
+    console.error('openManualPicker error:', err);
+  }
+}
+
+function renderPickerList(users) {
+  const list = document.getElementById('picker-list');
+  if (!users.length) {
+    list.innerHTML = '<div class="picker-empty">no members found</div>';
+    return;
+  }
+  list.innerHTML = users.map((u, i) => {
+    const inits = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    return `
+      <div class="picker-row ${i === _pickerIndex ? 'active' : ''}"
+           onclick="selectPickerUser(${u.id})">
+        <div class="picker-av">${inits}</div>
+        <div class="picker-name">${u.name}</div>
+        <div class="status-pill ${u.status ? 'pill-in' : 'pill-out'}">${u.status ? 'in lab' : 'out'}</div>
+      </div>`;
+  }).join('');
+}
+
+function updatePickerHighlight(rows) {
+  rows.forEach((r, i) => r.classList.toggle('active', i === _pickerIndex));
+  rows[_pickerIndex]?.scrollIntoView({ block: 'nearest' });
+}
+
+function closeManualPicker() {
+  document.getElementById('picker-modal').classList.add('hidden');
+  const search = document.getElementById('picker-search');
+  search.oninput   = null;
+  search.onkeydown = null;
+}
+
+async function selectPickerUser(userId) {
+  closeManualPicker();
+  pendingConfirm = null;
+  await commitToggle(userId);
+}
+
+/* ── loadMemberStrip: bottom presence bar ───────────── */
 
 async function loadMemberStrip() {
   try {
@@ -198,16 +301,8 @@ async function loadMemberStrip() {
   }
 }
 
-/* ── initCheckin: keyboard shortcuts, called once at boot ── */
+/* ── initCheckin: called once at boot ───────────────── */
 
 function initCheckin() {
-  /*
-  document.addEventListener('keydown', e => {
-    if (!document.getElementById('screen-kiosk').classList.contains('active')) return;
-
-    const btn = document.getElementById('btn-scan');
-    if (e.key === 'Enter' && !btn.disabled) scanFace();
-    if (e.key === 'Escape')                 setState('idle');
-  });
-  */
+  // keyboard shortcuts are wired in index.html boot script
 }

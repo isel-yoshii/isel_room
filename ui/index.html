@@ -80,7 +80,7 @@
         <!-- Populated by checkin.js after a scan result -->
         <div id="result-card"></div>
 
-        <button class="btn-scan" id="btn-scan" onclick="scanFace()">Scan Face</button>
+        <button class="btn-scan" id="btn-scan" onclick="onScanBtnClick()">Scan Face</button>
 
         <div class="hint-row">
           <div class="hint"><span>Enter</span> · scan</div>
@@ -208,6 +208,16 @@
     </div>
   </div>
 
+  <!-- Manual picker modal — lets user select themselves if face scan is wrong -->
+  <div class="modal-overlay hidden" id="picker-modal">
+    <div class="picker-box" onclick="event.stopPropagation()">
+      <div class="picker-title">Select member</div>
+      <input type="text" id="picker-search" class="picker-search" placeholder="Type to search…" autocomplete="off" />
+      <div class="picker-list" id="picker-list"></div>
+      <div class="picker-hint">↑ ↓ navigate · Enter select · Esc cancel</div>
+    </div>
+  </div>
+
   <!-- PIN Modal — guards access to the Admin tab -->
   <div class="modal-overlay hidden" id="pin-modal" onclick="closePinModalOnBg(event)">
     <div class="modal-box modal-sm" onclick="event.stopPropagation()">
@@ -248,23 +258,36 @@
     window.addEventListener('keydown', (e) => {
       if (!document.getElementById('screen-kiosk').classList.contains('active')) return;
 
+      const pickerOpen = !document.getElementById('picker-modal').classList.contains('hidden');
+      const regOpen    = !document.getElementById('reg-modal').classList.contains('hidden');
+      const pinOpen    = !document.getElementById('pin-modal').classList.contains('hidden');
+
+      // When picker is open: only Esc is handled here; ↑↓/Enter are on the search input
+      if (pickerOpen) {
+        if (e.key === 'Escape') closeManualPicker();
+        return;
+      }
+
+      if (regOpen || pinOpen) return;
+
       if (e.key === 'Enter') {
-        if (e.repeat) return; 
-        
-        if (pendingCommit) {
-          // 猶予期間中にEnterを押したら、待たずに即確定
-          clearTimeout(pendingCommit.timer);
-          commitToggle(pendingCommit.userId);
+        if (e.repeat) return;
+        if (pendingConfirm) {
+          commitToggle(pendingConfirm.userId);
         } else {
-          // 通常時はスキャン
-          if (document.getElementById('reg-modal').classList.contains('hidden')) {
-            scanFace();
-          }
+          onScanBtnClick();
+        }
+      }
+
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        if (pendingConfirm || _currentState === 'fail') {
+          openManualPicker();
         }
       }
 
       if (e.key === 'Escape') {
-        cancelToggle(); // 保留があれば破棄してidleへ
+        cancelToggle();
       }
     });
   </script>

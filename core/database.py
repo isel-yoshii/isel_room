@@ -182,6 +182,15 @@ class SQLDatabase:
         session.close()
         return name
 
+    def get_user_status(self, user_id):
+        """Returns True if user is currently in the lab, False otherwise."""
+        from core.SQL.models.model import User
+        session = SessionClass()
+        user = session.get(User, user_id)
+        status = user.status if user else False
+        session.close()
+        return status
+
     def add_audit_log(self, action_type, user_id, name):
         from core.SQL.models.model import AuditLog
         session = SessionClass()
