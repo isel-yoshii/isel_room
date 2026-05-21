@@ -130,6 +130,7 @@ def register():
 
     new_user_id = db.add_user(name, user_type, embedding)
     append_attendance_log(new_user_id, name, '登録')
+    db.add_audit_log('REGISTER', new_user_id, name)
     return jsonify({'success': True, 'message': f'{name}さんを登録しました', 'user_id': new_user_id})
 
 
@@ -138,10 +139,17 @@ def delete_user(user_id):
     if not session.get('admin'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
     try:
+        name = db.get_user_name(user_id)
         db.delete_user(user_id)
+        db.add_audit_log('DELETE', user_id, name or f'user_{user_id}')
         return jsonify({'success': True, 'message': 'ユーザーを削除しました'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/audit/log')
+def get_audit_log():
+    return jsonify(db.get_audit_log())
     
 def schedule_checkout():
     """毎日自動退室処理を実行。ただし認証処理中は安全のため待機する"""

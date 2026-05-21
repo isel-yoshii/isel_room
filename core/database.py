@@ -149,18 +149,22 @@ class SQLDatabase:
     def force_checkout_all(self):
         """在室中の全員を強制的に退室（OUT）にする（指定時間の自動処理用）"""
         from core.SQL.models.model import User, TimeLog
+        from core.log_generator import append_attendance_log
         session = SessionClass()
         try:
-            # 在室中（status == True）のユーザーを取得
             present_users = session.query(User).filter(User.status == True).all()
             now = datetime.now()
-            
+
             for user in present_users:
                 user.status = False
                 log = TimeLog(user_id=user.user_id, event_type="OUT", timestamp=now)
                 session.add(log)
-                
+
             session.commit()
+
+            for user in present_users:
+                append_attendance_log(user.user_id, user.name, '退室(自動)')
+
             if present_users:
                 print(f"[{now.strftime('%H:%M:%S')}] {len(present_users)}名の自動退室処理を完了しました。")
         except Exception as e:
@@ -168,3 +172,48 @@ class SQLDatabase:
             print(f"自動退室処理でエラー: {e}")
         finally:
             session.close()
+
+    # ---- 管理者操作ログ ----
+
+    def get_user_name(self, user_id):
+        session = SessionClass()
+        user_repo = UserRepository(session)
+        name = user_repo.get_name(user_id)
+        session.close()
+        return name
+
+    def add_audit_log(self, action_type, user_id, name):
+        from core.SQL.models.model import AuditLog
+        session = SessionClass()
+        log = AuditLog(
+            action_type=action_type,
+            target_user_id=user_id,
+            target_name=name,
+            performed_by='admin',
+            timestamp=datetime.now(),
+        )
+        session.add(log)
+        session.commit()
+        session.close()
+
+    def get_audit_log(self, limit=50):
+        from core.SQL.models.model import AuditLog
+        session = SessionClass()
+        rows = (
+            session.query(AuditLog)
+            .order_by(AuditLog.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+        result = [
+            {
+                'action': r.action_type,
+                'user_id': r.target_user_id,
+                'name': r.target_name,
+                'performed_by': r.performed_by,
+                'timestamp': r.timestamp.strftime('%Y-%m-%d %H:%M'),
+            }
+            for r in rows
+        ]
+        session.close()
+        return result

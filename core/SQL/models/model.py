@@ -16,15 +16,27 @@ class User(Base):
     
     logs = relationship("TimeLog", back_populates="user", cascade="all, delete-orphan")  # TimeLogオブジェクトと紐付け(userと連動)
 
-# TimeLogテーブルのモデルを定義するクラス   
+# TimeLogテーブルのモデルを定義するクラス
 class TimeLog(Base):
     __tablename__ = 'logs'
-    
+
     id = Column(Integer, primary_key=True, index=True)  # ログID
     ### ForeignKeyでUserテーブルのuser_idと関連付ける※消すな ###
     user_id = Column(Integer, ForeignKey('users.user_id'))  # ユーザーID
     event_type = Column(String(10))  # 'IN' or 'OUT'
     timestamp = Column(DateTime)  # ログの時刻を保存するフィールド
-    
+
     user = relationship("User", back_populates="logs")  # Userオブジェクトと紐付け(logsと連動)
+
+
+# AuditLogテーブル: 管理者操作(登録・削除)の記録
+class AuditLog(Base):
+    __tablename__ = 'audit_log'
+
+    id            = Column(Integer, primary_key=True, index=True)
+    action_type   = Column(String(20))    # 'REGISTER' or 'DELETE'
+    target_user_id = Column(Integer)
+    target_name   = Column(String(255))
+    performed_by  = Column(String(50), default='admin')
+    timestamp     = Column(DateTime)
     

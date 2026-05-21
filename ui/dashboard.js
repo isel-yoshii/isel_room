@@ -95,6 +95,10 @@ async function loadOverview() {
 /* ── Admin tab ───────────────────────────────────────── */
 
 async function loadAdmin() {
+  await Promise.all([loadAdminUsers(), loadAuditLog()]);
+}
+
+async function loadAdminUsers() {
   try {
     const users = await api.get('/api/users');
     const grid  = document.getElementById('admin-grid');
@@ -121,13 +125,39 @@ async function loadAdmin() {
             </div>
           </div>
           <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'in lab' : 'out'}"></div>
-
           <button class="del-btn" onclick="deleteUser(${u.id}, '${u.name}')">Delete</button>
         </div>`;
     }).join('');
 
   } catch (err) {
-    console.error('loadAdmin error:', err);
+    console.error('loadAdminUsers error:', err);
+  }
+}
+
+async function loadAuditLog() {
+  try {
+    const rows = await api.get('/api/audit/log');
+    const body = document.getElementById('audit-body');
+
+    if (!rows.length) {
+      body.innerHTML = '<div class="log-empty">no admin actions recorded yet</div>';
+      return;
+    }
+
+    body.innerHTML = rows.map(r => {
+      const isReg = r.action === 'REGISTER';
+      return `
+        <div class="log-row">
+          <div class="log-icon ${isReg ? 'log-in' : 'log-out'}">${isReg ? '+' : '×'}</div>
+          <div class="log-name">${r.name}</div>
+          <div class="log-ts">${r.timestamp}</div>
+          <div class="status-pill ${isReg ? 'pill-in' : 'pill-out'}">
+            ${isReg ? 'registered' : 'deleted'}
+          </div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    console.error('loadAuditLog error:', err);
   }
 }
 
