@@ -78,13 +78,12 @@ def auth():
         return jsonify({'matched': False, 'message': '顔を検出できませんでした'})
     uid, uname, dist = engine.find_match(emb, engine.auth_threshold)
     if uid:
-        low_confidence = dist > LOW_CONFIDENCE_THRESHOLD
         return jsonify({
             'matched': True,
-            'user_id': uid,
+            'user_id': int(uid),
             'name': uname,
-            'status': db.get_user_status(uid),
-            'low_confidence': low_confidence,
+            'status': bool(db.get_user_status(uid)),
+            'low_confidence': bool(dist > LOW_CONFIDENCE_THRESHOLD),
         })
     return jsonify({'matched': False, 'message': '未登録のユーザーです'})
 
