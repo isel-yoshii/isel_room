@@ -14,6 +14,17 @@ class AttendanceService:
         if user.status:
             user.status = False
             event = "OUT"
+
+            # Add elapsed minutes since last IN to cumulative totaltime
+            last_in = (
+                self.session.query(TimeLog)
+                .filter_by(user_id=user_id, event_type="IN")
+                .order_by(TimeLog.timestamp.desc())
+                .first()
+            )
+            if last_in:
+                minutes = int((datetime.now() - last_in.timestamp).total_seconds() / 60)
+                user.totaltime = (user.totaltime or 0) + minutes
         else:
             user.status = True
             event = "IN"
