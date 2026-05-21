@@ -3,28 +3,33 @@
  * Screen-specific styles live in checkin.css and dashboard.css.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 /* ── Design tokens ── */
 :root {
-  --color-background-primary:   #111111;
-  --color-background-secondary: #161616;
-  --color-background-tertiary:  #0A0A0A;
-  --color-border-secondary:     #222222;
-  --color-border-tertiary:      #1E1E1E;
-  --color-text-primary:         #E8E8E8;
-  --color-text-secondary:       #555555;
-  --color-accent:               #0F6E56;
-  --color-accent-light:         #E1F5EE;
+  --color-background-primary:   #FFFAF5;
+  --color-background-secondary: #FFF1E6;
+  --color-background-tertiary:  #FFE8D6;
+  --color-border-primary:       #E8C4A0;
+  --color-border-secondary:     #FFD166;
+  --color-border-tertiary:      #FFE0A3;
+  --color-text-primary:         #1C1410;
+  --color-text-secondary:       #6B4E35;
+  --color-text-tertiary:        #A07850;
+  --color-accent:               #E86A2A;
+  --color-accent-light:         #FFF1E6;
+  --color-accent-hover:         #D45A1A;
   --border-radius-lg:           12px;
-  --border-radius-md:           8px;
+  --border-radius-md:           10px;
+  --shadow-card:                none;
+  --shadow-modal:               0 12px 40px rgba(0, 0, 0, 0.14);
 }
 
 /* ── Base reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Sora', sans-serif;
+  font-family: 'Nunito', sans-serif;
   background: var(--color-background-tertiary);
   color: var(--color-text-primary);
   min-height: 100vh;
@@ -35,7 +40,8 @@ body {
 /* ── Top navigation bar ── */
 .topbar {
   background: var(--color-background-primary);
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -50,19 +56,23 @@ body {
 .logo-mark {
   width: 28px; height: 28px;
   background: var(--color-accent);
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 600;
-  color: var(--color-accent-light);
-  font-family: 'DM Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  color: #FFFFFF;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
-.logo-text { font-size: 13px; font-weight: 500; }
+.logo-text {
+  font-size: 13px; font-weight: 600;
+  color: var(--color-text-primary);
+  font-family: 'Syne', sans-serif;
+}
 
 .logo-sub {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-text-secondary);
-  font-family: 'DM Mono', monospace;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 /* ── Screen switcher (Kiosk | Dashboard) ── */
@@ -72,33 +82,38 @@ body {
   background: var(--color-background-secondary);
   border-radius: var(--border-radius-md);
   padding: 3px;
+  border: 1px solid var(--color-border-tertiary);
 }
 
 .sw-btn {
   padding: 5px 14px;
-  border-radius: 6px;
+  border-radius: 7px;
   border: none;
   background: transparent;
   color: var(--color-text-secondary);
   font-size: 12px;
-  font-family: 'DM Mono', monospace;
+  font-family: 'IBM Plex Mono', monospace;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.18s;
 }
 
-.sw-btn.active { background: var(--color-accent); color: var(--color-accent-light); }
+.sw-btn.active {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(232, 106, 42, 0.3);
+}
 
 /* ── Live clock + dot ── */
 .topbar-right {
   display: flex; align-items: center; gap: 8px;
   font-size: 12px;
   color: var(--color-text-secondary);
-  font-family: 'DM Mono', monospace;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 .live-dot {
   width: 7px; height: 7px;
-  background: #1D9E75;
+  background: #06D6A0;
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
@@ -106,52 +121,59 @@ body {
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* ── Screen containers ── */
-.screen { display: none; flex: 1; flex-direction: column; }
+.screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
 .screen.active { display: flex; }
 
-/* ── Registration modal ── */
+/* ── Modal overlay ── */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.35);
   display: flex; align-items: center; justify-content: center;
   z-index: 100;
+  backdrop-filter: blur(2px);
 }
 
 .modal-overlay.hidden { display: none; }
 
 .modal-box {
   background: var(--color-background-primary);
-  border: 0.5px solid var(--color-border-tertiary);
-  border-radius: var(--border-radius-lg);
-  padding: 24px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-modal);
+  padding: 28px;
   width: 100%; max-width: 400px;
 }
 
 .modal-sm { max-width: 300px; }
 
-.modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.modal-title {
+  font-size: 16px; font-weight: 700;
+  margin-bottom: 18px;
+  font-family: 'Syne', sans-serif;
+}
 
-.modal-field { margin-bottom: 12px; }
+.modal-field { margin-bottom: 14px; }
 
 .modal-field label {
   display: block;
   font-size: 11px;
   color: var(--color-text-secondary);
-  font-family: 'DM Mono', monospace;
-  margin-bottom: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 6px;
 }
 
 .modal-field input,
 .modal-field select {
   width: 100%;
   background: var(--color-background-secondary);
-  border: 0.5px solid var(--color-border-tertiary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: var(--border-radius-md);
   color: var(--color-text-primary);
-  padding: 8px 12px;
+  padding: 9px 13px;
   font-size: 13px;
-  font-family: 'Sora', sans-serif;
+  font-family: 'Nunito', sans-serif;
   outline: none;
+  transition: border-color 0.15s;
 }
 
 .modal-field input:focus,
@@ -159,7 +181,7 @@ body {
 
 .modal-cam {
   width: 100%; aspect-ratio: 4/3;
-  background: #000;
+  background: #1C1410;
   border-radius: var(--border-radius-md);
   overflow: hidden;
   margin-bottom: 10px;
@@ -167,46 +189,50 @@ body {
 
 .modal-cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.modal-actions { display: flex; gap: 8px; margin-top: 12px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 
 .modal-msg {
   font-size: 12px;
-  font-family: 'DM Mono', monospace;
+  font-family: 'IBM Plex Mono', monospace;
   text-align: center;
   padding: 6px;
   min-height: 28px;
   border-radius: var(--border-radius-md);
 }
 
-.modal-msg.ok  { color: #1D9E75; background: rgba(29, 158, 117, 0.08); }
-.modal-msg.err { color: #E24B4A; background: rgba(226,  75,  74, 0.08); }
+.modal-msg.ok  { color: #009E78; background: rgba(6, 214, 160, 0.08); }
+.modal-msg.err { color: #E84545; background: rgba(232, 69, 69, 0.08); }
 
 /* ── Shared buttons ── */
 .btn-primary {
   background: var(--color-accent);
-  color: var(--color-accent-light);
+  color: #FFFFFF;
   border: none;
   border-radius: var(--border-radius-md);
   padding: 9px 16px;
-  font-size: 13px; font-weight: 500;
-  font-family: 'Sora', sans-serif;
+  font-size: 13px; font-weight: 600;
+  font-family: 'Nunito', sans-serif;
   cursor: pointer; flex: 1;
-  transition: opacity 0.15s;
+  transition: background 0.15s;
+  box-shadow: 0 2px 8px rgba(232, 106, 42, 0.25);
 }
 
-.btn-primary:hover:not(:disabled) { opacity: 0.85; }
+.btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-ghost {
   background: transparent;
   color: var(--color-text-secondary);
-  border: 0.5px solid var(--color-border-tertiary);
+  border: 1.5px solid var(--color-border-primary);
   border-radius: var(--border-radius-md);
   padding: 9px 16px;
   font-size: 13px;
-  font-family: 'Sora', sans-serif;
+  font-family: 'Nunito', sans-serif;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: all 0.15s;
 }
 
-.btn-ghost:hover { color: var(--color-text-primary); }
+.btn-ghost:hover {
+  color: var(--color-text-primary);
+  background: var(--color-background-secondary);
+}
