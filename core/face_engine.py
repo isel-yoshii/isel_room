@@ -19,9 +19,9 @@ class FaceEngine:
         return None
 
     def find_match(self, target_embedding, threshold):
-        """抽出した特徴をDBと照合し、一致したユーザーのIDと名前を返す"""
+        """抽出した特徴をDBと照合し、一致したユーザーのIDと名前と距離を返す"""
         if target_embedding is None:
-            return None, None
+            return None, None, None
 
         min_dist = threshold
         matched_id = None
@@ -33,5 +33,7 @@ class FaceEngine:
                 min_dist = dist
                 matched_id = u_id
                 matched_name = info["name"]
-        
-        return matched_id, matched_name
+
+        if matched_id is None:
+            return None, None, None
+        return matched_id, matched_name, min_dist

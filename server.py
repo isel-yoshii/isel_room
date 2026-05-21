@@ -22,6 +22,8 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')
 db = SQLDatabase()
 engine = FaceEngine(db)
 
+LOW_CONFIDENCE_THRESHOLD = float(os.getenv('LOW_CONFIDENCE_THRESHOLD', '0.40'))
+
 # Kioskで最後に認証アクションが起きた時間を記録（初期値は過去）
 last_kiosk_activity = datetime.min
 
@@ -74,9 +76,16 @@ def auth():
     emb = engine.extract_embedding(frame, enforce=False)
     if emb is None:
         return jsonify({'matched': False, 'message': '顔を検出できませんでした'})
-    uid, uname = engine.find_match(emb, engine.auth_threshold)
+    uid, uname, dist = engine.find_match(emb, engine.auth_threshold)
     if uid:
-        return jsonify({'matched': True, 'user_id': uid, 'name': uname, 'status': db.get_user_status(uid)})
+        low_confidence = dist > LOW_CONFIDENCE_THRESHOLD
+        return jsonify({
+            'matched': True,
+            'user_id': uid,
+            'name': uname,
+            'status': db.get_user_status(uid),
+            'low_confidence': low_confidence,
+        })
     return jsonify({'matched': False, 'message': '未登録のユーザーです'})
 
 
@@ -138,7 +147,7 @@ def register():
     if embedding is None:
         return jsonify({'success': False, 'message': '顔を検出できませんでした'})
 
-    dup_id, dup_name = engine.find_match(embedding, engine.reg_threshold)
+    dup_id, dup_name, _ = engine.find_match(embedding, engine.reg_threshold)
     if dup_id is not None:
         return jsonify({'success': False, 'message': f'この方は既に「{dup_name}」として登録されています'})
 

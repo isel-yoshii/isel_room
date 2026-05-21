@@ -150,6 +150,12 @@ async function scanFace() {
     const authData = await api.post('/api/auth', { image });
 
     if (authData.matched) {
+      if (authData.low_confidence) {
+        document.getElementById('state-sub').textContent = 'Low confidence — please select manually';
+        setState('fail');
+        openManualPicker();
+        return;
+      }
       // authData.status = true means currently IN → next event is OUT
       const predictedEvent = authData.status ? 'OUT' : 'IN';
       setStateConfirmation(authData.name, predictedEvent);
