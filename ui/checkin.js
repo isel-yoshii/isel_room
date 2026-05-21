@@ -168,7 +168,7 @@ async function scanFace() {
 async function commitToggle(userId) {
   pendingConfirm = null;
   try {
-    const result = await api.post('/api/toggle', { user_id: userId });
+    const result = await api.post('/api/toggle', { user_id: userId, check_in_method: 'face' });
     setStateResult(result.name, result.event_type);
     loadMemberStrip();
     setTimeout(() => setState('idle'), 3000);
@@ -276,7 +276,10 @@ function closeManualPicker() {
 async function selectPickerUser(userId) {
   closeManualPicker();
   pendingConfirm = null;
-  await commitToggle(userId);
+  const result = await api.post('/api/toggle', { user_id: userId, check_in_method: 'manual' });
+  setStateResult(result.name, result.event_type);
+  loadMemberStrip();
+  setTimeout(() => setState('idle'), 3000);
 }
 
 /* ── loadMemberStrip: bottom presence bar ───────────── */

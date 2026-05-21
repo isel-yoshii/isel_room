@@ -84,10 +84,10 @@ def toggle():
     global last_kiosk_activity
     last_kiosk_activity = datetime.now()
 
-    result = db.toggle_entry(request.json['user_id'])
+    check_in_method = request.json.get('check_in_method', 'face')
+    result = db.toggle_entry(request.json['user_id'], check_in_method)
     event = result['event_type']
     send_slack_message(f"{result['name']}さんが{'入室' if event == 'IN' else '退室'}しました")
-    append_attendance_log(result['user_id'], result['name'], {'入室' if event == 'IN' else '退室'})
     return jsonify(result)
 
 
