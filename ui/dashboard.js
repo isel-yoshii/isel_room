@@ -30,15 +30,16 @@ async function loadDashboard() {
 
 async function loadOverview() {
   try {
-    const [present, log, users] = await Promise.all([
+    const [present, log, users, todayStats] = await Promise.all([
       api.get('/api/present-detailed'),
       api.get('/api/log/today'),
       api.get('/api/users'),
+      api.get('/api/stats/today'),
     ]);
 
     /* Stats */
     document.getElementById('stat-in').textContent    = present.length;
-    document.getElementById('stat-today').textContent = log.filter(l => l.event_type === 'IN').length;
+    document.getElementById('stat-today').textContent = todayStats.unique_checkins;
     document.getElementById('stat-total').textContent = users.length;
 
     /* Member grid — all members, present ones highlighted */
@@ -65,6 +66,8 @@ async function loadOverview() {
           </div>`;
       }).join('');
     }
+
+    loadCharts();
 
   } catch (err) {
     console.error('loadOverview error:', err);
@@ -269,7 +272,13 @@ function renderStats(data) {
     </div>`;
 }
 
-/* ── Sub-tab switching (Dashboard | Admin | Stats) ───── */
+/* ── Sub-tab switching (Overview | Admin | Stats) ───── */
+
+const PAGE_META = {
+  overview: { title: 'Overview',    subtitle: "Today's lab activity" },
+  stats:    { title: 'Statistics',  subtitle: 'Monthly attendance data' },
+  admin:    { title: 'Admin',       subtitle: 'Manage members and access' },
+};
 
 function switchDashTab(name, btn) {
   if (name === 'admin') {
@@ -284,9 +293,17 @@ function switchDashTab(name, btn) {
 
 function activateDashTab(name, btn) {
   document.querySelectorAll('.db-page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('db-' + name).classList.add('active');
   btn.classList.add('active');
+
+  const meta = PAGE_META[name];
+  if (meta) {
+    const titleEl    = document.getElementById('page-title');
+    const subtitleEl = document.getElementById('page-subtitle');
+    if (titleEl)    titleEl.textContent    = meta.title;
+    if (subtitleEl) subtitleEl.textContent = meta.subtitle;
+  }
 }
 
 async function checkAdminAndProceed(callback) {
@@ -360,7 +377,7 @@ async function submitPin() {
 
 async function adminLogout() {
   await api.post('/api/admin/logout', {});
-  const overviewBtn = document.querySelector('.nav-tab');
+  const overviewBtn = document.getElementById('sbt-overview');
   activateDashTab('overview', overviewBtn);
   loadOverview();
 }
@@ -449,6 +466,110 @@ async function captureAndRegister() {
   }
 
   btn.disabled = false;
+}
+
+/* ── Charts (Chart.js) ───────────────────────────────── */
+
+let _lineChart = null;
+let _barChart  = null;
+
+async function loadCharts() {
+  if (typeof Chart === 'undefined') return;
+  try {
+    const [weekly, monthly] = await Promise.all([
+      api.get('/api/stats/weekly'),
+      api.get(`/api/stats/monthly?year=${new Date().getFullYear()}&month=${new Date().getMonth() + 1}`),
+    ]);
+    renderLineChart(weekly);
+    renderBarChart(monthly.slice(0, 8));
+  } catch (err) {
+    console.error('loadCharts error:', err);
+  }
+}
+
+function renderLineChart(data) {
+  const canvas = document.getElementById('chart-line');
+  if (!canvas) return;
+  if (_lineChart) { _lineChart.destroy(); _lineChart = null; }
+  _lineChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date),
+      datasets: [{
+        data: data.map(d => d.count),
+        borderColor: '#C83B3B',
+        backgroundColor: 'rgba(200, 59, 59, 0.07)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#C83B3B',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#1A1A1A',
+          bodyColor: '#A09090',
+          borderColor: '#F2E5E4',
+          borderWidth: 1,
+          callbacks: { label: ctx => `${ctx.raw} check-ins` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10, family: 'DM Mono' }, color: '#A09090' } },
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1, font: { size: 10, family: 'DM Mono' }, color: '#A09090' } }
+      }
+    }
+  });
+}
+
+function renderBarChart(data) {
+  const canvas = document.getElementById('chart-bar');
+  if (!canvas) return;
+  if (_barChart) { _barChart.destroy(); _barChart = null; }
+  if (!data.length) return;
+
+  const maxMinutes = Math.max(...data.map(d => d.total_minutes));
+  _barChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.name.split(' ')[0]),
+      datasets: [{
+        data: data.map(d => +(d.total_minutes / 60).toFixed(1)),
+        backgroundColor: data.map(d =>
+          d.total_minutes === maxMinutes ? '#C83B3B' : '#FDECEA'
+        ),
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#1A1A1A',
+          bodyColor: '#A09090',
+          borderColor: '#F2E5E4',
+          borderWidth: 1,
+          callbacks: { label: ctx => `${ctx.raw}h this month` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10, family: 'DM Mono' }, color: '#A09090' } },
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10, family: 'DM Mono' }, color: '#A09090' } }
+      }
+    }
+  });
 }
 
 async function deleteUser(userId, userName) {

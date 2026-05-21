@@ -163,6 +163,16 @@ def delete_user(user_id):
 @app.route('/api/audit/log')
 def get_audit_log():
     return jsonify(db.get_audit_log())
+
+
+@app.route('/api/stats/weekly')
+def weekly_stats():
+    return jsonify(db.get_weekly_checkins())
+
+
+@app.route('/api/stats/today')
+def today_stats():
+    return jsonify({'unique_checkins': db.get_today_unique_checkins()})
     
 def schedule_checkout():
     """毎日自動退室処理を実行。ただし認証処理中は安全のため待機する"""
