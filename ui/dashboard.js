@@ -104,6 +104,9 @@ async function loadAdminUsers() {
               <span class="role-badge ${isAdmin ? 'badge-admin' : 'badge-student'}">
                 ${isAdmin ? 'admin' : 'student'}
               </span>
+              <span class="face-badge ${u.has_face ? 'badge-face-ok' : 'badge-face-none'}">
+                ${u.has_face ? 'enrolled' : 'no face'}
+              </span>
             </div>
           </div>
           <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'in lab' : 'out'}"></div>

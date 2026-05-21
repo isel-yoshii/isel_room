@@ -111,7 +111,7 @@ class SQLDatabase:
         session = SessionClass()
         user_repo = UserRepository(session)
         users = user_repo.get_all_users()
-        result = [{'id': u.user_id, 'name': u.name, 'type': u.user_type, 'status': u.status} for u in users]
+        result = [{'id': u.user_id, 'name': u.name, 'type': u.user_type, 'status': u.status, 'has_face': bool(u.embedding)} for u in users]
         session.close()
         return result
 
