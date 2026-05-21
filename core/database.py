@@ -116,26 +116,32 @@ class SQLDatabase:
         session.close()
         return result
 
-    def get_today_log(self):
-        """Returns today's activity log sorted newest-first (for dashboard activity feed)."""
+    def get_log_for_date(self, date_str=None):
+        """Returns activity log for a logical day, sorted newest-first.
+
+        date_str: 'YYYY-MM-DD' for a specific date, or None for today.
+        A logical day runs from DAY_RESET_HOUR to the same hour next day.
+        """
         from core.SQL.models.model import TimeLog, User
-        from datetime import datetime, date
         session = SessionClass()
         now = datetime.now()
-
         reset_hour = int(os.getenv("DAY_RESET_HOUR", 4))
 
-        if now.hour < reset_hour:
-            logical_date = now.date() - timedelta(days=1)
+        if date_str:
+            logical_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         else:
-            logical_date = now.date()
-            
-        today_start = datetime.combine(logical_date, time(reset_hour, 0))
+            if now.hour < reset_hour:
+                logical_date = now.date() - timedelta(days=1)
+            else:
+                logical_date = now.date()
+
+        day_start = datetime.combine(logical_date, time(reset_hour, 0))
+        day_end   = datetime.combine(logical_date + timedelta(days=1), time(reset_hour, 0))
 
         rows = (
             session.query(TimeLog, User)
             .join(User)
-            .filter(TimeLog.timestamp >= today_start)
+            .filter(TimeLog.timestamp >= day_start, TimeLog.timestamp < day_end)
             .order_by(TimeLog.timestamp.desc())
             .all()
         )
@@ -144,6 +150,60 @@ class SQLDatabase:
             for l, u in rows
         ]
         session.close()
+        return result
+
+    def get_today_log(self):
+        return self.get_log_for_date()
+
+    def get_monthly_stats(self, year, month):
+        """Returns per-user stats for a given month: sessions, total minutes."""
+        from core.SQL.models.model import TimeLog, User
+        from collections import defaultdict
+        import calendar
+
+        session = SessionClass()
+        start = datetime(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end = datetime(year, month, last_day, 23, 59, 59)
+
+        rows = (
+            session.query(TimeLog, User)
+            .join(User)
+            .filter(TimeLog.timestamp >= start, TimeLog.timestamp <= end)
+            .order_by(User.user_id, TimeLog.timestamp)
+            .all()
+        )
+
+        user_logs = defaultdict(list)
+        user_meta = {}
+        for log, user in rows:
+            user_logs[user.user_id].append(log)
+            user_meta[user.user_id] = {'name': user.name, 'type': user.user_type}
+
+        result = []
+        for uid, logs in user_logs.items():
+            sessions      = 0
+            total_minutes = 0
+            last_in       = None
+
+            for log in logs:
+                if log.event_type == 'IN':
+                    last_in = log.timestamp
+                    sessions += 1
+                elif log.event_type == 'OUT' and last_in is not None:
+                    total_minutes += int((log.timestamp - last_in).total_seconds() / 60)
+                    last_in = None
+
+            result.append({
+                'id':            uid,
+                'name':          user_meta[uid]['name'],
+                'type':          user_meta[uid]['type'],
+                'sessions':      sessions,
+                'total_minutes': total_minutes,
+            })
+
+        session.close()
+        result.sort(key=lambda x: x['total_minutes'], reverse=True)
         return result
     
     def force_checkout_all(self):

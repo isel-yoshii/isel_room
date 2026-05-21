@@ -106,6 +106,19 @@ def get_today_log():
     return jsonify(db.get_today_log())
 
 
+@app.route('/api/log')
+def get_log():
+    date = request.args.get('date')
+    return jsonify(db.get_log_for_date(date))
+
+
+@app.route('/api/stats/monthly')
+def monthly_stats():
+    year  = int(request.args.get('year',  datetime.now().year))
+    month = int(request.args.get('month', datetime.now().month))
+    return jsonify(db.get_monthly_stats(year, month))
+
+
 @app.route('/api/register', methods=['POST'])
 def register():
     if not session.get('admin'):

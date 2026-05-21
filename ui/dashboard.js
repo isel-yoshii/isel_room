@@ -23,7 +23,7 @@ function initials(name) {
 /* ── Top-level load (called by switchScreen in app.js) ── */
 
 async function loadDashboard() {
-  await Promise.all([loadOverview(), loadAdmin()]);
+  await Promise.all([loadOverview(), loadLogSection(), loadAdmin()]);
 }
 
 /* ── Overview tab ────────────────────────────────────── */
@@ -64,27 +64,6 @@ async function loadOverview() {
             <div class="status-pill ${here ? 'pill-in' : 'pill-out'}">${here ? 'in lab' : 'out'}</div>
           </div>`;
       }).join('');
-    }
-
-    /* Activity log */
-    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-    document.getElementById('log-header').textContent = `Activity — ${today}`;
-
-    const logBody = document.getElementById('log-body');
-    if (!log.length) {
-      logBody.innerHTML = '<div class="log-empty">no activity recorded today</div>';
-    } else {
-      logBody.innerHTML = log.map(l => `
-        <div class="log-row">
-          <div class="log-icon ${l.event_type === 'IN' ? 'log-in' : 'log-out'}">
-            ${l.event_type === 'IN' ? '↑' : '↓'}
-          </div>
-          <div class="log-name">${l.name}</div>
-          <div class="log-ts">${l.timestamp}</div>
-          <div class="status-pill ${l.event_type === 'IN' ? 'pill-in' : 'pill-out'}">
-            ${l.event_type === 'IN' ? 'check-in' : 'check-out'}
-          </div>
-        </div>`).join('');
     }
 
   } catch (err) {
@@ -161,7 +140,136 @@ async function loadAuditLog() {
   }
 }
 
-/* ── Sub-tab switching (Dashboard | Admin) ───────────── */
+/* ── Activity log with date navigation ───────────────── */
+
+let _logDateOffset = 0;
+
+function changeLogDate(delta) {
+  _logDateOffset += delta;
+  loadLogSection();
+}
+
+async function loadLogSection() {
+  const nextBtn = document.getElementById('log-nav-next');
+  const labelEl = document.getElementById('log-date-label');
+  if (nextBtn) nextBtn.disabled = _logDateOffset >= 0;
+
+  let url;
+  if (_logDateOffset === 0) {
+    url = '/api/log/today';
+    if (labelEl) labelEl.textContent = 'Today';
+  } else {
+    const d = new Date();
+    d.setDate(d.getDate() + _logDateOffset);
+    const dateStr = d.toISOString().split('T')[0];
+    url = `/api/log?date=${dateStr}`;
+    if (labelEl) {
+      labelEl.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  }
+
+  try {
+    const log = await api.get(url);
+    renderLogRows(log);
+  } catch (err) {
+    console.error('loadLogSection error:', err);
+  }
+}
+
+function renderLogRows(log) {
+  const logBody = document.getElementById('log-body');
+  if (!log.length) {
+    logBody.innerHTML = '<div class="log-empty">no activity recorded</div>';
+    return;
+  }
+  logBody.innerHTML = log.map(l => `
+    <div class="log-row">
+      <div class="log-icon ${l.event_type === 'IN' ? 'log-in' : 'log-out'}">
+        ${l.event_type === 'IN' ? '↑' : '↓'}
+      </div>
+      <div class="log-name">${l.name}</div>
+      <div class="log-ts">${l.timestamp}</div>
+      <div class="status-pill ${l.event_type === 'IN' ? 'pill-in' : 'pill-out'}">
+        ${l.event_type === 'IN' ? 'check-in' : 'check-out'}
+      </div>
+    </div>`).join('');
+}
+
+/* ── Monthly stats tab ───────────────────────────────── */
+
+let _statsYear  = new Date().getFullYear();
+let _statsMonth = new Date().getMonth() + 1;
+
+function updateStatsMonthLabel() {
+  const label = new Date(_statsYear, _statsMonth - 1, 1)
+    .toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  document.getElementById('stats-month-label').textContent = label;
+
+  const now = new Date();
+  const nextBtn = document.getElementById('stats-nav-next');
+  if (nextBtn) {
+    nextBtn.disabled =
+      _statsYear > now.getFullYear() ||
+      (_statsYear === now.getFullYear() && _statsMonth >= now.getMonth() + 1);
+  }
+}
+
+function changeStatsMonth(delta) {
+  _statsMonth += delta;
+  if (_statsMonth > 12) { _statsMonth = 1;  _statsYear++; }
+  if (_statsMonth < 1)  { _statsMonth = 12; _statsYear--; }
+  loadStats();
+}
+
+async function loadStats() {
+  updateStatsMonthLabel();
+  const content = document.getElementById('stats-content');
+  content.innerHTML = '<div class="log-empty">loading…</div>';
+  try {
+    const data = await api.get(`/api/stats/monthly?year=${_statsYear}&month=${_statsMonth}`);
+    renderStats(data);
+  } catch (err) {
+    console.error('loadStats error:', err);
+  }
+}
+
+function renderStats(data) {
+  const content = document.getElementById('stats-content');
+  if (!data.length) {
+    content.innerHTML = '<div class="log-empty">no activity recorded this month</div>';
+    return;
+  }
+
+  const fmt = mins => {
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  content.innerHTML = `
+    <div class="stats-table">
+      <div class="stats-header">
+        <div>Member</div>
+        <div>Sessions</div>
+        <div>Total time</div>
+        <div>Avg / session</div>
+      </div>
+      ${data.map((u, i) => `
+        <div class="stats-row">
+          <div class="stats-user">
+            <div class="avatar ${avColor(i)}" style="width:30px;height:30px;font-size:10px;">${initials(u.name)}</div>
+            <div>
+              <div class="stats-name">${u.name}</div>
+              <div class="stats-type">${u.type}</div>
+            </div>
+          </div>
+          <div class="stats-value">${u.sessions}</div>
+          <div class="stats-value highlight">${fmt(u.total_minutes)}</div>
+          <div class="stats-value">${u.sessions ? fmt(Math.round(u.total_minutes / u.sessions)) : '–'}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+/* ── Sub-tab switching (Dashboard | Admin | Stats) ───── */
 
 function switchDashTab(name, btn) {
   if (name === 'admin') {
@@ -169,7 +277,10 @@ function switchDashTab(name, btn) {
     return;
   }
   activateDashTab(name, btn);
+  if (name === 'stats') loadStats();
 }
+
+/* ── Tab activation helper ───────────────────────────── */
 
 function activateDashTab(name, btn) {
   document.querySelectorAll('.db-page').forEach(p => p.classList.remove('active'));

@@ -111,6 +111,7 @@
       <div class="nav-tabs">
         <button class="nav-tab active" onclick="switchDashTab('overview', this)">Dashboard</button>
         <button class="nav-tab"        onclick="switchDashTab('admin', this)">Admin</button>
+        <button class="nav-tab"        onclick="switchDashTab('stats', this)">Stats</button>
       </div>
     </div>
 
@@ -139,9 +140,13 @@
           <div class="grid-empty">loading…</div>
         </div>
 
-        <div class="section-label">today's log</div>
+        <div class="section-label">activity log</div>
         <div class="log-section">
-          <div class="log-header" id="log-header">Activity</div>
+          <div class="log-header log-nav">
+            <button class="log-nav-btn" onclick="changeLogDate(-1)">←</button>
+            <span id="log-date-label">Today</span>
+            <button class="log-nav-btn" id="log-nav-next" onclick="changeLogDate(1)" disabled>→</button>
+          </div>
           <div id="log-body"><div class="log-empty">loading…</div></div>
         </div>
 
@@ -163,6 +168,16 @@
           <div id="audit-body"><div class="log-empty">loading…</div></div>
         </div>
       </div><!-- /db-admin -->
+
+      <!-- ── Stats page ── -->
+      <div class="db-page" id="db-stats">
+        <div class="stats-nav">
+          <button class="stats-nav-btn" onclick="changeStatsMonth(-1)">←</button>
+          <span id="stats-month-label" class="stats-month-label">–</span>
+          <button class="stats-nav-btn" id="stats-nav-next" onclick="changeStatsMonth(1)">→</button>
+        </div>
+        <div id="stats-content"><div class="log-empty">loading…</div></div>
+      </div><!-- /db-stats -->
 
     </div><!-- /dashboard-content -->
 
