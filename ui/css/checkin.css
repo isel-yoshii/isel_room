@@ -98,7 +98,7 @@
 .tag-idle     { background: var(--color-background-secondary); color: var(--color-text-secondary); }
 .tag-scanning { background: var(--color-warning-bg);           color: var(--color-warning); }
 .tag-success  { background: var(--color-success-bg);           color: var(--color-success); }
-.tag-fail     { background: var(--color-accent-light);         color: var(--color-accent); }
+.tag-fail     { background: var(--color-warning-bg);           color: var(--color-warning); }
 
 .dot { width: 6px; height: 6px; border-radius: 50%; }
 .dot-gray  { background: var(--color-border-primary); }
@@ -137,7 +137,7 @@
 }
 
 .av-green { background: var(--color-success-bg); color: var(--color-success); }
-.av-red   { background: var(--color-accent-light); color: var(--color-accent); }
+.av-red   { background: var(--color-error-bg);   color: var(--color-error); }
 
 .checkin-info { flex: 1; min-width: 0; }
 .checkin-name   { font-size: 15px; font-weight: 700; font-family: 'Syne', sans-serif; }
@@ -149,7 +149,7 @@
 }
 
 .badge-in  { background: var(--color-success-bg); color: var(--color-success); }
-.badge-out { background: var(--color-accent-light); color: var(--color-accent); }
+.badge-out { background: var(--color-error-bg);   color: var(--color-error); }
 
 /* ── Scan button ── */
 .btn-scan {

@@ -250,7 +250,7 @@
 }
 
 .log-in  { background: var(--color-success-bg); color: var(--color-success); }
-.log-out { background: var(--color-accent-light); color: var(--color-accent); }
+.log-out { background: var(--color-error-bg);   color: var(--color-error); }
 
 .log-name { font-size: 13px; font-weight: 600; font-family: 'Nunito', sans-serif; flex: 1; }
 .log-ts   { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; }
