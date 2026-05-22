@@ -11,7 +11,7 @@ def create_app(config_name: str = 'dev') -> Flask:
     app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
     app.config.from_object(cfg)
 
-    from core.SQL.sql_db import init_db
+    from isel.db import init_db
     init_db()
 
     return app
