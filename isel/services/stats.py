@@ -128,6 +128,22 @@ def today_unique_checkins() -> int:
         session.close()
 
 
+def active_days_this_month() -> int:
+    """Count distinct calendar days this month on which at least one session started."""
+    session = SessionLocal()
+    try:
+        now   = datetime.now()
+        start = datetime(now.year, now.month, 1)
+        end   = datetime(now.year, now.month, calendar.monthrange(now.year, now.month)[1], 23, 59, 59)
+        count = session.execute(
+            select(func.count(func.distinct(func.date(LabSession.checked_in_at))))
+            .where(LabSession.checked_in_at >= start, LabSession.checked_in_at <= end)
+        ).scalar()
+        return count or 0
+    finally:
+        session.close()
+
+
 def get_user_profile(user_id: int) -> dict | None:
     session = SessionLocal()
     try:

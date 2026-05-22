@@ -22,10 +22,10 @@
     _pointsMonth += delta;
     if (_pointsMonth > 12) { _pointsMonth = 1;  _pointsYear++; }
     if (_pointsMonth < 1)  { _pointsMonth = 12; _pointsYear--; }
-    loadPoints();
+    loadAttendance();
   };
 
-  window.loadPoints = async function loadPoints() {
+  window.loadAttendance = async function loadAttendance() {
     updatePointsMonthLabel();
     const content = document.getElementById('points-content');
     content.innerHTML = '<div class="log-empty">Loading…</div>';
@@ -34,13 +34,13 @@
         api.get(`/api/stats/points?year=${_pointsYear}&month=${_pointsMonth}`),
         api.get('/api/stats/points/total'),
       ]);
-      renderPoints(monthly, total);
+      renderAttendance(monthly, total);
     } catch (err) {
-      console.error('loadPoints error:', err);
+      console.error('loadAttendance error:', err);
     }
   };
 
-  function renderPointsTable(data, emptyMsg) {
+  function renderAttendanceTable(data, emptyMsg) {
     if (!data.length) return `<div class="log-empty">${emptyMsg}</div>`;
     return `
       <div class="points-table">
@@ -68,18 +68,18 @@
       </div>`;
   }
 
-  function renderPoints(monthly, total) {
+  function renderAttendance(monthly, total) {
     const content = document.getElementById('points-content');
     content.innerHTML = `
       <div class="section-label" style="margin-bottom:8px">This Month</div>
-      ${renderPointsTable(monthly, 'No Activity Recorded This Month')}
+      ${renderAttendanceTable(monthly, 'No Activity Recorded This Month')}
       <div class="section-label" style="margin-top:24px;margin-bottom:8px">All-Time</div>
-      ${renderPointsTable(total, 'No Activity Recorded Yet')}`;
+      ${renderAttendanceTable(total, 'No Activity Recorded Yet')}`;
   }
 
   window.Dashboard = window.Dashboard || {};
-  window.Dashboard.Points = {
-    init:    () => loadPoints(),
+  window.Dashboard.Attendance = {
+    init:    () => loadAttendance(),
     destroy: () => {},
   };
 })();

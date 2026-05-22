@@ -1,9 +1,8 @@
 (function () {
   const PAGE_META = {
-    overview: { title: 'Overview',   subtitle: "Today's Lab Activity" },
-    stats:    { title: 'Statistics', subtitle: 'Monthly Attendance Data' },
-    points:   { title: 'Points',     subtitle: 'Daily Presence Scoring' },
-    admin:    { title: 'Admin',      subtitle: 'Manage Members And Access' },
+    overview:   { title: 'Overview',    subtitle: "Today's Lab Activity" },
+    attendance: { title: 'Attendance',  subtitle: 'Days Present Ranking' },
+    admin:      { title: 'Admin',       subtitle: 'Manage Members And Access' },
   };
 
   window.activateDashTab = function activateDashTab(name, btn) {
@@ -40,8 +39,7 @@
       return;
     }
     activateDashTab(name, btn);
-    if (name === 'stats')  loadStats();
-    if (name === 'points') loadPoints();
+    if (name === 'attendance') loadAttendance();
   };
 
   window.loadDashboard = async function loadDashboard() {
@@ -56,10 +54,9 @@
     if (anyModalOpen) return;
 
     const tabMap = {
-      '1': { name: 'overview', btnId: 'sbt-overview' },
-      '2': { name: 'stats',    btnId: 'sbt-stats'    },
-      '3': { name: 'points',   btnId: 'sbt-points'   },
-      '4': { name: 'admin',    btnId: 'sbt-admin'    },
+      '1': { name: 'overview',    btnId: 'sbt-overview'    },
+      '2': { name: 'attendance',  btnId: 'sbt-attendance'  },
+      '3': { name: 'admin',       btnId: 'sbt-admin'       },
     };
     const target = tabMap[e.key];
     if (!target) return;

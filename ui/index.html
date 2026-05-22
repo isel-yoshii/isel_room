@@ -104,33 +104,22 @@
           <kbd class="kbd-badge kbd-sidebar">1</kbd>
         </button>
 
-        <!-- Stats -->
-        <button class="sidebar-tab" id="sbt-stats"
-                onclick="switchDashTab('stats', this)" title="Statistics [2]">
+        <!-- Attendance -->
+        <button class="sidebar-tab" id="sbt-attendance"
+                onclick="switchDashTab('attendance', this)" title="Attendance [2]">
           <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
-            <rect x="1" y="9"  width="4" height="8" rx="1"/>
-            <rect x="7" y="5"  width="4" height="12" rx="1"/>
-            <rect x="13" y="1" width="4" height="16" rx="1"/>
+            <polygon points="9,1 11.5,6.5 17.5,7.2 13,11.5 14.3,17.5 9,14.5 3.7,17.5 5,11.5 0.5,7.2 6.5,6.5"/>
           </svg>
           <kbd class="kbd-badge kbd-sidebar">2</kbd>
         </button>
 
-        <!-- Points -->
-        <button class="sidebar-tab" id="sbt-points"
-                onclick="switchDashTab('points', this)" title="Points [3]">
-          <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
-            <polygon points="9,1 11.5,6.5 17.5,7.2 13,11.5 14.3,17.5 9,14.5 3.7,17.5 5,11.5 0.5,7.2 6.5,6.5"/>
-          </svg>
-          <kbd class="kbd-badge kbd-sidebar">3</kbd>
-        </button>
-
         <!-- Admin -->
         <button class="sidebar-tab" id="sbt-admin"
-                onclick="switchDashTab('admin', this)" title="Admin [4]">
+                onclick="switchDashTab('admin', this)" title="Admin [3]">
           <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
             <path d="M9 1L2 4.5v5C2 13.8 5.1 16.3 9 17c3.9-.7 7-3.2 7-7.5v-5L9 1z"/>
           </svg>
-          <kbd class="kbd-badge kbd-sidebar">4</kbd>
+          <kbd class="kbd-badge kbd-sidebar">3</kbd>
         </button>
       </div>
 
@@ -160,6 +149,10 @@
               <div class="stat-value" id="stat-today">–</div>
             </div>
             <div class="stat-card">
+              <div class="stat-label">Active Days This Month</div>
+              <div class="stat-value" id="stat-active-days">–</div>
+            </div>
+            <div class="stat-card">
               <div class="stat-label">Total Members</div>
               <div class="stat-value" id="stat-total">–</div>
             </div>
@@ -168,12 +161,8 @@
           <!-- Charts row -->
           <div class="chart-row">
             <div class="chart-card">
-              <div class="chart-title">Daily Check-Ins (Last 7 Days)</div>
+              <div class="chart-title">Lab Activity (Last 7 Days)</div>
               <div class="chart-area"><canvas id="chart-line"></canvas></div>
-            </div>
-            <div class="chart-card">
-              <div class="chart-title">Monthly Activity (Hours)</div>
-              <div class="chart-area"><canvas id="chart-bar"></canvas></div>
             </div>
           </div>
 
@@ -214,25 +203,15 @@
           </div>
         </div><!-- /db-admin -->
 
-        <!-- ── Points page ── -->
-        <div class="db-page" id="db-points">
+        <!-- ── Attendance page ── -->
+        <div class="db-page" id="db-attendance">
           <div class="stats-nav">
             <button class="stats-nav-btn" onclick="changePointsMonth(-1)">←</button>
             <span id="points-month-label" class="stats-month-label">–</span>
             <button class="stats-nav-btn" id="points-nav-next" onclick="changePointsMonth(1)">→</button>
           </div>
           <div id="points-content"><div class="log-empty">Loading…</div></div>
-        </div><!-- /db-points -->
-
-        <!-- ── Stats page ── -->
-        <div class="db-page" id="db-stats">
-          <div class="stats-nav">
-            <button class="stats-nav-btn" onclick="changeStatsMonth(-1)">←</button>
-            <span id="stats-month-label" class="stats-month-label">–</span>
-            <button class="stats-nav-btn" id="stats-nav-next" onclick="changeStatsMonth(1)">→</button>
-          </div>
-          <div id="stats-content"><div class="log-empty">Loading…</div></div>
-        </div><!-- /db-stats -->
+        </div><!-- /db-attendance -->
 
       </div><!-- /dashboard-content -->
     </div><!-- /dashboard-main -->
@@ -360,8 +339,7 @@
   <script src="/ui/js/checkin/presence-strip.js"></script>
   <script src="/ui/js/checkin/index.js"></script>
   <script src="/ui/js/dashboard/overview.js"></script>
-  <script src="/ui/js/dashboard/statistics.js"></script>
-  <script src="/ui/js/dashboard/points.js"></script>
+  <script src="/ui/js/dashboard/attendance.js"></script>
   <script src="/ui/js/dashboard/admin.js"></script>
   <script src="/ui/js/dashboard/modals.js"></script>
   <script src="/ui/js/dashboard/index.js"></script>

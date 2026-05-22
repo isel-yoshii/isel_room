@@ -28,17 +28,12 @@
   window.initials = name => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
   let _lineChart = null;
-  let _barChart  = null;
 
   window.loadCharts = async function loadCharts() {
     if (typeof Chart === 'undefined') return;
     try {
-      const [weekly, monthly] = await Promise.all([
-        api.get('/api/stats/weekly'),
-        api.get(`/api/stats/monthly?year=${new Date().getFullYear()}&month=${new Date().getMonth() + 1}`),
-      ]);
+      const weekly = await api.get('/api/stats/weekly');
       renderLineChart(weekly);
-      renderBarChart(monthly.slice(0, 8));
     } catch (err) {
       console.error('loadCharts error:', err);
     }
@@ -80,44 +75,7 @@
     });
   }
 
-  function renderBarChart(data) {
-    const canvas = document.getElementById('chart-bar');
-    if (!canvas) return;
-    if (_barChart) { _barChart.destroy(); _barChart = null; }
-    if (!data.length) return;
-
-    const maxMinutes = Math.max(...data.map(d => d.total_minutes));
-    _barChart = new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels: data.map(d => d.name.split(' ')[0]),
-        datasets: [{
-          data: data.map(d => +(d.total_minutes / 60).toFixed(1)),
-          backgroundColor: data.map(d =>
-            d.total_minutes === maxMinutes ? '#C83B3B' : '#FDECEA'
-          ),
-          borderRadius: 6, borderSkipped: false,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#fff', titleColor: '#1A1A1A', bodyColor: '#A09090',
-            borderColor: '#F2E5E4', borderWidth: 1,
-            callbacks: { label: ctx => `${ctx.raw}h This Month` }
-          }
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 10, family: 'DM Mono' }, color: '#A09090' } },
-          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10, family: 'DM Mono' }, color: '#A09090' } }
-        }
-      }
-    });
-  }
-
-  window.loadOverview = async function loadOverview() {
+window.loadOverview = async function loadOverview() {
     try {
       const [present, log, users, todayStats] = await Promise.all([
         api.get('/api/present-detailed'),
@@ -126,9 +84,10 @@
         api.get('/api/stats/today'),
       ]);
 
-      document.getElementById('stat-in').textContent    = present.length;
-      document.getElementById('stat-today').textContent = todayStats.unique_checkins;
-      document.getElementById('stat-total').textContent = users.length;
+      document.getElementById('stat-in').textContent          = present.length;
+      document.getElementById('stat-today').textContent        = todayStats.unique_checkins;
+      document.getElementById('stat-active-days').textContent  = todayStats.active_days_month;
+      document.getElementById('stat-total').textContent        = users.length;
 
       const presentNames = new Set(present.map(u => u.name));
       const durationMap  = Object.fromEntries(present.map(u => [u.name, u.duration]));

@@ -34,7 +34,10 @@ def weekly_stats():
 
 @bp.get('/api/stats/today')
 def today_stats():
-    return jsonify({'unique_checkins': stats_svc.today_unique_checkins()})
+    return jsonify({
+        'unique_checkins':   stats_svc.today_unique_checkins(),
+        'active_days_month': stats_svc.active_days_this_month(),
+    })
 
 
 @bp.get('/api/export/csv')
