@@ -17,9 +17,9 @@ class Session(Base):
     __tablename__ = 'sessions'
 
     id              = Column(Integer, primary_key=True, autoincrement=True)
-    user_id         = Column(Integer, ForeignKey('users.user_id'), nullable=False)
-    checked_in_at   = Column(DateTime, nullable=False)
-    checked_out_at  = Column(DateTime, nullable=True)
+    user_id         = Column(Integer, ForeignKey('users.user_id'), nullable=False, index=True)
+    checked_in_at   = Column(DateTime, nullable=False, index=True)
+    checked_out_at  = Column(DateTime, nullable=True, index=True)
     check_in_method = Column(String(20), default='face')
 
 
@@ -31,15 +31,15 @@ class AuditLog(Base):
     target_user_id = Column(Integer)
     target_name    = Column(String(255))
     performed_by   = Column(String(50), default='admin')
-    timestamp      = Column(DateTime)
+    timestamp      = Column(DateTime, index=True)
 
 
 class PointAdjustment(Base):
     __tablename__ = 'point_adjustments'
 
     id           = Column(Integer, primary_key=True, autoincrement=True)
-    user_id      = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    user_id      = Column(Integer, ForeignKey('users.user_id'), nullable=False, index=True)
     delta        = Column(Integer, nullable=False)
     note         = Column(String(255))
     performed_by = Column(String(50), default='admin')
-    timestamp    = Column(DateTime)
+    timestamp    = Column(DateTime, index=True)
