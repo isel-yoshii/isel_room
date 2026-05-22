@@ -49,6 +49,6 @@ def toggle():
     result = attendance_svc.toggle_entry(request.json['user_id'], check_in_method)
     event = result['event_type']
 
-    from core.slack_bot import send_slack_message
+    from isel.integrations.slack import send_slack_message
     send_slack_message(f"{result['name']}さんが{'入室' if event == 'IN' else '退室'}しました")
     return jsonify(result)

@@ -14,8 +14,8 @@ def create_app(config_name: str = 'dev') -> Flask:
     from isel.db import init_db
     init_db()
 
-    # FaceEngine is stateful (embedding cache) — create once per app instance.
-    from core.face_engine import FaceEngine
+    # FaceEngine is stateful — create once per app instance.
+    from isel.face_engine import FaceEngine
 
     class _EmbeddingAdapter:
         def get_all_embeddings(self) -> dict:
