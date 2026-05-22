@@ -21,8 +21,8 @@ from datetime import datetime, timedelta, time
 # ── Make sure project root is on the path ─────────────────
 sys.path.insert(0, os.path.dirname(__file__))
 
-from core.SQL.sql_db import SessionClass, init_db, engine, Base
-from core.SQL.models.model import User, Session as LabSession, AuditLog
+from isel.db import SessionLocal as SessionClass, init_db, engine, Base
+from isel.db.models import User, Session as LabSession, AuditLog
 
 # ── Reproducible randomness ────────────────────────────────
 random.seed(42)

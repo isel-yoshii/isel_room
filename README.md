@@ -26,104 +26,63 @@ A face-recognition-based check-in/check-out system for the Intelligent Software 
 ## Project Structure
 
 ```
-isel_room/                        ← project root (~4 600 lines total)
+isel_room/
+├── app.py              # Flask app factory (create_app)
+├── wsgi.py             # Production entry point
+├── config.py           # Config classes (Dev/Prod/Test)
+├── seed_db.py          # Populate DB with realistic mock data
+├── requirements.txt
+├── .env.example        # Template — copy to .env and fill in
 │
-├── server.py                     # 377 lines — Flask app: all 28 API routes + background threads
-├── seed_db.py                    # 197 lines — populate DB with realistic test data
-├── requirements.txt              # Python dependencies
-├── .env                          # secrets + config (not committed)
+├── isel/
+│   ├── api/            # Flask blueprints (28 API endpoints)
+│   │   ├── auth.py         # /api/admin/login|logout|status
+│   │   ├── checkin.py      # /api/auth, /api/toggle
+│   │   ├── users.py        # /api/users, /api/user/*, /api/register
+│   │   ├── sessions.py     # /api/session/<id>
+│   │   ├── presence.py     # /api/present, /api/present-detailed
+│   │   ├── stats.py        # /api/stats/*, /api/log/*, /api/export/csv
+│   │   └── admin.py        # /api/admin/promote, points/adjust, force-checkout, audit
+│   ├── services/       # Business logic
+│   │   ├── attendance.py
+│   │   ├── users.py
+│   │   ├── points.py
+│   │   ├── stats.py
+│   │   └── audit.py
+│   ├── db/             # SQLAlchemy layer
+│   │   ├── __init__.py     # engine, SessionLocal, init_db()
+│   │   ├── models.py       # User, Session, AuditLog, PointAdjustment
+│   │   └── repositories/   # user, session, audit, points repos
+│   ├── face_engine.py  # DeepFace ArcFace wrapper
+│   ├── integrations/
+│   │   └── slack.py    # Slack Bolt app + send_slack_message()
+│   ├── jobs/
+│   │   └── auto_checkout.py  # Daily checkout daemon + April promotion
+│   └── utils/
+│       ├── admin_auth.py   # @admin_required decorator
+│       └── image.py        # decode_image() helper
 │
-├── core/                         # backend logic
-│   ├── face_engine.py            #  45 lines — DeepFace wrapper (extract embedding, cosine match)
-│   ├── database.py               # 699 lines — SQLDatabase: high-level interface used by server.py
-│   ├── slack_bot.py              #  61 lines — Slack notification sender + presence query bot
-│   └── SQL/
-│       ├── sql_db.py             #  17 lines — SQLAlchemy engine + init_db()
-│       ├── models/
-│       │   └── model.py          #  45 lines — ORM models: User, Session, AuditLog, PointAdjustment
-│       ├── repositories/
-│       │   └── repository.py     #  33 lines — UserRepository (raw DB queries)
-│       └── Services/
-│           ├── AttendanceService.py  # 70 lines — toggle_entry(), session open/close, audit log
-│           └── UserService.py        # 28 lines — add_user(), duplicate-face check
+├── tests/              # pytest suite (16 tests)
+│   ├── conftest.py
+│   ├── test_attendance.py
+│   ├── test_points.py
+│   ├── test_users.py
+│   └── test_api_checkin.py
 │
-└── ui/                           # single-page frontend
-    ├── index.html                # 408 lines — SPA shell: all screens, modals, boot script
-    ├── app.js                    #  93 lines — shared utils: camera, API helpers, clock, nav
-    ├── checkin.js                # 352 lines — Check-in screen state machine (idle→scan→confirm→result)
-    ├── dashboard.js              # 1005 lines — all dashboard tabs: overview, stats, points, admin
-    ├── style.css                 # 270 lines — global styles, design tokens, topbar, modals
-    ├── checkin.css               # 318 lines — kiosk-specific styles: cam feed, face box, strip
-    └── dashboard.css             # 569 lines — dashboard styles: grids, charts, tables, admin panel
+└── ui/
+    ├── index.html
+    ├── css/
+    │   ├── tokens.css      # CSS variables only
+    │   ├── base.css        # Reset, topbar, modals, shared buttons
+    │   ├── checkin.css     # Kiosk-specific styles
+    │   └── dashboard.css   # Dashboard styles
+    └── js/
+        ├── core/           # api.js, camera.js, clock.js, nav.js
+        ├── checkin/        # state-machine.js, manual-picker.js,
+        │                   # presence-strip.js, index.js
+        └── dashboard/      # overview.js, statistics.js, points.js,
+                            # admin.js, modals.js, index.js
 ```
-
----
-
-## What Each File Does
-
-### `server.py` — 377 lines
-The entire Flask application. Handles all HTTP routing, background threads (daily auto-checkout scheduler, Slack thread), admin session management, and wires together `FaceEngine` and `SQLDatabase`. Every API endpoint lives here.
-
-### `core/database.py` — 699 lines
-The single database interface the rest of the app calls. Wraps SQLAlchemy sessions and the repository/service layer into plain Python methods. Contains logic for: user CRUD, presence toggling, session history, monthly/weekly stats, points calculations (monthly + all-time with manual bonus support), audit log, and CSV export.
-
-### `core/face_engine.py` — 45 lines
-A thin wrapper around DeepFace. `extract_embedding()` runs ArcFace on a JPEG frame and returns a 512-dimensional float vector. `find_match()` iterates over all stored embeddings and returns the closest user by cosine distance.
-
-### `core/slack_bot.py` — 61 lines
-Initialises a Slack Bolt app (if credentials are present). `send_slack_message()` is called by server.py on every check-in/out. Also registers a message handler that replies to presence queries in Japanese (在室, メンバー, だれ, 誰).
-
-### `core/SQL/sql_db.py` — 17 lines
-Creates the SQLAlchemy engine pointing at `isel_room.db` (SQLite). `init_db()` calls `create_all()` to create tables that do not yet exist — safe to call on every startup.
-
-### `core/SQL/models/model.py` — 45 lines
-Four ORM table definitions:
-- `User` — registered members with face embedding
-- `Session` — each lab visit (check-in → check-out pair)
-- `AuditLog` — append-only record of every admin action
-- `PointAdjustment` — manual ±point bonuses applied by admin
-
-### `core/SQL/repositories/repository.py` — 33 lines
-`UserRepository`: raw SQLAlchemy queries for `User` rows (get by ID, get all, get embedding table, add, delete).
-
-### `core/SQL/Services/AttendanceService.py` — 70 lines
-`AttendanceService.toggle_entry()` flips a user's `status`, opens or closes a `Session` row, and writes an `AuditLog` entry. The core transaction for every check-in/out event.
-
-### `core/SQL/Services/UserService.py` — 28 lines
-`UserService.add_user()` creates a `User` row and writes a REGISTER audit log entry.
-
----
-
-### `ui/index.html` — 408 lines
-The single HTML file. Contains the topbar, the Check-in screen, the Dashboard screen (with sidebar), and all modal overlays (registration, face re-registration, manual picker, PIN, profile). Loads Chart.js from CDN, then the three JS files in order, then runs the boot script.
-
-### `ui/app.js` — 93 lines
-Shared utilities loaded before any screen-specific code:
-- `startCamera` / `stopCamera` / `captureFrame` — WebRTC camera helpers
-- `api.get` / `api.post` — fetch wrappers that parse JSON
-- `tick()` — live clock (date + day + time) updated every second
-- `switchScreen()` — toggles between Check-in and Dashboard
-- Global keyboard shortcuts: `C` → Check-in screen, `D` → Dashboard
-
-### `ui/checkin.js` — 352 lines
-The Check-in screen is a state machine with five named states: `idle`, `scanning`, `confirmation`, `fail`, `success`. Each state has its own tag colour, button label, and hint row. Handles `scanFace()` (POST to `/api/auth`), `commitToggle()` (POST to `/api/toggle`), the manual member picker modal, and the bottom presence strip.
-
-### `ui/dashboard.js` — 1005 lines
-All four dashboard tabs in one file:
-- **Overview** — fetches present users, member list, today's log, weekly/monthly chart data, renders the member grid and activity log
-- **Statistics** — monthly attendance table (sessions, total time, avg per session)
-- **Points** — dual leaderboard: "This Month" and "All-Time", with admin ±1 adjustment buttons
-- **Admin** — member list with edit/face-rereg/delete actions, registration modal, audit log, session editing inside the profile modal
-- PIN modal, profile modal, session editing, user promotion
-
-### `ui/style.css` — 270 lines
-Global design tokens (CSS variables for colours, radii, shadows), topbar, screen switcher buttons, keyboard badges, modal overlay, clock, live dot.
-
-### `ui/checkin.css` — 318 lines
-Kiosk-only styles: camera feed box, face detection corners, scan-line animation, state panel, result card, event badge, hint row, bottom member strip.
-
-### `ui/dashboard.css` — 569 lines
-Dashboard styles: sidebar, member grid cards, stat cards, chart containers, log rows, stats table, points table with rank colours, admin user rows, edit forms, profile modal.
 
 ---
 
@@ -359,19 +318,10 @@ pip install -r requirements.txt
 
 ### Configure
 
-Create `.env` in the project root:
+Copy `.env.example` to `.env` and fill in the required values:
 
-```env
-ADMIN_PIN=123456
-FLASK_SECRET_KEY=change-me-in-production
-
-# Optional: Slack integration
-# SLACK_BOT_TOKEN=xoxb-...
-# SLACK_APP_TOKEN=xapp-...
-
-# Optional overrides
-# LOW_CONFIDENCE_THRESHOLD=0.40
-# DAY_RESET_HOUR=4
+```bash
+cp .env.example .env
 ```
 
 | Variable | Default | Description |
@@ -386,11 +336,18 @@ FLASK_SECRET_KEY=change-me-in-production
 ### Run
 
 ```bash
-python server.py
+flask --app app run --host 0.0.0.0 --port 5001
 ```
 
 The app starts on `http://0.0.0.0:5001`. Open it in a browser — the Check-in screen loads by default.
 
+> The background auto-checkout daemon and Slack listener are started automatically when running via `wsgi.py` in production (e.g. with gunicorn). For development, invoke them via `isel.jobs.auto_checkout` and `isel.integrations.slack` if needed.
+
+### Run tests
+
+```bash
+python -m pytest
+```
 
 ### Seed test data (optional)
 
