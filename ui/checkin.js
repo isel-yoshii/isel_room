@@ -163,9 +163,8 @@ async function scanFace() {
 
     if (authData.matched) {
       if (authData.low_confidence) {
-        document.getElementById('state-sub').textContent = 'Low Confidence — Please Select Manually';
         setState('fail');
-        openManualPicker();
+        setTimeout(() => { if (_currentState === 'fail') setState('idle'); }, 8000);
         return;
       }
       // authData.status = true means currently IN → next event is OUT
