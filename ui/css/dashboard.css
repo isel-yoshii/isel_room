@@ -125,6 +125,8 @@
 
 .stat-value { font-size: 36px; font-weight: 700; line-height: 1; font-family: 'IBM Plex Mono', monospace; }
 .stat-value.green { color: var(--color-success); }
+.stat-value.teal  { color: var(--color-accent); }
+.stat-value.warm  { color: var(--color-warm); }
 
 /* ── Chart row ── */
 .chart-row {

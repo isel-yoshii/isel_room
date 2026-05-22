@@ -28,6 +28,11 @@
   --color-blue-mid:             #4A90D4;
   --color-blue-light:           #E0EDFB;
 
+  /* Warm secondary accent — terracotta. Highlights only, used sparingly. */
+  --color-warm:                 #D97757;
+  --color-warm-soft:            #E8A684;
+  --color-warm-light:           #FAEFE7;
+
   /* Status colours */
   --color-success:              #0F9E6E;
   --color-success-bg:           #D9F0E4;
@@ -40,7 +45,7 @@
   --color-surface-dark:         #22201D;
 
   /* Leaderboard ranks */
-  --color-rank-gold:            #F5A623;
+  --color-rank-gold:            #D97757;
   --color-rank-silver:          #9B9B9B;
   --color-rank-bronze:          #8B6340;
 
