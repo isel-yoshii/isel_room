@@ -1,20 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Backgrounds */
+  /* Backgrounds — warm cream neutral, no teal undertone */
   --color-background-primary:   #FFFFFF;
-  --color-background-secondary: #F4FAF9;
-  --color-background-tertiary:  #E8F2F0;
+  --color-background-secondary: #FBFAF6;
+  --color-background-tertiary:  #F4F1E8;
 
-  /* Borders */
-  --color-border-primary:       #7AB5A8;
-  --color-border-secondary:     #C8DDD8;
-  --color-border-tertiary:      #DFF0ED;
+  /* Borders — neutral warm grey except for the interactive (primary) tier */
+  --color-border-primary:       #3A6F60;
+  --color-border-secondary:     #D8D2C0;
+  --color-border-tertiary:      #EBE6D8;
 
-  /* Text */
-  --color-text-primary:         #1A2E28;
-  --color-text-secondary:       #4A7A6E;
-  --color-text-tertiary:        #7AAF9F;
+  /* Text — true charcoal + warm greys, no teal undertone */
+  --color-text-primary:         #1F1F1F;
+  --color-text-secondary:       #6B6660;
+  --color-text-tertiary:        #9A938A;
 
   /* Accent — primary interactive colour */
   --color-accent:               #1D5C4E;
@@ -30,14 +30,14 @@
 
   /* Status colours */
   --color-success:              #0F9E6E;
-  --color-success-bg:           #D4EDE8;
+  --color-success-bg:           #D9F0E4;
   --color-warning:              #C07A00;
   --color-warning-bg:           #FEF3DC;
-  --color-error:                #E84545;
-  --color-error-bg:             #FDECEA;
+  --color-error:                #D84A4A;
+  --color-error-bg:             #FBEBEA;
 
-  /* Dark surface (camera feed background) */
-  --color-surface-dark:         #1A2E28;
+  /* Dark surface (camera feed background) — warm charcoal, not dark teal */
+  --color-surface-dark:         #22201D;
 
   /* Leaderboard ranks */
   --color-rank-gold:            #F5A623;
