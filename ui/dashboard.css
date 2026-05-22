@@ -37,12 +37,6 @@
   width: 100%; padding: 0 12px;
 }
 
-.sidebar-bottom {
-  width: 100%; padding: 8px 12px 0;
-  border-top: 1px solid var(--color-border-tertiary);
-  display: flex; flex-direction: column;
-  align-items: center; gap: 4px;
-}
 
 .sidebar-tab {
   width: 44px; height: 44px;
