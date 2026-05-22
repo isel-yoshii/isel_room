@@ -366,7 +366,7 @@
 
 .points-header {
   display: grid;
-  grid-template-columns: 60px 1fr 120px;
+  grid-template-columns: 60px 1fr 120px auto;
   padding: 12px 18px;
   border-bottom: 1px solid var(--color-border-tertiary);
   font-size: 10px; font-weight: 600;
@@ -378,11 +378,15 @@
 
 .points-row {
   display: grid;
-  grid-template-columns: 60px 1fr 120px;
+  grid-template-columns: 60px 1fr 120px auto;
   padding: 12px 18px;
   border-bottom: 1px solid var(--color-border-tertiary);
   align-items: center;
   transition: background 0.12s;
+}
+
+.points-adj-btns {
+  display: flex; gap: 4px;
 }
 
 .points-row:hover { background: var(--color-background-secondary); }

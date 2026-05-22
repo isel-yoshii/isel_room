@@ -263,6 +263,20 @@ def points_stats_total():
     return jsonify(db.get_points_stats_total())
 
 
+@app.route('/api/admin/points/adjust', methods=['POST'])
+def points_adjust():
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    data    = request.json
+    user_id = data.get('user_id')
+    delta   = data.get('delta')
+    note    = data.get('note', '')
+    if user_id is None or delta is None:
+        return jsonify({'success': False, 'message': 'Missing user_id or delta'}), 400
+    success = db.adjust_user_points(user_id, delta, note)
+    return jsonify({'success': success})
+
+
 @app.route('/api/export/csv')
 def export_csv():
     if not session.get('admin'):

@@ -251,6 +251,41 @@ class SQLDatabase:
         result.sort(key=lambda x: x['total_minutes'], reverse=True)
         return result
 
+    def _get_point_bonuses(self, session):
+        """Returns {user_id: total_bonus} from all manual adjustments."""
+        from core.SQL.models.model import PointAdjustment
+        from sqlalchemy import func
+        rows = (
+            session.query(
+                PointAdjustment.user_id,
+                func.sum(PointAdjustment.delta).label('bonus'),
+            )
+            .group_by(PointAdjustment.user_id)
+            .all()
+        )
+        return {r.user_id: (r.bonus or 0) for r in rows}
+
+    def adjust_user_points(self, user_id, delta, note=''):
+        """Add a manual point adjustment (positive or negative) for a user."""
+        from core.SQL.models.model import PointAdjustment
+        session = SessionClass()
+        try:
+            adj = PointAdjustment(
+                user_id=user_id,
+                delta=int(delta),
+                note=note,
+                performed_by='admin',
+                timestamp=datetime.now(),
+            )
+            session.add(adj)
+            session.commit()
+            return True
+        except Exception:
+            session.rollback()
+            return False
+        finally:
+            session.close()
+
     def get_points_stats(self, year, month):
         """Returns per-user point counts (1 point = 1 distinct day present) for a given month."""
         from core.SQL.models.model import Session as LabSession, User
@@ -278,8 +313,10 @@ class SQLDatabase:
             .all()
         )
 
+        bonuses = self._get_point_bonuses(session)
         result = [
-            {'id': r.user_id, 'name': r.name, 'type': r.user_type, 'points': r.points}
+            {'id': r.user_id, 'name': r.name, 'type': r.user_type,
+             'points': r.points + bonuses.get(r.user_id, 0)}
             for r in rows
         ]
         session.close()
@@ -304,8 +341,10 @@ class SQLDatabase:
             .all()
         )
 
+        bonuses = self._get_point_bonuses(session)
         result = [
-            {'id': r.user_id, 'name': r.name, 'type': r.user_type, 'points': r.points}
+            {'id': r.user_id, 'name': r.name, 'type': r.user_type,
+             'points': r.points + bonuses.get(r.user_id, 0)}
             for r in rows
         ]
         session.close()
