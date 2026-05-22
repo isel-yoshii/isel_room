@@ -43,16 +43,17 @@
     const canvas = document.getElementById('chart-line');
     if (!canvas) return;
     if (_lineChart) { _lineChart.destroy(); _lineChart = null; }
+    const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--color-chart-line').trim() || '#2E8B70';
     _lineChart = new Chart(canvas, {
       type: 'line',
       data: {
         labels: data.map(d => d.date),
         datasets: [{
           data: data.map(d => d.count),
-          borderColor: '#C83B3B',
-          backgroundColor: 'rgba(200, 59, 59, 0.07)',
+          borderColor: lineColor,
+          backgroundColor: lineColor + '12',
           fill: true, tension: 0.4,
-          pointBackgroundColor: '#C83B3B',
+          pointBackgroundColor: lineColor,
           pointBorderColor: '#fff',
           pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
         }]

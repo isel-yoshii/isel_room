@@ -2,7 +2,8 @@
   let _pointsYear  = new Date().getFullYear();
   let _pointsMonth = new Date().getMonth() + 1;
 
-  const RANK_COLORS = ['#F5A623', '#9B9B9B', '#8B6340'];
+  const _cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const RANK_COLORS = [_cssVar('--color-rank-gold'), _cssVar('--color-rank-silver'), _cssVar('--color-rank-bronze')];
 
   window.updatePointsMonthLabel = function updatePointsMonthLabel() {
     const label = new Date(_pointsYear, _pointsMonth - 1, 1)

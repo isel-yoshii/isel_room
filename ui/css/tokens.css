@@ -39,6 +39,14 @@
   /* Dark surface (camera feed background) */
   --color-surface-dark:         #1A2E28;
 
+  /* Leaderboard ranks */
+  --color-rank-gold:            #F5A623;
+  --color-rank-silver:          #9B9B9B;
+  --color-rank-bronze:          #8B6340;
+
+  /* Charts */
+  --color-chart-line:           #2E8B70;
+
   /* Radius / shadow */
   --border-radius-lg:           12px;
   --border-radius-md:           10px;
