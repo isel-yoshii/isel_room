@@ -62,7 +62,7 @@ async function loadOverview() {
 
     const grid = document.getElementById('member-grid');
     if (!users.length) {
-      grid.innerHTML = '<div class="grid-empty">no members registered yet</div>';
+      grid.innerHTML = '<div class="grid-empty">No Members Registered Yet</div>';
     } else {
       /* Sort: present first */
       const sorted = [...users].sort((a, b) =>
@@ -77,7 +77,7 @@ async function loadOverview() {
             <div class="avatar ${avColor(i)}">${initials(u.name)}</div>
             <div class="member-name">${u.name}</div>
             <div class="member-time">${timeLabel}</div>
-            <div class="status-pill ${here ? 'pill-in' : 'pill-out'}">${here ? 'in lab' : 'out'}</div>
+            <div class="status-pill ${here ? 'pill-in' : 'pill-out'}">${here ? 'In Lab' : 'Out'}</div>
           </div>`;
       }).join('');
     }
@@ -101,7 +101,7 @@ async function loadAdminUsers() {
     const grid  = document.getElementById('admin-grid');
 
     if (!users.length) {
-      grid.innerHTML = '<div class="log-empty">no members registered yet</div>';
+      grid.innerHTML = '<div class="log-empty">No Members Registered Yet</div>';
       return;
     }
 
@@ -117,15 +117,15 @@ async function loadAdminUsers() {
             <div class="user-role">
               ${u.type}
               <span class="role-badge ${isAdmin ? 'badge-admin' : 'badge-student'}">
-                ${isAdmin ? 'admin' : 'student'}
+                ${isAdmin ? 'Admin' : 'Student'}
               </span>
               <span class="face-badge ${u.has_face ? 'badge-face-ok' : 'badge-face-none'}">
-                ${u.has_face ? 'enrolled' : 'no face'}
+                ${u.has_face ? 'Enrolled' : 'No Face'}
               </span>
             </div>
           </div>
-          <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'in lab' : 'out'}"></div>
-          ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${u.name}')">Force out</button>` : ''}
+          <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'In Lab' : 'Out'}"></div>
+          ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${u.name}')">Force Out</button>` : ''}
           <button class="del-btn" onclick="deleteUser(${u.id}, '${u.name}')">Delete</button>
         </div>`;
     }).join('');
@@ -141,15 +141,15 @@ async function loadAuditLog() {
     const body = document.getElementById('audit-body');
 
     if (!rows.length) {
-      body.innerHTML = '<div class="log-empty">no admin actions recorded yet</div>';
+      body.innerHTML = '<div class="log-empty">No Admin Actions Recorded Yet</div>';
       return;
     }
 
     const ACTION_LABEL = {
-      REGISTER: 'registered', DELETE: 'deleted',
-      CHECKIN: 'check-in', CHECKOUT: 'check-out',
-      MANUAL_CHECKIN: 'manual in', MANUAL_CHECKOUT: 'manual out',
-      AUTO_CHECKOUT: 'auto-out', FORCE_CHECKOUT: 'force-out',
+      REGISTER: 'Registered', DELETE: 'Deleted',
+      CHECKIN: 'Check-In', CHECKOUT: 'Check-Out',
+      MANUAL_CHECKIN: 'Manual In', MANUAL_CHECKOUT: 'Manual Out',
+      AUTO_CHECKOUT: 'Auto-Out', FORCE_CHECKOUT: 'Force-Out',
     };
     const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
 
@@ -208,7 +208,7 @@ async function loadLogSection() {
 function renderLogRows(log) {
   const logBody = document.getElementById('log-body');
   if (!log.length) {
-    logBody.innerHTML = '<div class="log-empty">no activity recorded</div>';
+    logBody.innerHTML = '<div class="log-empty">No Activity Recorded</div>';
     return;
   }
   logBody.innerHTML = log.map(l => `
@@ -219,7 +219,7 @@ function renderLogRows(log) {
       <div class="log-name">${l.name}</div>
       <div class="log-ts">${l.timestamp}</div>
       <div class="status-pill ${l.event_type === 'IN' ? 'pill-in' : 'pill-out'}">
-        ${l.event_type === 'IN' ? 'check-in' : 'check-out'}
+        ${l.event_type === 'IN' ? 'Check-In' : 'Check-Out'}
       </div>
     </div>`).join('');
 }
@@ -253,7 +253,7 @@ function changeStatsMonth(delta) {
 async function loadStats() {
   updateStatsMonthLabel();
   const content = document.getElementById('stats-content');
-  content.innerHTML = '<div class="log-empty">loading…</div>';
+  content.innerHTML = '<div class="log-empty">Loading…</div>';
   try {
     const data = await api.get(`/api/stats/monthly?year=${_statsYear}&month=${_statsMonth}`);
     renderStats(data);
@@ -270,7 +270,7 @@ function fmtMins(mins) {
 function renderStats(data) {
   const content = document.getElementById('stats-content');
   if (!data.length) {
-    content.innerHTML = '<div class="log-empty">no activity recorded this month</div>';
+    content.innerHTML = '<div class="log-empty">No Activity Recorded This Month</div>';
     return;
   }
 
@@ -281,8 +281,8 @@ function renderStats(data) {
       <div class="stats-header">
         <div>Member</div>
         <div>Sessions</div>
-        <div>Total time</div>
-        <div>Avg / session</div>
+        <div>Total Time</div>
+        <div>Avg / Session</div>
       </div>
       ${data.map((u, i) => `
         <div class="stats-row">
@@ -303,9 +303,9 @@ function renderStats(data) {
 /* ── Sub-tab switching (Overview | Admin | Stats) ───── */
 
 const PAGE_META = {
-  overview: { title: 'Overview',    subtitle: "Today's lab activity" },
-  stats:    { title: 'Statistics',  subtitle: 'Monthly attendance data' },
-  admin:    { title: 'Admin',       subtitle: 'Manage members and access' },
+  overview: { title: 'Overview',    subtitle: "Today's Lab Activity" },
+  stats:    { title: 'Statistics',  subtitle: 'Monthly Attendance Data' },
+  admin:    { title: 'Admin',       subtitle: 'Manage Members And Access' },
 };
 
 function switchDashTab(name, btn) {
@@ -376,7 +376,7 @@ async function submitPin() {
   const btn   = document.getElementById('btn-pin-submit');
 
   if (!pin) {
-    msg.textContent = 'Enter a PIN';
+    msg.textContent = 'Enter A PIN';
     msg.className   = 'modal-msg err';
     return;
   }
@@ -396,7 +396,7 @@ async function submitPin() {
       document.getElementById('pin-input').focus();
     }
   } catch {
-    msg.textContent = 'Server error';
+    msg.textContent = 'Server Error';
     msg.className   = 'modal-msg err';
   }
 
@@ -431,7 +431,7 @@ function openRegModal() {
       document.getElementById('reg-video').srcObject = stream;
     })
     .catch(() => {
-      msg.textContent = 'Camera access denied';
+      msg.textContent = 'Camera Access Denied';
       msg.className   = 'modal-msg err';
     });
 }
@@ -455,13 +455,13 @@ async function captureAndRegister() {
   const btn      = document.getElementById('btn-register');
 
   if (!name) {
-    msg.textContent = 'Please enter a name';
+    msg.textContent = 'Please Enter A Name';
     msg.className   = 'modal-msg err';
     return;
   }
 
   if (!_regStream) {
-    msg.textContent = 'Camera not available';
+    msg.textContent = 'Camera Not Available';
     msg.className   = 'modal-msg err';
     return;
   }
@@ -485,11 +485,11 @@ async function captureAndRegister() {
       msg.className   = 'modal-msg ok';
       setTimeout(() => { closeRegModal(); loadAdmin(); }, 1500);
     } else {
-      msg.textContent = data.message || 'Registration failed';
+      msg.textContent = data.message || 'Registration Failed';
       msg.className   = 'modal-msg err';
     }
   } catch {
-    msg.textContent = 'Server error — please try again';
+    msg.textContent = 'Server Error — Please Try Again';
     msg.className   = 'modal-msg err';
   }
 
@@ -547,7 +547,7 @@ function renderLineChart(data) {
           bodyColor: '#A09090',
           borderColor: '#F2E5E4',
           borderWidth: 1,
-          callbacks: { label: ctx => `${ctx.raw} check-ins` }
+          callbacks: { label: ctx => `${ctx.raw} Check-Ins` }
         }
       },
       scales: {
@@ -589,7 +589,7 @@ function renderBarChart(data) {
           bodyColor: '#A09090',
           borderColor: '#F2E5E4',
           borderWidth: 1,
-          callbacks: { label: ctx => `${ctx.raw}h this month` }
+          callbacks: { label: ctx => `${ctx.raw}h This Month` }
         }
       },
       scales: {
@@ -650,10 +650,10 @@ async function openProfileModal(userId) {
     const isAdmin = data.type === '管理者';
     document.getElementById('profile-badges').innerHTML = `
       <span class="role-badge ${isAdmin ? 'badge-admin' : 'badge-student'}" style="margin-right:4px">
-        ${isAdmin ? 'admin' : 'student'}
+        ${isAdmin ? 'Admin' : 'Student'}
       </span>
       <span class="face-badge ${data.has_face ? 'badge-face-ok' : 'badge-face-none'}">
-        ${data.has_face ? 'enrolled' : 'no face'}
+        ${data.has_face ? 'Enrolled' : 'No Face'}
       </span>`;
 
     const ms = data.monthly_stats;
@@ -661,20 +661,20 @@ async function openProfileModal(userId) {
       <div class="profile-stats-row">
         <div class="profile-stat">
           <div class="profile-stat-val">${ms.sessions}</div>
-          <div class="profile-stat-lbl">sessions this month</div>
+          <div class="profile-stat-lbl">Sessions This Month</div>
         </div>
         <div class="profile-stat">
           <div class="profile-stat-val">${fmtMins(ms.total_minutes)}</div>
-          <div class="profile-stat-lbl">total time this month</div>
+          <div class="profile-stat-lbl">Total Time This Month</div>
         </div>
         ${ms.sessions > 0 ? `<div class="profile-stat">
           <div class="profile-stat-val">${fmtMins(Math.round(ms.total_minutes / ms.sessions))}</div>
-          <div class="profile-stat-lbl">avg per session</div>
+          <div class="profile-stat-lbl">Avg Per Session</div>
         </div>` : ''}
       </div>`;
 
     if (!data.recent_sessions.length) {
-      document.getElementById('profile-sessions').innerHTML = '<div class="log-empty">no sessions recorded yet</div>';
+      document.getElementById('profile-sessions').innerHTML = '<div class="log-empty">No Sessions Recorded Yet</div>';
     } else {
       document.getElementById('profile-sessions').innerHTML = `
         <div class="profile-sess-table">

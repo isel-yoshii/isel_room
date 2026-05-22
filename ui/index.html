@@ -19,7 +19,7 @@
     <div class="logo">
       <div class="logo-mark">IS</div>
       <div>
-        <div class="logo-text">isel 在室管理</div>
+        <div class="logo-text">ISEL 在室管理</div>
         <div class="logo-sub">KIT · Intelligent Software Engineering Lab</div>
       </div>
     </div>
@@ -52,32 +52,32 @@
           <div class="corner br"></div>
           <div class="scan-line" id="scan-line" style="display:none"></div>
         </div>
-        <div class="cam-label">camera feed</div>
+        <div class="cam-label">Camera Feed</div>
       </div>
 
       <div class="state-panel">
         <div class="state-tag tag-idle" id="state-tag">
           <div class="dot dot-gray" id="state-dot"></div>
-          <span id="tag-text">waiting</span>
+          <span id="tag-text">Waiting</span>
         </div>
 
         <div class="state-name" id="state-name">Stand in front<br>of camera</div>
-        <div class="state-sub"  id="state-sub">face recognition ready</div>
+        <div class="state-sub"  id="state-sub">Face Recognition Ready</div>
 
         <div id="result-card"></div>
 
         <button class="btn-scan" id="btn-scan" onclick="onScanBtnClick()">Scan Face</button>
 
         <div class="hint-row">
-          <div class="hint"><span>Enter</span> · scan</div>
-          <div class="hint"><span>Esc</span> · reset</div>
+          <div class="hint"><span>Enter</span> · Scan</div>
+          <div class="hint"><span>Esc</span> · Reset</div>
         </div>
       </div>
 
     </div>
 
     <div class="member-strip" id="member-strip">
-      <span class="strip-empty">loading…</span>
+      <span class="strip-empty">Loading…</span>
     </div>
 
   </div><!-- /screen-kiosk -->
@@ -150,15 +150,15 @@
 
           <div class="stat-row">
             <div class="stat-card">
-              <div class="stat-label">in the lab</div>
+              <div class="stat-label">In The Lab</div>
               <div class="stat-value green" id="stat-in">–</div>
             </div>
             <div class="stat-card">
-              <div class="stat-label">check-ins today</div>
+              <div class="stat-label">Check-Ins Today</div>
               <div class="stat-value" id="stat-today">–</div>
             </div>
             <div class="stat-card">
-              <div class="stat-label">total members</div>
+              <div class="stat-label">Total Members</div>
               <div class="stat-value" id="stat-total">–</div>
             </div>
           </div>
@@ -166,28 +166,28 @@
           <!-- Charts row -->
           <div class="chart-row">
             <div class="chart-card">
-              <div class="chart-title">Daily Check-ins (last 7 days)</div>
+              <div class="chart-title">Daily Check-Ins (Last 7 Days)</div>
               <div class="chart-area"><canvas id="chart-line"></canvas></div>
             </div>
             <div class="chart-card">
-              <div class="chart-title">Monthly Activity (hours)</div>
+              <div class="chart-title">Monthly Activity (Hours)</div>
               <div class="chart-area"><canvas id="chart-bar"></canvas></div>
             </div>
           </div>
 
-          <div class="section-label">members</div>
+          <div class="section-label">Members</div>
           <div class="member-grid" id="member-grid">
-            <div class="grid-empty">loading…</div>
+            <div class="grid-empty">Loading…</div>
           </div>
 
-          <div class="section-label">activity log</div>
+          <div class="section-label">Activity Log</div>
           <div class="log-section">
             <div class="log-header log-nav">
               <button class="log-nav-btn" onclick="changeLogDate(-1)">←</button>
               <span id="log-date-label">Today</span>
               <button class="log-nav-btn" id="log-nav-next" onclick="changeLogDate(1)" disabled>→</button>
             </div>
-            <div id="log-body"><div class="log-empty">loading…</div></div>
+            <div id="log-body"><div class="log-empty">Loading…</div></div>
           </div>
 
         </div><!-- /db-overview -->
@@ -195,17 +195,17 @@
         <!-- ── Admin page ── -->
         <div class="db-page" id="db-admin">
           <div class="admin-header">
-            <button class="add-btn" onclick="openRegModal()">+ add member</button>
+            <button class="add-btn" onclick="openRegModal()">+ Add Member</button>
             <button class="btn-ghost admin-logout-btn" onclick="adminLogout()">Logout</button>
           </div>
-          <div class="section-label">all members</div>
+          <div class="section-label">All Members</div>
           <div class="admin-grid" id="admin-grid">
-            <div class="log-empty">loading…</div>
+            <div class="log-empty">Loading…</div>
           </div>
 
-          <div class="section-label" style="margin-top:24px;">audit log</div>
+          <div class="section-label" style="margin-top:24px;">Audit Log</div>
           <div class="log-section">
-            <div id="audit-body"><div class="log-empty">loading…</div></div>
+            <div id="audit-body"><div class="log-empty">Loading…</div></div>
           </div>
         </div><!-- /db-admin -->
 
@@ -216,7 +216,7 @@
             <span id="stats-month-label" class="stats-month-label">–</span>
             <button class="stats-nav-btn" id="stats-nav-next" onclick="changeStatsMonth(1)">→</button>
           </div>
-          <div id="stats-content"><div class="log-empty">loading…</div></div>
+          <div id="stats-content"><div class="log-empty">Loading…</div></div>
         </div><!-- /db-stats -->
 
       </div><!-- /dashboard-content -->
@@ -230,7 +230,7 @@
   ═══════════════════════════════════════════════════ -->
   <div class="modal-overlay hidden" id="reg-modal" onclick="closeRegModalOnBg(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-title">Add member</div>
+      <div class="modal-title">Add Member</div>
 
       <div class="modal-field">
         <label>Name</label>
@@ -246,7 +246,7 @@
       </div>
 
       <div class="modal-field">
-        <label>Face photo — look at the camera, then click Register</label>
+        <label>Face Photo — Look At The Camera, Then Click Register</label>
         <div class="modal-cam">
           <video id="reg-video" autoplay playsinline muted></video>
         </div>
@@ -264,8 +264,8 @@
   <!-- Manual picker modal -->
   <div class="modal-overlay hidden" id="picker-modal">
     <div class="picker-box" onclick="event.stopPropagation()">
-      <div class="picker-title">Select member</div>
-      <input type="text" id="picker-search" class="picker-search" placeholder="Type to search…" autocomplete="off" />
+      <div class="picker-title">Select Member</div>
+      <input type="text" id="picker-search" class="picker-search" placeholder="Type To Search…" autocomplete="off" />
       <div class="picker-list" id="picker-list"></div>
       <div class="picker-hint">↑ ↓ navigate · Enter select · Esc cancel</div>
     </div>
@@ -296,7 +296,7 @@
         <div class="profile-badges" id="profile-badges"></div>
       </div>
       <div class="profile-monthly" id="profile-monthly"></div>
-      <div class="section-label" style="margin-top:16px;">Last 10 sessions</div>
+      <div class="section-label" style="margin-top:16px;">Last 10 Sessions</div>
       <div id="profile-sessions"></div>
       <div class="modal-actions">
         <button class="btn-ghost" onclick="closeProfileModal()">Close</button>

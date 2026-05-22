@@ -12,30 +12,30 @@
 
 const CHECKIN_STATES = {
   idle: {
-    tagClass: 'tag-idle',   dotClass: 'dot-gray',  tagText: 'waiting',
-    name:     'Stand in front<br>of camera',
-    sub:      'face recognition ready',
+    tagClass: 'tag-idle',   dotClass: 'dot-gray',  tagText: 'Waiting',
+    name:     'Stand In Front<br>Of Camera',
+    sub:      'Face Recognition Ready',
     faceClass: 'state-idle', scanLine: false,
     card: '', btnText: 'Scan Face', btnDisabled: false,
   },
   scanning: {
-    tagClass: 'tag-scanning', dotClass: 'dot-amber', tagText: 'scanning',
+    tagClass: 'tag-scanning', dotClass: 'dot-amber', tagText: 'Scanning',
     name:     'Scanning…',
-    sub:      'hold still for a moment',
+    sub:      'Hold Still For A Moment',
     faceClass: 'state-scanning', scanLine: true,
     card: '', btnText: 'Scanning…', btnDisabled: true,
   },
   fail: {
-    tagClass: 'tag-fail', dotClass: 'dot-red', tagText: 'unknown face',
-    name:     'Face not<br>recognised',
-    sub:      'not registered in the system',
+    tagClass: 'tag-fail', dotClass: 'dot-red', tagText: 'Unknown Face',
+    name:     'Face Not<br>Recognised',
+    sub:      'Not Registered In The System',
     faceClass: 'state-fail', scanLine: false,
     card: `
       <div class="checkin-card">
         <div class="checkin-avatar av-red">?</div>
         <div class="checkin-info">
-          <div class="checkin-name">Unknown person</div>
-          <div class="checkin-detail">press Space to check in manually</div>
+          <div class="checkin-name">Unknown Person</div>
+          <div class="checkin-detail">Press Space To Check In Manually</div>
         </div>
       </div>`,
     btnText: 'Try Again', btnDisabled: false,
@@ -77,16 +77,16 @@ function setStateConfirmation(name, predictedEvent) {
   const tag = document.getElementById('state-tag');
   tag.className = 'state-tag tag-scanning';
   document.getElementById('state-dot').className = 'dot dot-amber';
-  document.getElementById('tag-text').textContent = 'confirm?';
+  document.getElementById('tag-text').textContent = 'Confirm?';
 
-  document.getElementById('state-name').innerHTML = `Is this<br>${name}?`;
-  document.getElementById('state-sub').textContent = `will ${isIn ? 'check in' : 'check out'}`;
+  document.getElementById('state-name').innerHTML = `Is This<br>${name}?`;
+  document.getElementById('state-sub').textContent = `Will ${isIn ? 'Check In' : 'Check Out'}`;
 
   document.getElementById('result-card').innerHTML = `
     <div class="hint-row">
-      <div class="hint"><span>Enter</span> · confirm</div>
-      <div class="hint"><span>Space</span> · choose manually</div>
-      <div class="hint"><span>Esc</span> · cancel</div>
+      <div class="hint"><span>Enter</span> · Confirm</div>
+      <div class="hint"><span>Space</span> · Choose Manually</div>
+      <div class="hint"><span>Esc</span> · Cancel</div>
     </div>`;
 
   document.getElementById('face-box').className = 'face-box state-scanning';
@@ -108,24 +108,24 @@ function setStateResult(name, eventType) {
   const tag = document.getElementById('state-tag');
   tag.className = 'state-tag tag-success';
   document.getElementById('state-dot').className = 'dot dot-green';
-  document.getElementById('tag-text').textContent = 'recognised';
+  document.getElementById('tag-text').textContent = 'Recognised';
 
   document.getElementById('state-name').innerHTML = isIn
     ? `Welcome,<br>${name}!`
-    : `See you,<br>${name}!`;
+    : `See You,<br>${name}!`;
 
   document.getElementById('state-sub').textContent = isIn
-    ? `check-in recorded · ${time}`
-    : `check-out recorded · ${time}`;
+    ? `Check-In Recorded · ${time}`
+    : `Check-Out Recorded · ${time}`;
 
   document.getElementById('result-card').innerHTML = `
     <div class="checkin-card">
       <div class="checkin-avatar av-green">${inits}</div>
       <div class="checkin-info">
         <div class="checkin-name">${name}</div>
-        <div class="checkin-detail">${isIn ? 'checked in' : 'checked out'}</div>
+        <div class="checkin-detail">${isIn ? 'Checked In' : 'Checked Out'}</div>
       </div>
-      <div class="event-badge ${isIn ? 'badge-in' : 'badge-out'}">${isIn ? 'check-in' : 'check-out'}</div>
+      <div class="event-badge ${isIn ? 'badge-in' : 'badge-out'}">${isIn ? 'Check-In' : 'Check-Out'}</div>
     </div>`;
 
   document.getElementById('face-box').className = 'face-box state-checkin';
@@ -151,7 +151,7 @@ async function scanFace() {
 
     if (authData.matched) {
       if (authData.low_confidence) {
-        document.getElementById('state-sub').textContent = 'Low confidence — please select manually';
+        document.getElementById('state-sub').textContent = 'Low Confidence — Please Select Manually';
         setState('fail');
         openManualPicker();
         return;
@@ -252,7 +252,7 @@ async function openManualPicker() {
 function renderPickerList(users) {
   const list = document.getElementById('picker-list');
   if (!users.length) {
-    list.innerHTML = '<div class="picker-empty">no members found</div>';
+    list.innerHTML = '<div class="picker-empty">No Members Found</div>';
     return;
   }
   list.innerHTML = users.map((u, i) => {
@@ -262,7 +262,7 @@ function renderPickerList(users) {
            onclick="selectPickerUser(${u.id})">
         <div class="picker-av">${inits}</div>
         <div class="picker-name">${u.name}</div>
-        <div class="status-pill ${u.status ? 'pill-in' : 'pill-out'}">${u.status ? 'in lab' : 'out'}</div>
+        <div class="status-pill ${u.status ? 'pill-in' : 'pill-out'}">${u.status ? 'In Lab' : 'Out'}</div>
       </div>`;
   }).join('');
 }
@@ -296,7 +296,7 @@ async function loadMemberStrip() {
     const strip = document.getElementById('member-strip');
 
     if (!users.length) {
-      strip.innerHTML = '<span class="strip-empty">nobody in the lab</span>';
+      strip.innerHTML = '<span class="strip-empty">Nobody In The Lab</span>';
       return;
     }
 
@@ -324,7 +324,7 @@ function showCameraError() {
   overlay.innerHTML = `
     <div class="cam-error-icon">⚠</div>
     <div class="cam-error-msg">Camera unavailable</div>
-    <div class="cam-error-hint">Press Space to check in manually</div>`;
+    <div class="cam-error-hint">Press Space To Check In Manually</div>`;
   feed.appendChild(overlay);
 
   setState('fail');
