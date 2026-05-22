@@ -22,6 +22,15 @@ class ProdConfig(Config):
     DEBUG: bool = False
     SESSION_COOKIE_SECURE: bool = True
 
+    def __init__(self) -> None:
+        if not self.SECRET_KEY or self.SECRET_KEY == 'dev-secret-change-me':
+            raise RuntimeError(
+                'FLASK_SECRET_KEY must be set to a strong random value in production. '
+                'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
+            )
+        if not self.ADMIN_PIN:
+            raise RuntimeError('ADMIN_PIN must be set in production.')
+
 
 class TestConfig(Config):
     TESTING: bool = True
