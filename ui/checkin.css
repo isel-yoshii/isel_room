@@ -171,18 +171,36 @@
 .btn-scan:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
 /* ── Keyboard hints ── */
-.hint-row { display: flex; gap: 8px; flex-wrap: wrap; }
-
-.hint {
-  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
-  color: var(--color-text-secondary);
-  background: var(--color-background-primary);
-  border: 1px solid var(--color-border-primary);
-  border-radius: var(--border-radius-md);
-  padding: 4px 10px;
+.hint-row {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  min-height: 24px;
 }
 
-.hint span { color: var(--color-text-primary); font-weight: 500; }
+.hint-group {
+  display: flex; align-items: center; gap: 4px;
+}
+
+.hint-key {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 500; line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  min-width: 20px;
+}
+
+.hint-label {
+  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+  color: var(--color-text-secondary);
+}
+
+.hint-sep {
+  font-size: 10px; color: var(--color-border-primary);
+  font-family: 'IBM Plex Mono', monospace;
+}
 
 /* ── Manual picker overlay ── */
 .picker-box {
@@ -248,8 +266,8 @@
 .picker-name { flex: 1; font-size: 13px; font-weight: 600; font-family: 'Nunito', sans-serif; }
 
 .picker-hint {
-  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
-  color: var(--color-text-secondary); text-align: center;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex-wrap: wrap;
 }
 
 .picker-empty {

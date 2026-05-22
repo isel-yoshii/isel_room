@@ -68,9 +68,9 @@
 
         <button class="btn-scan" id="btn-scan" onclick="onScanBtnClick()">Scan Face</button>
 
-        <div class="hint-row">
-          <div class="hint"><span>Enter</span> · Scan</div>
-          <div class="hint"><span>Esc</span> · Reset</div>
+        <div class="hint-row" id="kiosk-hints">
+          <div class="hint-group"><kbd class="hint-key">↵</kbd><span class="hint-label">Scan</span></div>
+          <div class="hint-group"><kbd class="hint-key">Space</kbd><span class="hint-label">Manual</span></div>
         </div>
       </div>
 
@@ -270,7 +270,13 @@
       <div class="picker-title">Select Member</div>
       <input type="text" id="picker-search" class="picker-search" placeholder="Type To Search…" autocomplete="off" />
       <div class="picker-list" id="picker-list"></div>
-      <div class="picker-hint">↑ ↓ navigate · Enter select · Esc cancel</div>
+      <div class="picker-hint">
+        <kbd class="hint-key">↑</kbd><kbd class="hint-key">↓</kbd><span class="hint-label">Move</span>
+        <span class="hint-sep">·</span>
+        <kbd class="hint-key">↵</kbd><span class="hint-label">Pick</span>
+        <span class="hint-sep">·</span>
+        <kbd class="hint-key">Esc</kbd><span class="hint-label">Close</span>
+      </div>
     </div>
   </div>
 

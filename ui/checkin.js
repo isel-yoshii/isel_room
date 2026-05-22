@@ -17,6 +17,7 @@ const CHECKIN_STATES = {
     sub:      'Face Recognition Ready',
     faceClass: 'state-idle', scanLine: false,
     card: '', btnText: 'Scan Face', btnDisabled: false,
+    hints: [['↵', 'Scan'], ['Space', 'Manual']],
   },
   scanning: {
     tagClass: 'tag-scanning', dotClass: 'dot-amber', tagText: 'Scanning',
@@ -24,6 +25,7 @@ const CHECKIN_STATES = {
     sub:      'Hold Still For A Moment',
     faceClass: 'state-scanning', scanLine: true,
     card: '', btnText: 'Scanning…', btnDisabled: true,
+    hints: [],
   },
   fail: {
     tagClass: 'tag-fail', dotClass: 'dot-red', tagText: 'Unknown Face',
@@ -39,8 +41,17 @@ const CHECKIN_STATES = {
         </div>
       </div>`,
     btnText: 'Try Again', btnDisabled: false,
+    hints: [['↵', 'Try Again'], ['Space', 'Manual'], ['Esc', 'Back']],
   },
 };
+
+function setHints(pairs) {
+  const el = document.getElementById('kiosk-hints');
+  if (!el) return;
+  el.innerHTML = pairs.map(([key, label]) =>
+    `<div class="hint-group"><kbd class="hint-key">${key}</kbd><span class="hint-label">${label}</span></div>`
+  ).join('');
+}
 
 /* ── setState ─────────────────────────────────────────── */
 
@@ -66,6 +77,8 @@ function setState(key) {
   const btn = document.getElementById('btn-scan');
   btn.textContent = s.btnText;
   btn.disabled    = s.btnDisabled;
+
+  setHints(s.hints ?? []);
 }
 
 /* ── setStateConfirmation: shown after a match, before commit ── */
@@ -82,19 +95,16 @@ function setStateConfirmation(name, predictedEvent) {
   document.getElementById('state-name').innerHTML = `Is This<br>${name}?`;
   document.getElementById('state-sub').textContent = `Will ${isIn ? 'Check In' : 'Check Out'}`;
 
-  document.getElementById('result-card').innerHTML = `
-    <div class="hint-row">
-      <div class="hint"><span>Enter</span> · Confirm</div>
-      <div class="hint"><span>Space</span> · Choose Manually</div>
-      <div class="hint"><span>Esc</span> · Cancel</div>
-    </div>`;
+  document.getElementById('result-card').innerHTML = '';
 
   document.getElementById('face-box').className = 'face-box state-scanning';
   document.getElementById('scan-line').style.display = 'none';
 
   const btn = document.getElementById('btn-scan');
-  btn.textContent = 'Confirm (Enter)';
+  btn.textContent = 'Confirm';
   btn.disabled    = false;
+
+  setHints([['↵', 'Confirm'], ['Space', 'Manual'], ['Esc', 'Back']]);
 }
 
 /* ── setStateResult: shown briefly after a successful commit ── */
@@ -134,6 +144,8 @@ function setStateResult(name, eventType) {
   const btn = document.getElementById('btn-scan');
   btn.textContent = 'Scan Next';
   btn.disabled    = false;
+
+  setHints([['↵', 'Next']]);
 }
 
 /* ── Core scan / commit / cancel ─────────────────────── */
