@@ -137,7 +137,7 @@ async function loadAdminUsers() {
           <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'In Lab' : 'Out'}"></div>
           ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${u.name}')">Force Out</button>` : ''}
           <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${u.name.replace(/'/g,"\\'")}', '${u.type}')" title="Edit Name / Role">✎</button>
-          <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${u.name.replace(/'/g,"\\'")}')}" title="Re-Register Face">⊙</button>
+          <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${u.name.replace(/'/g,"\\'")}')" title="Re-Register Face">⊙</button>
           <button class="del-btn" onclick="deleteUser(${u.id}, '${u.name}')">Delete</button>
         </div>`;
     }).join('');
