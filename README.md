@@ -71,6 +71,8 @@ isel_room/
 │
 └── ui/
     ├── index.html
+    ├── img/
+    │   └── logo.png        # ISEL brand logo (transparent PNG)
     ├── css/
     │   ├── tokens.css      # CSS variables only
     │   ├── base.css        # Reset, topbar, modals, shared buttons
@@ -328,6 +330,7 @@ cp .env.example .env
 |---|---|---|
 | `ADMIN_PIN` | required | 6–8 digit PIN for admin access |
 | `FLASK_SECRET_KEY` | required | Flask session signing key |
+| `DATABASE_URL` | `sqlite:///isel_room.db` | SQLAlchemy DB URL; swap for MySQL in production |
 | `SLACK_BOT_TOKEN` | — | Slack bot token (`xoxb-...`) |
 | `SLACK_APP_TOKEN` | — | Slack app token for Socket Mode (`xapp-...`) |
 | `LOW_CONFIDENCE_THRESHOLD` | `0.40` | Distance above which a match is flagged as low-confidence |
