@@ -9,6 +9,10 @@ class Config:
     LOW_CONFIDENCE_THRESHOLD: float = float(os.getenv('LOW_CONFIDENCE_THRESHOLD', '0.40'))
     DAY_RESET_HOUR: int = int(os.getenv('DAY_RESET_HOUR', '4'))
 
+    SESSION_COOKIE_HTTPONLY: bool = True
+    SESSION_COOKIE_SAMESITE: str = 'Lax'
+    SESSION_COOKIE_SECURE: bool = False
+
 
 class DevConfig(Config):
     DEBUG: bool = True
@@ -16,6 +20,7 @@ class DevConfig(Config):
 
 class ProdConfig(Config):
     DEBUG: bool = False
+    SESSION_COOKIE_SECURE: bool = True
 
 
 class TestConfig(Config):
