@@ -69,8 +69,8 @@
           }
         },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 10, family: 'DM Mono' }, color: '#A09090' } },
-          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1, font: { size: 10, family: 'DM Mono' }, color: '#A09090' } }
+          x: { grid: { display: false }, ticks: { font: { size: 10, family: 'IBM Plex Mono' }, color: '#A09090' } },
+          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1, font: { size: 10, family: 'IBM Plex Mono' }, color: '#A09090' } }
         }
       }
     });
