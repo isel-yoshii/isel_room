@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 import isel.services.attendance as attendance_svc
-from isel.utils.admin_auth import admin_required
+from isel.utils import admin_required
 
 bp = Blueprint('sessions', __name__)
 

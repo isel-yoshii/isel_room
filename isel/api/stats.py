@@ -4,7 +4,7 @@ import io
 from datetime import datetime
 from flask import Blueprint, request, jsonify, Response
 import isel.services.stats as stats_svc
-from isel.utils.admin_auth import admin_required
+from isel.utils import admin_required
 
 bp = Blueprint('stats', __name__)
 

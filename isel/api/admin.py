@@ -5,7 +5,7 @@ import isel.services.attendance as attendance_svc
 import isel.services.users as users_svc
 import isel.services.points as points_svc
 import isel.services.audit as audit_svc
-from isel.utils.admin_auth import admin_required
+from isel.utils import admin_required
 
 bp = Blueprint('admin', __name__)
 

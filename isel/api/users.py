@@ -2,7 +2,7 @@ from __future__ import annotations
 from flask import Blueprint, request, jsonify, current_app
 import isel.services.users as users_svc
 import isel.services.audit as audit_svc
-from isel.utils.admin_auth import admin_required
+from isel.utils import admin_required
 from isel.utils.image import decode_image
 
 bp = Blueprint('users', __name__)
