@@ -346,21 +346,19 @@ async function loadPoints() {
   const content = document.getElementById('points-content');
   content.innerHTML = '<div class="log-empty">Loading…</div>';
   try {
-    const data = await api.get(`/api/stats/points?year=${_pointsYear}&month=${_pointsMonth}`);
-    renderPoints(data);
+    const [monthly, total] = await Promise.all([
+      api.get(`/api/stats/points?year=${_pointsYear}&month=${_pointsMonth}`),
+      api.get('/api/stats/points/total'),
+    ]);
+    renderPoints(monthly, total);
   } catch (err) {
     console.error('loadPoints error:', err);
   }
 }
 
-function renderPoints(data) {
-  const content = document.getElementById('points-content');
-  if (!data.length) {
-    content.innerHTML = '<div class="log-empty">No Activity Recorded This Month</div>';
-    return;
-  }
-
-  content.innerHTML = `
+function renderPointsTable(data, emptyMsg) {
+  if (!data.length) return `<div class="log-empty">${emptyMsg}</div>`;
+  return `
     <div class="points-table">
       <div class="points-header">
         <div>Rank</div>
@@ -384,6 +382,15 @@ function renderPoints(data) {
         </div>`;
       }).join('')}
     </div>`;
+}
+
+function renderPoints(monthly, total) {
+  const content = document.getElementById('points-content');
+  content.innerHTML = `
+    <div class="section-label" style="margin-bottom:8px">This Month</div>
+    ${renderPointsTable(monthly, 'No Activity Recorded This Month')}
+    <div class="section-label" style="margin-top:24px;margin-bottom:8px">All-Time</div>
+    ${renderPointsTable(total, 'No Activity Recorded Yet')}`;
 }
 
 /* ── Sub-tab switching (Overview | Admin | Stats | Points) ── */

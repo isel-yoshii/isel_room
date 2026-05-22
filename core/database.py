@@ -286,6 +286,32 @@ class SQLDatabase:
         result.sort(key=lambda x: x['points'], reverse=True)
         return result
 
+    def get_points_stats_total(self):
+        """Returns all-time per-user point counts (1 point = 1 distinct day present)."""
+        from core.SQL.models.model import Session as LabSession, User
+        from sqlalchemy import func
+
+        session = SessionClass()
+        rows = (
+            session.query(
+                User.user_id,
+                User.name,
+                User.user_type,
+                func.count(func.distinct(func.date(LabSession.checked_in_at))).label('points'),
+            )
+            .join(LabSession, LabSession.user_id == User.user_id)
+            .group_by(User.user_id)
+            .all()
+        )
+
+        result = [
+            {'id': r.user_id, 'name': r.name, 'type': r.user_type, 'points': r.points}
+            for r in rows
+        ]
+        session.close()
+        result.sort(key=lambda x: x['points'], reverse=True)
+        return result
+
     def promote_students(self):
         """Promote B4→M1, M1→M2, M2→卒業. Order matters: do highest grade first."""
         from core.SQL.models.model import User, AuditLog

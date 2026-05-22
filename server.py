@@ -258,6 +258,11 @@ def points_stats():
     return jsonify(db.get_points_stats(year, month))
 
 
+@app.route('/api/stats/points/total')
+def points_stats_total():
+    return jsonify(db.get_points_stats_total())
+
+
 @app.route('/api/export/csv')
 def export_csv():
     if not session.get('admin'):
