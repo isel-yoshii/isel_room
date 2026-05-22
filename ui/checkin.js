@@ -115,17 +115,17 @@ function setStateResult(name, eventType) {
     : `See You,<br>${name}!`;
 
   document.getElementById('state-sub').textContent = isIn
-    ? `Check-In Recorded · ${time}`
-    : `Check-Out Recorded · ${time}`;
+    ? `Now In Lab · Since ${time}`
+    : `Left Lab · At ${time}`;
 
   document.getElementById('result-card').innerHTML = `
     <div class="checkin-card">
-      <div class="checkin-avatar av-green">${inits}</div>
+      <div class="checkin-avatar ${isIn ? 'av-green' : 'av-red'}">${inits}</div>
       <div class="checkin-info">
         <div class="checkin-name">${name}</div>
-        <div class="checkin-detail">${isIn ? 'Checked In' : 'Checked Out'}</div>
+        <div class="checkin-detail">${isIn ? 'Now In Lab' : 'Left Lab'}</div>
       </div>
-      <div class="event-badge ${isIn ? 'badge-in' : 'badge-out'}">${isIn ? 'Check-In' : 'Check-Out'}</div>
+      <div class="event-badge ${isIn ? 'badge-in' : 'badge-out'}">${isIn ? 'In Lab' : 'Out'}</div>
     </div>`;
 
   document.getElementById('face-box').className = 'face-box state-checkin';
@@ -303,7 +303,7 @@ async function loadMemberStrip() {
     strip.innerHTML = users.map(u => `
       <div class="mini-member">
         <div class="mini-dot"></div>
-        <span class="mini-name">${u.name}${u.duration ? ' · ' + u.duration : ''}</span>
+        <span class="mini-name">${u.name}</span>
       </div>`).join('');
   } catch {
     /* silent — network blip */
