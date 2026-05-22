@@ -11,6 +11,19 @@
  * Depends on app.js (api, captureFrame).
  */
 
+/* ── Role helpers ────────────────────────────────────── */
+
+const STUDENT_TYPES  = new Set(['B4', 'M1', 'M2', 'Intern']);
+const isTeacher   = t => t === '先生';
+const isStudent   = t => STUDENT_TYPES.has(t);
+const isGraduated = t => t === '卒業';
+
+function roleBadgeClass(type) {
+  if (isTeacher(type))   return 'badge-admin';
+  if (isGraduated(type)) return 'badge-grad';
+  return 'badge-student';
+}
+
 /* ── Last-seen formatter ─────────────────────────────── */
 
 function formatLastSeen(iso) {
@@ -106,19 +119,16 @@ async function loadAdminUsers() {
     }
 
     grid.innerHTML = users.map((u, i) => {
-      const isAdmin = u.type === '管理者';
+      const grad = isGraduated(u.type);
       return `
-        <div class="user-row">
-          <div class="avatar ${avColor(i)}" style="width:36px;height:36px;font-size:12px;">
+        <div class="user-row ${grad ? 'user-row-grad' : ''}">
+          <div class="avatar ${avColor(i)}" style="width:36px;height:36px;font-size:12px;${grad ? 'opacity:0.45' : ''}">
             ${initials(u.name)}
           </div>
           <div class="user-info">
             <div class="user-name">${u.name}</div>
             <div class="user-role">
-              ${u.type}
-              <span class="role-badge ${isAdmin ? 'badge-admin' : 'badge-student'}">
-                ${isAdmin ? 'Admin' : 'Student'}
-              </span>
+              <span class="role-badge ${roleBadgeClass(u.type)}">${u.type}</span>
               <span class="face-badge ${u.has_face ? 'badge-face-ok' : 'badge-face-none'}">
                 ${u.has_face ? 'Enrolled' : 'No Face'}
               </span>
@@ -150,6 +160,7 @@ async function loadAuditLog() {
       CHECKIN: 'Check-In', CHECKOUT: 'Check-Out',
       MANUAL_CHECKIN: 'Manual In', MANUAL_CHECKOUT: 'Manual Out',
       AUTO_CHECKOUT: 'Auto-Out', FORCE_CHECKOUT: 'Force-Out',
+      PROMOTE: 'Promoted',
     };
     const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
 
@@ -722,10 +733,9 @@ async function openProfileModal(userId) {
 
     document.getElementById('profile-name').textContent = data.name;
 
-    const isAdmin = data.type === '管理者';
     document.getElementById('profile-badges').innerHTML = `
-      <span class="role-badge ${isAdmin ? 'badge-admin' : 'badge-student'}" style="margin-right:4px">
-        ${isAdmin ? 'Admin' : 'Student'}
+      <span class="role-badge ${roleBadgeClass(data.type)}" style="margin-right:4px">
+        ${data.type}
       </span>
       <span class="face-badge ${data.has_face ? 'badge-face-ok' : 'badge-face-none'}">
         ${data.has_face ? 'Enrolled' : 'No Face'}

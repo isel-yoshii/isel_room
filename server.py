@@ -254,6 +254,21 @@ def schedule_checkout():
             time_module.sleep(30)
 
 
+def schedule_april_promotion():
+    """Promote student grades on April 1st at midnight."""
+    while True:
+        now = datetime.now()
+        if now.month == 4 and now.day == 1 and now.hour == 0 and now.minute == 0:
+            try:
+                counts = db.promote_students()
+                print(f"[April 1st] Student promotion complete: {counts}")
+            except Exception as e:
+                print(f"[April 1st] Promotion error: {e}")
+            time_module.sleep(3600)
+        else:
+            time_module.sleep(60)
+
+
 if __name__ == '__main__':
     import threading
     from core.slack_bot import _app
@@ -262,6 +277,10 @@ if __name__ == '__main__':
     checkout_thread = threading.Thread(target=schedule_checkout, daemon=True)
     checkout_thread.start()
     print("Auto-checkout scheduler started")
+
+    promotion_thread = threading.Thread(target=schedule_april_promotion, daemon=True)
+    promotion_thread.start()
+    print("April promotion scheduler started")
 
     try:
         app_token = os.getenv("SLACK_APP_TOKEN")

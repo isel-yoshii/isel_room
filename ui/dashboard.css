@@ -454,6 +454,9 @@
 
 .badge-admin   { background: #FFF1E6; color: #E86A2A; }
 .badge-student { background: #EFF6FF; color: #3B82F6; }
+.badge-grad    { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+
+.user-row-grad { opacity: 0.55; }
 
 .face-badge {
   font-size: 10px; padding: 2px 7px;

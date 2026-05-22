@@ -286,6 +286,33 @@ class SQLDatabase:
         result.sort(key=lambda x: x['points'], reverse=True)
         return result
 
+    def promote_students(self):
+        """Promote B4→M1, M1→M2, M2→卒業. Order matters: do highest grade first."""
+        from core.SQL.models.model import User, AuditLog
+        session = SessionClass()
+        counts = {'B4': 0, 'M1': 0, 'M2': 0}
+        try:
+            promotions = [('M2', '卒業'), ('M1', 'M2'), ('B4', 'M1')]
+            for from_type, to_type in promotions:
+                users = session.query(User).filter(User.user_type == from_type).all()
+                for user in users:
+                    user.user_type = to_type
+                    counts[from_type] += 1
+                    session.add(AuditLog(
+                        action_type='PROMOTE',
+                        target_user_id=user.user_id,
+                        target_name=user.name,
+                        performed_by='system',
+                        timestamp=datetime.now(),
+                    ))
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+        return counts
+
     def force_checkout_user(self, user_id):
         """Force a single user out. Returns {'success': bool, 'message': str}."""
         from core.SQL.models.model import User, Session as LabSession, AuditLog
