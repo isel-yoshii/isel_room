@@ -22,13 +22,8 @@ def create_app(config_name: str = 'dev') -> Flask:
 
     # FaceEngine is stateful — create once per app instance.
     from isel.face_engine import FaceEngine
-
-    class _EmbeddingAdapter:
-        def get_all_embeddings(self) -> dict:
-            from isel.services.users import get_all_embeddings
-            return get_all_embeddings()
-
-    app.config['FACE_ENGINE'] = FaceEngine(_EmbeddingAdapter())
+    from isel.services.users import get_all_embeddings
+    app.config['FACE_ENGINE'] = FaceEngine(get_all_embeddings)
 
     from isel.api import register_blueprints
     register_blueprints(app)

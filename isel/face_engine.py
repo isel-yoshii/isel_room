@@ -6,8 +6,8 @@ from scipy.spatial import distance
 
 
 class FaceEngine:
-    def __init__(self, db, auth_threshold: float = 0.50, reg_threshold: float = 0.50) -> None:
-        self.db = db
+    def __init__(self, get_embeddings, auth_threshold: float = 0.50, reg_threshold: float = 0.50) -> None:
+        self.get_embeddings = get_embeddings
         self.auth_threshold = auth_threshold
         self.reg_threshold = reg_threshold
 
@@ -31,7 +31,7 @@ class FaceEngine:
         matched_name = None
         target_vec = np.array(target_embedding, dtype=float).flatten()
 
-        for u_id, info in self.db.get_all_embeddings().items():
+        for u_id, info in self.get_embeddings().items():
             stored = info['embedding']
             if stored is None:
                 continue
