@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --color-background-primary:   #FFFAF5;
+  --color-background-secondary: #FFF1E6;
+  --color-background-tertiary:  #FFE8D6;
+  --color-border-primary:       #E8C4A0;
+  --color-border-secondary:     #FFD166;
+  --color-border-tertiary:      #FFE0A3;
+  --color-text-primary:         #1C1410;
+  --color-text-secondary:       #6B4E35;
+  --color-text-tertiary:        #A07850;
+  --color-accent:               #E86A2A;
+  --color-accent-light:         #FFF1E6;
+  --color-accent-hover:         #D45A1A;
+  --border-radius-lg:           12px;
+  --border-radius-md:           10px;
+  --shadow-card:                none;
+  --shadow-modal:               0 12px 40px rgba(0, 0, 0, 0.14);
+}

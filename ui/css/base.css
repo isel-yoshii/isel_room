@@ -1,31 +1,5 @@
-/*
- * style.css — Global design tokens, base reset, top nav, modal, shared buttons.
- * Screen-specific styles live in checkin.css and dashboard.css.
- */
+/* Base reset, top nav, screen switcher, clock, modal, shared buttons. */
 
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-/* ── Design tokens ── */
-:root {
-  --color-background-primary:   #FFFAF5;
-  --color-background-secondary: #FFF1E6;
-  --color-background-tertiary:  #FFE8D6;
-  --color-border-primary:       #E8C4A0;
-  --color-border-secondary:     #FFD166;
-  --color-border-tertiary:      #FFE0A3;
-  --color-text-primary:         #1C1410;
-  --color-text-secondary:       #6B4E35;
-  --color-text-tertiary:        #A07850;
-  --color-accent:               #E86A2A;
-  --color-accent-light:         #FFF1E6;
-  --color-accent-hover:         #D45A1A;
-  --border-radius-lg:           12px;
-  --border-radius-md:           10px;
-  --shadow-card:                none;
-  --shadow-modal:               0 12px 40px rgba(0, 0, 0, 0.14);
-}
-
-/* ── Base reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -37,7 +11,6 @@ body {
   flex-direction: column;
 }
 
-/* ── Top navigation bar ── */
 .topbar {
   background: var(--color-background-primary);
   border-bottom: 1px solid var(--color-border-tertiary);
@@ -75,7 +48,6 @@ body {
   font-family: 'IBM Plex Mono', monospace;
 }
 
-/* ── Screen switcher (Kiosk | Dashboard) ── */
 .screen-switcher {
   display: flex;
   gap: 3px;
@@ -103,7 +75,6 @@ body {
   box-shadow: 0 1px 4px rgba(232, 106, 42, 0.3);
 }
 
-/* ── Keyboard shortcut badges ── */
 .kbd-badge {
   display: inline-flex;
   align-items: center;
@@ -135,7 +106,6 @@ body {
   padding: 1px 3px;
 }
 
-/* ── Live clock + dot ── */
 .topbar-right {
   display: flex; align-items: center; gap: 8px;
   font-size: 12px;
@@ -152,11 +122,9 @@ body {
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-/* ── Screen containers ── */
 .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
 .screen.active { display: flex; }
 
-/* ── Modal overlay ── */
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0, 0, 0, 0.35);
@@ -235,7 +203,6 @@ body {
 .modal-msg.ok  { color: #009E78; background: rgba(6, 214, 160, 0.08); }
 .modal-msg.err { color: #E84545; background: rgba(232, 69, 69, 0.08); }
 
-/* ── Shared buttons ── */
 .btn-primary {
   background: var(--color-accent);
   color: #FFFFFF;

@@ -6,9 +6,10 @@
   <title>ISEL 在室管理</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/ui/style.css" />
-  <link rel="stylesheet" href="/ui/checkin.css" />
-  <link rel="stylesheet" href="/ui/dashboard.css" />
+  <link rel="stylesheet" href="/ui/css/tokens.css" />
+  <link rel="stylesheet" href="/ui/css/base.css" />
+  <link rel="stylesheet" href="/ui/css/checkin.css" />
+  <link rel="stylesheet" href="/ui/css/dashboard.css" />
 </head>
 <body>
 
@@ -352,56 +353,26 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-  <script src="/ui/app.js"></script>
-  <script src="/ui/checkin.js"></script>
-  <script src="/ui/dashboard.js"></script>
+  <script src="/ui/js/core/api.js"></script>
+  <script src="/ui/js/core/camera.js"></script>
+  <script src="/ui/js/core/clock.js"></script>
+  <script src="/ui/js/core/nav.js"></script>
+  <script src="/ui/js/checkin/state-machine.js"></script>
+  <script src="/ui/js/checkin/manual-picker.js"></script>
+  <script src="/ui/js/checkin/presence-strip.js"></script>
+  <script src="/ui/js/checkin/index.js"></script>
+  <script src="/ui/js/dashboard/overview.js"></script>
+  <script src="/ui/js/dashboard/statistics.js"></script>
+  <script src="/ui/js/dashboard/points.js"></script>
+  <script src="/ui/js/dashboard/admin.js"></script>
+  <script src="/ui/js/dashboard/modals.js"></script>
+  <script src="/ui/js/dashboard/index.js"></script>
 
   <script>
     initCheckin();
     startCamera('checkin-video');
     loadMemberStrip();
     setInterval(loadMemberStrip, 30_000);
-
-    window.addEventListener('keydown', (e) => {
-      if (!document.getElementById('screen-kiosk').classList.contains('active')) return;
-
-      const pickerOpen  = !document.getElementById('picker-modal').classList.contains('hidden');
-      const regOpen     = !document.getElementById('reg-modal').classList.contains('hidden');
-      const pinOpen     = !document.getElementById('pin-modal').classList.contains('hidden');
-      const profileOpen = !document.getElementById('profile-modal').classList.contains('hidden');
-
-      if (profileOpen) {
-        if (e.key === 'Escape') closeProfileModal();
-        return;
-      }
-
-      if (pickerOpen) {
-        if (e.key === 'Escape') closeManualPicker();
-        return;
-      }
-
-      if (regOpen || pinOpen) return;
-
-      if (e.key === 'Enter') {
-        if (e.repeat) return;
-        if (pendingConfirm) {
-          commitToggle(pendingConfirm.userId);
-        } else {
-          onScanBtnClick();
-        }
-      }
-
-      if (e.key === ' ' || e.key === 'Spacebar') {
-        e.preventDefault();
-        if (pendingConfirm || _currentState === 'fail') {
-          openManualPicker();
-        }
-      }
-
-      if (e.key === 'Escape') {
-        cancelToggle();
-      }
-    });
   </script>
 
 </body>
