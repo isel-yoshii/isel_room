@@ -10,12 +10,11 @@
       return;
     }
     list.innerHTML = users.map((u, i) => {
-      const inits = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
       return `
         <div class="picker-row ${i === _pickerIndex ? 'active' : ''}"
              onclick="selectPickerUser(${u.id})">
-          <div class="picker-av">${inits}</div>
-          <div class="picker-name">${u.name}</div>
+          <div class="picker-av ${avColor(i)}">${esc(initials(u.name))}</div>
+          <div class="picker-name">${esc(u.name)}</div>
           <div class="status-pill ${u.status ? 'pill-in' : 'pill-out'}">${u.status ? 'In Lab' : 'Out'}</div>
         </div>`;
     }).join('');
