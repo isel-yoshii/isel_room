@@ -59,7 +59,7 @@ def test_sessions_on_different_days_each_count(db_session):
     assert board[0]['points'] == 2
 
 
-def test_point_adjustment_added_to_score(db_session):
+def test_point_adjustment_does_not_affect_score(db_session):
     user = _make_user(db_session)
     now  = datetime.now()
     db_session.add(_completed_session(user.user_id))
@@ -71,7 +71,7 @@ def test_point_adjustment_added_to_score(db_session):
     db_session.commit()
 
     board = points.monthly_leaderboard(now.year, now.month)
-    assert board[0]['points'] == 4  # 1 day + 3 bonus
+    assert board[0]['points'] == 1  # days present only; manual adjustments not counted
 
 
 def test_monthly_vs_alltime(db_session):

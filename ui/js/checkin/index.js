@@ -100,7 +100,8 @@
 
       if (e.key === ' ' || e.key === 'Spacebar') {
         e.preventDefault();
-        if (pendingConfirm || getCheckinState() === 'fail') {
+        const st = getCheckinState();
+        if (pendingConfirm || st === 'fail' || st === 'idle') {
           openManualPicker();
         }
       }

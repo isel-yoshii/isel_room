@@ -35,13 +35,12 @@ def monthly_leaderboard(year: int, month: int) -> list[dict]:
             .group_by(User.user_id)
         ).all()
 
-        bonuses = _get_bonuses(session)
         result = [
             {
                 'id': r.user_id,
                 'name': r.name,
                 'type': r.user_type,
-                'points': r.points + bonuses.get(r.user_id, 0),
+                'points': r.points,
             }
             for r in rows
         ]
@@ -65,13 +64,12 @@ def all_time_leaderboard() -> list[dict]:
             .group_by(User.user_id)
         ).all()
 
-        bonuses = _get_bonuses(session)
         result = [
             {
                 'id': r.user_id,
                 'name': r.name,
                 'type': r.user_type,
-                'points': r.points + bonuses.get(r.user_id, 0),
+                'points': r.points,
             }
             for r in rows
         ]

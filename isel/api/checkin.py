@@ -1,6 +1,7 @@
 from __future__ import annotations
+import time
 from datetime import datetime
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, session as flask_session
 import isel.services.attendance as attendance_svc
 from isel.utils.image import decode_image
 
@@ -30,6 +31,7 @@ def auth():
 
     uid, uname, dist = engine.find_match(emb, engine.auth_threshold)
     if uid:
+        flask_session['pending_toggle'] = {'user_id': int(uid), 'expires': time.time() + 30}
         return jsonify({
             'matched': True,
             'user_id': int(uid),
@@ -37,6 +39,7 @@ def auth():
             'status': bool(attendance_svc.get_user_status(uid)),
             'low_confidence': bool(dist > low_conf_threshold),
         })
+    flask_session.pop('pending_toggle', None)
     return jsonify({'matched': False, 'message': '未登録のユーザーです'})
 
 
@@ -45,8 +48,19 @@ def toggle():
     global _last_kiosk_activity
     _last_kiosk_activity = datetime.now()
 
-    check_in_method = request.json.get('check_in_method', 'face')
-    result = attendance_svc.toggle_entry(request.json['user_id'], check_in_method)
+    data = request.json
+    check_in_method = data.get('check_in_method', 'face')
+
+    if check_in_method != 'manual':
+        pending = flask_session.pop('pending_toggle', None)
+        if not pending:
+            return jsonify({'success': False, 'message': 'No active auth session'}), 403
+        if time.time() > pending['expires']:
+            return jsonify({'success': False, 'message': 'Auth session expired'}), 403
+        if pending['user_id'] != data.get('user_id'):
+            return jsonify({'success': False, 'message': 'User ID mismatch'}), 403
+
+    result = attendance_svc.toggle_entry(data['user_id'], check_in_method)
     event = result['event_type']
 
     from isel.integrations.slack import send_slack_message

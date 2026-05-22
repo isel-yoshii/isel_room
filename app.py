@@ -27,6 +27,12 @@ def create_app(config_name: str = 'dev') -> Flask:
     from isel.api import register_blueprints
     register_blueprints(app)
 
+    import os
+    from isel.jobs.auto_checkout import start_checkout_thread, start_promotion_thread
+    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        start_checkout_thread(app)
+        start_promotion_thread(app)
+
     @app.get('/')
     def index():
         return render_template('index.html')
