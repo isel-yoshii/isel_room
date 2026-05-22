@@ -295,6 +295,8 @@
 }
 
 .mini-dot  { width: 5px; height: 5px; border-radius: 50%; background: #06D6A0; }
+.mini-dot.mini-dot-out { background: #A09090; }
+.mini-member.mini-out  { opacity: 0.45; }
 .mini-name { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; }
 
 .strip-empty { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; }
