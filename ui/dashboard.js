@@ -705,3 +705,24 @@ function closeProfileModal() {
 function closeProfileModalOnBg(event) {
   if (event.target === document.getElementById('profile-modal')) closeProfileModal();
 }
+
+/* ── Dashboard sidebar keyboard shortcuts (1 / 2 / 3 / 4) ── */
+
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('screen-dashboard').classList.contains('active')) return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+  const anyModalOpen = ['reg-modal', 'pin-modal', 'profile-modal']
+    .some(id => !document.getElementById(id)?.classList.contains('hidden'));
+  if (anyModalOpen) return;
+
+  const tabMap = {
+    '1': { name: 'overview', btnId: 'sbt-overview' },
+    '2': { name: 'stats',    btnId: 'sbt-stats'    },
+    '3': { name: 'points',   btnId: 'sbt-points'   },
+    '4': { name: 'admin',    btnId: 'sbt-admin'    },
+  };
+  const target = tabMap[e.key];
+  if (!target) return;
+  const btn = document.getElementById(target.btnId);
+  if (btn) switchDashTab(target.name, btn);
+});

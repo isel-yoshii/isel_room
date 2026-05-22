@@ -25,8 +25,8 @@
     </div>
 
     <div class="screen-switcher">
-      <button class="sw-btn active" id="sw-kiosk"     onclick="switchScreen('kiosk')">Kiosk</button>
-      <button class="sw-btn"        id="sw-dashboard" onclick="switchScreen('dashboard')">Dashboard</button>
+      <button class="sw-btn active" id="sw-kiosk"     onclick="switchScreen('kiosk')">Kiosk <kbd class="kbd-badge">K</kbd></button>
+      <button class="sw-btn"        id="sw-dashboard" onclick="switchScreen('dashboard')">Dashboard <kbd class="kbd-badge">D</kbd></button>
     </div>
 
     <div class="topbar-right">
@@ -95,31 +95,34 @@
       <div class="sidebar-nav">
         <!-- Overview -->
         <button class="sidebar-tab active" id="sbt-overview"
-                onclick="switchDashTab('overview', this)" title="Overview">
+                onclick="switchDashTab('overview', this)" title="Overview [1]">
           <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
             <rect x="1" y="1" width="7" height="7" rx="1.5"/>
             <rect x="10" y="1" width="7" height="7" rx="1.5"/>
             <rect x="1" y="10" width="7" height="7" rx="1.5"/>
             <rect x="10" y="10" width="7" height="7" rx="1.5"/>
           </svg>
+          <kbd class="kbd-badge kbd-sidebar">1</kbd>
         </button>
 
         <!-- Stats -->
         <button class="sidebar-tab" id="sbt-stats"
-                onclick="switchDashTab('stats', this)" title="Stats">
+                onclick="switchDashTab('stats', this)" title="Statistics [2]">
           <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
             <rect x="1" y="9"  width="4" height="8" rx="1"/>
             <rect x="7" y="5"  width="4" height="12" rx="1"/>
             <rect x="13" y="1" width="4" height="16" rx="1"/>
           </svg>
+          <kbd class="kbd-badge kbd-sidebar">2</kbd>
         </button>
 
         <!-- Admin -->
         <button class="sidebar-tab" id="sbt-admin"
-                onclick="switchDashTab('admin', this)" title="Admin">
+                onclick="switchDashTab('admin', this)" title="Admin [4]">
           <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
             <path d="M9 1L2 4.5v5C2 13.8 5.1 16.3 9 17c3.9-.7 7-3.2 7-7.5v-5L9 1z"/>
           </svg>
+          <kbd class="kbd-badge kbd-sidebar">4</kbd>
         </button>
       </div>
 

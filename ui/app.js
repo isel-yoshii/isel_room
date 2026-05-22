@@ -77,3 +77,15 @@ function switchScreen(name) {
     _dashInterval = setInterval(loadDashboard, 30_000);
   }
 }
+
+/* ── Global nav keyboard shortcuts (K / D) ───────────── */
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+  const anyModalOpen = ['reg-modal', 'picker-modal', 'pin-modal', 'profile-modal']
+    .some(id => !document.getElementById(id)?.classList.contains('hidden'));
+  if (anyModalOpen) return;
+
+  if (e.key === 'k' || e.key === 'K') switchScreen('kiosk');
+  if (e.key === 'd' || e.key === 'D') switchScreen('dashboard');
+});
