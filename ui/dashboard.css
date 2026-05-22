@@ -356,6 +356,57 @@
 
 .stats-value.highlight { color: var(--color-text-primary); font-weight: 600; }
 
+/* ── Points tab ── */
+.points-table {
+  background: var(--color-background-primary);
+  border-radius: var(--border-radius-lg);
+  border: 1.5px solid var(--color-border-tertiary);
+  overflow: hidden;
+}
+
+.points-header {
+  display: grid;
+  grid-template-columns: 60px 1fr 120px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-border-tertiary);
+  font-size: 10px; font-weight: 600;
+  color: var(--color-text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  background: var(--color-background-secondary);
+}
+
+.points-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 120px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-border-tertiary);
+  align-items: center;
+  transition: background 0.12s;
+}
+
+.points-row:hover { background: var(--color-background-secondary); }
+.points-row:last-child { border-bottom: none; }
+.points-row.points-top { background: var(--color-background-secondary); }
+
+.points-rank {
+  font-size: 11px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.points-value {
+  font-size: 18px; font-weight: 800;
+  font-family: 'Syne', sans-serif;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.points-unit {
+  font-size: 10px; font-weight: 400;
+  color: var(--color-text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
 /* ── Admin panel ── */
 .admin-header {
   display: flex; align-items: center;

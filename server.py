@@ -200,6 +200,13 @@ def today_stats():
     return jsonify({'unique_checkins': db.get_today_unique_checkins()})
 
 
+@app.route('/api/stats/points')
+def points_stats():
+    year  = int(request.args.get('year',  datetime.now().year))
+    month = int(request.args.get('month', datetime.now().month))
+    return jsonify(db.get_points_stats(year, month))
+
+
 @app.route('/api/export/csv')
 def export_csv():
     if not session.get('admin'):

@@ -250,7 +250,42 @@ class SQLDatabase:
         session.close()
         result.sort(key=lambda x: x['total_minutes'], reverse=True)
         return result
-    
+
+    def get_points_stats(self, year, month):
+        """Returns per-user point counts (1 point = 1 distinct day present) for a given month."""
+        from core.SQL.models.model import Session as LabSession, User
+        from sqlalchemy import func
+        import calendar
+
+        session = SessionClass()
+        start = datetime(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end = datetime(year, month, last_day, 23, 59, 59)
+
+        rows = (
+            session.query(
+                User.user_id,
+                User.name,
+                User.user_type,
+                func.count(func.distinct(func.date(LabSession.checked_in_at))).label('points'),
+            )
+            .join(LabSession, LabSession.user_id == User.user_id)
+            .filter(
+                LabSession.checked_in_at >= start,
+                LabSession.checked_in_at <= end,
+            )
+            .group_by(User.user_id)
+            .all()
+        )
+
+        result = [
+            {'id': r.user_id, 'name': r.name, 'type': r.user_type, 'points': r.points}
+            for r in rows
+        ]
+        session.close()
+        result.sort(key=lambda x: x['points'], reverse=True)
+        return result
+
     def force_checkout_user(self, user_id):
         """Force a single user out. Returns {'success': bool, 'message': str}."""
         from core.SQL.models.model import User, Session as LabSession, AuditLog
