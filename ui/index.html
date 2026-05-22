@@ -199,7 +199,10 @@
         <div class="db-page" id="db-admin">
           <div class="admin-header">
             <button class="add-btn" onclick="openRegModal()">+ Add Member</button>
-            <button class="btn-ghost admin-logout-btn" onclick="adminLogout()">Logout</button>
+            <div class="admin-header-right">
+              <button class="btn-ghost promote-btn" onclick="runPromotion()">Promote Students</button>
+              <button class="btn-ghost admin-logout-btn" onclick="adminLogout()">Logout</button>
+            </div>
           </div>
           <div class="section-label">All Members</div>
           <div class="admin-grid" id="admin-grid">
@@ -273,6 +276,24 @@
       <div class="modal-actions">
         <button class="btn-ghost"   onclick="closeRegModal()">Cancel</button>
         <button class="btn-primary" id="btn-register" onclick="captureAndRegister()">Capture &amp; Register</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Face re-registration modal -->
+  <div class="modal-overlay hidden" id="face-rereg-modal" onclick="closeFaceReregModalOnBg(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title" id="face-rereg-title">Re-Register Face</div>
+      <div class="modal-field">
+        <label>Face Photo — Look At The Camera, Then Click Save</label>
+        <div class="modal-cam">
+          <video id="face-rereg-video" autoplay playsinline muted></video>
+        </div>
+      </div>
+      <div class="modal-msg" id="face-rereg-msg"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeFaceReregModal()">Cancel</button>
+        <button class="btn-primary" id="btn-face-rereg" onclick="captureAndReregFace()">Save Face</button>
       </div>
     </div>
   </div>

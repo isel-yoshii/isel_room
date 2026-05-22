@@ -190,6 +190,57 @@ def force_checkout_user(user_id):
     return jsonify(result), status_code
 
 
+@app.route('/api/user/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    data      = request.json
+    name      = data.get('name', '').strip()
+    user_type = data.get('user_type', '').strip()
+    if not name or not user_type:
+        return jsonify({'success': False, 'message': 'name and user_type required'}), 400
+    result = db.update_user(user_id, name, user_type)
+    return jsonify(result), (200 if result['success'] else 400)
+
+
+@app.route('/api/user/<int:user_id>/face', methods=['POST'])
+def update_user_face(user_id):
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    frame = decode_image(request.json['image'])
+    emb   = engine.extract_embedding(frame, enforce=True)
+    if emb is None:
+        return jsonify({'success': False, 'message': 'No face detected in image'}), 400
+    emb_list = [float(v) for v in emb]
+    result = db.update_user_face(user_id, emb_list)
+    return jsonify(result), (200 if result['success'] else 400)
+
+
+@app.route('/api/admin/promote-students', methods=['POST'])
+def promote_students():
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    try:
+        counts = db.promote_students()
+        return jsonify({'success': True, 'promoted': counts})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/session/<int:session_id>', methods=['PUT'])
+def update_session(session_id):
+    if not session.get('admin'):
+        return jsonify({'success': False, 'message': 'Admin access required'}), 403
+    data = request.json
+    try:
+        checked_in_at  = datetime.fromisoformat(data['checked_in_at'])
+        checked_out_at = datetime.fromisoformat(data['checked_out_at']) if data.get('checked_out_at') else None
+    except (KeyError, ValueError) as e:
+        return jsonify({'success': False, 'message': f'Invalid datetime: {e}'}), 400
+    result = db.update_session(session_id, checked_in_at, checked_out_at)
+    return jsonify(result), (200 if result['success'] else 400)
+
+
 @app.route('/api/stats/weekly')
 def weekly_stats():
     return jsonify(db.get_weekly_checkins())

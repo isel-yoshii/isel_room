@@ -121,7 +121,7 @@ async function loadAdminUsers() {
     grid.innerHTML = users.map((u, i) => {
       const grad = isGraduated(u.type);
       return `
-        <div class="user-row ${grad ? 'user-row-grad' : ''}">
+        <div class="user-row ${grad ? 'user-row-grad' : ''}" id="user-row-${u.id}">
           <div class="avatar ${avColor(i)}" style="width:36px;height:36px;font-size:12px;${grad ? 'opacity:0.45' : ''}">
             ${initials(u.name)}
           </div>
@@ -136,6 +136,8 @@ async function loadAdminUsers() {
           </div>
           <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'In Lab' : 'Out'}"></div>
           ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${u.name}')">Force Out</button>` : ''}
+          <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${u.name.replace(/'/g,"\\'")}', '${u.type}')" title="Edit Name / Role">✎</button>
+          <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${u.name.replace(/'/g,"\\'")}')}" title="Re-Register Face">⊙</button>
           <button class="del-btn" onclick="deleteUser(${u.id}, '${u.name}')">Delete</button>
         </div>`;
     }).join('');
@@ -725,9 +727,135 @@ async function deleteUser(userId, userName) {
   }
 }
 
+/* ── Edit user name / role ───────────────────────────── */
+
+function openEditUserForm(userId, currentName, currentType) {
+  const row = document.getElementById(`user-row-${userId}`);
+  if (!row) return;
+
+  const ROLE_OPTIONS = ['先生', 'B4', 'M1', 'M2', 'Intern', '卒業']
+    .map(t => `<option value="${t}" ${t === currentType ? 'selected' : ''}>${t}</option>`)
+    .join('');
+
+  row.innerHTML = `
+    <div class="edit-user-form" style="grid-column:1/-1;display:flex;gap:8px;align-items:center;padding:4px 0;">
+      <input class="edit-input" id="edit-name-${userId}" value="${currentName}" style="flex:1" />
+      <select class="edit-input" id="edit-type-${userId}">${ROLE_OPTIONS}</select>
+      <button class="icon-btn ok-btn" onclick="saveEditUser(${userId})">✓</button>
+      <button class="icon-btn" onclick="loadAdminUsers()">✗</button>
+    </div>`;
+}
+
+async function saveEditUser(userId) {
+  const name     = document.getElementById(`edit-name-${userId}`)?.value.trim();
+  const userType = document.getElementById(`edit-type-${userId}`)?.value;
+  if (!name || !userType) return;
+  try {
+    const r = await fetch(`/api/user/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, user_type: userType }),
+    }).then(r => r.json());
+    if (r.success) { loadAdminUsers(); loadOverview(); }
+    else alert(`Failed: ${r.message}`);
+  } catch (e) { console.error(e); }
+}
+
+/* ── Face re-registration ────────────────────────────── */
+
+let _faceReregStream = null;
+let _faceReregUserId = null;
+
+function openFaceReregModal(userId, userName) {
+  _faceReregUserId = userId;
+  document.getElementById('face-rereg-title').textContent = `Re-Register Face — ${userName}`;
+  const msg = document.getElementById('face-rereg-msg');
+  msg.textContent = '';
+  msg.className   = 'modal-msg';
+
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    .then(stream => {
+      _faceReregStream = stream;
+      document.getElementById('face-rereg-video').srcObject = stream;
+    })
+    .catch(() => {
+      msg.textContent = 'Camera Access Denied';
+      msg.className   = 'modal-msg err';
+    });
+
+  document.getElementById('face-rereg-modal').classList.remove('hidden');
+}
+
+function closeFaceReregModal() {
+  document.getElementById('face-rereg-modal').classList.add('hidden');
+  if (_faceReregStream) {
+    _faceReregStream.getTracks().forEach(t => t.stop());
+    _faceReregStream = null;
+  }
+  _faceReregUserId = null;
+}
+
+function closeFaceReregModalOnBg(event) {
+  if (event.target === document.getElementById('face-rereg-modal')) closeFaceReregModal();
+}
+
+async function captureAndReregFace() {
+  if (!_faceReregUserId || !_faceReregStream) return;
+  const video  = document.getElementById('face-rereg-video');
+  const canvas = document.getElementById('capture-canvas');
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const image = canvas.toDataURL('image/jpeg', 0.85);
+
+  const msg = document.getElementById('face-rereg-msg');
+  const btn = document.getElementById('btn-face-rereg');
+  btn.disabled    = true;
+  msg.textContent = 'Processing…';
+  msg.className   = 'modal-msg';
+
+  try {
+    const r = await fetch(`/api/user/${_faceReregUserId}/face`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image }),
+    }).then(r => r.json());
+
+    if (r.success) {
+      msg.textContent = 'Face Updated';
+      msg.className   = 'modal-msg ok';
+      setTimeout(() => { closeFaceReregModal(); loadAdminUsers(); }, 1200);
+    } else {
+      msg.textContent = r.message || 'Failed';
+      msg.className   = 'modal-msg err';
+    }
+  } catch {
+    msg.textContent = 'Server Error — Please Try Again';
+    msg.className   = 'modal-msg err';
+  }
+  btn.disabled = false;
+}
+
+/* ── Manual student promotion ────────────────────────── */
+
+async function runPromotion() {
+  if (!confirm('Promote all students?\nB4 → M1 · M1 → M2 · M2 → 卒業\n\nThis cannot be undone.')) return;
+  try {
+    const r = await fetch('/api/admin/promote-students', { method: 'POST' }).then(r => r.json());
+    if (r.success) {
+      const { B4, M1, M2 } = r.promoted;
+      alert(`Promotion complete.\n${B4} B4 → M1 · ${M1} M1 → M2 · ${M2} M2 → 卒業`);
+      loadAdminUsers();
+    } else {
+      alert(`Failed: ${r.message}`);
+    }
+  } catch (e) { alert('Network Error Occurred.'); }
+}
+
 /* ── Member profile modal ────────────────────────────── */
 
 async function openProfileModal(userId) {
+  _currentProfileUserId = userId;
   try {
     const data = await api.get(`/api/user/${userId}/profile`);
 
@@ -764,15 +892,16 @@ async function openProfileModal(userId) {
       document.getElementById('profile-sessions').innerHTML = `
         <div class="profile-sess-table">
           <div class="profile-sess-header">
-            <div>Date</div><div>In</div><div>Out</div><div>Duration</div><div>Method</div>
+            <div>Date</div><div>In</div><div>Out</div><div>Duration</div><div>Method</div><div></div>
           </div>
           ${data.recent_sessions.map(s => `
-            <div class="profile-sess-row">
+            <div class="profile-sess-row" id="sess-row-${s.id}">
               <div>${s.date}</div>
               <div>${s.checked_in_at}</div>
-              <div>${s.checked_out_at}</div>
+              <div>${s.checked_out_at ?? '–'}</div>
               <div>${fmtMins(s.duration_minutes)}</div>
               <div>${s.check_in_method}</div>
+              <div><button class="icon-btn" onclick="openEditSessionForm(${s.id}, '${s.checked_in_at_iso}', '${s.checked_out_at_iso ?? ''}')">✎</button></div>
             </div>`).join('')}
         </div>`;
     }
@@ -789,6 +918,44 @@ function closeProfileModal() {
 
 function closeProfileModalOnBg(event) {
   if (event.target === document.getElementById('profile-modal')) closeProfileModal();
+}
+
+/* ── Session time editing ────────────────────────────── */
+
+function openEditSessionForm(sessionId, inIso, outIso) {
+  const row = document.getElementById(`sess-row-${sessionId}`);
+  if (!row) return;
+  row.innerHTML = `
+    <div style="grid-column:1/-1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <label style="font-size:11px;color:var(--color-text-secondary)">In</label>
+      <input type="datetime-local" class="edit-input" id="sess-in-${sessionId}"
+             value="${inIso ? inIso.slice(0,16) : ''}" />
+      <label style="font-size:11px;color:var(--color-text-secondary)">Out</label>
+      <input type="datetime-local" class="edit-input" id="sess-out-${sessionId}"
+             value="${outIso ? outIso.slice(0,16) : ''}" />
+      <button class="icon-btn ok-btn" onclick="saveEditSession(${sessionId})">✓</button>
+      <button class="icon-btn" onclick="openProfileModal(_currentProfileUserId)">✗</button>
+    </div>`;
+}
+
+let _currentProfileUserId = null;
+
+async function saveEditSession(sessionId) {
+  const inVal  = document.getElementById(`sess-in-${sessionId}`)?.value;
+  const outVal = document.getElementById(`sess-out-${sessionId}`)?.value;
+  if (!inVal) return;
+  try {
+    const r = await fetch(`/api/session/${sessionId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        checked_in_at:  inVal  ? inVal  + ':00' : null,
+        checked_out_at: outVal ? outVal + ':00' : null,
+      }),
+    }).then(r => r.json());
+    if (r.success && _currentProfileUserId) openProfileModal(_currentProfileUserId);
+    else alert(`Failed: ${r.message}`);
+  } catch (e) { console.error(e); }
 }
 
 /* ── Dashboard sidebar keyboard shortcuts (1 / 2 / 3 / 4) ── */

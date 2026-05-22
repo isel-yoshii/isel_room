@@ -313,6 +313,59 @@ class SQLDatabase:
             session.close()
         return counts
 
+    def update_user(self, user_id, name, user_type):
+        """Update a user's name and role. Returns {'success': bool}."""
+        from core.SQL.models.model import User
+        session = SessionClass()
+        try:
+            user = session.get(User, user_id)
+            if not user:
+                return {'success': False, 'message': 'User not found'}
+            user.name      = name
+            user.user_type = user_type
+            session.commit()
+            return {'success': True}
+        except Exception as e:
+            session.rollback()
+            return {'success': False, 'message': str(e)}
+        finally:
+            session.close()
+
+    def update_user_face(self, user_id, embedding):
+        """Replace a user's face embedding. Returns {'success': bool}."""
+        from core.SQL.models.model import User
+        session = SessionClass()
+        try:
+            user = session.get(User, user_id)
+            if not user:
+                return {'success': False, 'message': 'User not found'}
+            user.embedding = embedding
+            session.commit()
+            return {'success': True}
+        except Exception as e:
+            session.rollback()
+            return {'success': False, 'message': str(e)}
+        finally:
+            session.close()
+
+    def update_session(self, session_id, checked_in_at, checked_out_at):
+        """Update check-in/out times for a session. Returns {'success': bool}."""
+        from core.SQL.models.model import Session as LabSession
+        session = SessionClass()
+        try:
+            lab_sess = session.get(LabSession, session_id)
+            if not lab_sess:
+                return {'success': False, 'message': 'Session not found'}
+            lab_sess.checked_in_at  = checked_in_at
+            lab_sess.checked_out_at = checked_out_at
+            session.commit()
+            return {'success': True}
+        except Exception as e:
+            session.rollback()
+            return {'success': False, 'message': str(e)}
+        finally:
+            session.close()
+
     def force_checkout_user(self, user_id):
         """Force a single user out. Returns {'success': bool, 'message': str}."""
         from core.SQL.models.model import User, Session as LabSession, AuditLog
@@ -499,9 +552,12 @@ class SQLDatabase:
         )
         recent_sessions = [
             {
+                'id': r.id,
                 'date': r.checked_in_at.strftime('%Y-%m-%d'),
                 'checked_in_at': r.checked_in_at.strftime('%H:%M'),
                 'checked_out_at': r.checked_out_at.strftime('%H:%M'),
+                'checked_in_at_iso': r.checked_in_at.isoformat(),
+                'checked_out_at_iso': r.checked_out_at.isoformat() if r.checked_out_at else None,
                 'duration_minutes': int((r.checked_out_at - r.checked_in_at).total_seconds() / 60),
                 'check_in_method': r.check_in_method or 'face',
             }

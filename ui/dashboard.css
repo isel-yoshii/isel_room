@@ -414,7 +414,25 @@
   margin-bottom: 16px;
 }
 
-.admin-logout-btn { font-size: 11px; padding: 6px 12px; }
+.admin-header-right { display: flex; gap: 8px; align-items: center; }
+.admin-logout-btn  { font-size: 11px; padding: 6px 12px; }
+.promote-btn       { font-size: 11px; padding: 6px 12px; }
+
+.icon-btn {
+  background: none; border: 1px solid var(--color-border-primary);
+  border-radius: 6px; padding: 3px 7px; cursor: pointer;
+  font-size: 13px; color: var(--color-text-secondary);
+  transition: background 0.12s, color 0.12s;
+}
+.icon-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+.icon-btn.ok-btn { color: #009E78; border-color: #009E78; }
+
+.edit-input {
+  font-family: 'Nunito', sans-serif; font-size: 12px;
+  padding: 4px 8px; border: 1px solid var(--color-border-primary);
+  border-radius: 6px; background: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
 
 .add-btn {
   display: flex; align-items: center; gap: 6px;
@@ -531,7 +549,7 @@
 .profile-sess-header,
 .profile-sess-row {
   display: grid;
-  grid-template-columns: 100px 50px 50px 80px 1fr;
+  grid-template-columns: 100px 50px 50px 80px 1fr 30px;
   gap: 8px;
   padding: 6px 0;
   font-size: 12px;
