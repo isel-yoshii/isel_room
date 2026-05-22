@@ -86,6 +86,6 @@ document.addEventListener('keydown', (e) => {
     .some(id => !document.getElementById(id)?.classList.contains('hidden'));
   if (anyModalOpen) return;
 
-  if (e.key === 'k' || e.key === 'K') switchScreen('kiosk');
+  if (e.key === 'c' || e.key === 'C') switchScreen('kiosk');
   if (e.key === 'd' || e.key === 'D') switchScreen('dashboard');
 });
