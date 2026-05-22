@@ -15,25 +15,29 @@
 
       grid.innerHTML = users.map((u, i) => {
         const grad = isGraduated(u.type);
+        const safeName = esc(u.name);
+        const argName  = escAttr(u.name);
+        const safeType = esc(u.type);
+        const argType  = escAttr(u.type);
         return `
           <div class="user-row ${grad ? 'user-row-grad' : ''}" id="user-row-${u.id}">
             <div class="avatar ${avColor(i)}" style="width:36px;height:36px;font-size:12px;${grad ? 'opacity:0.45' : ''}">
-              ${initials(u.name)}
+              ${esc(initials(u.name))}
             </div>
             <div class="user-info">
-              <div class="user-name">${u.name}</div>
+              <div class="user-name">${safeName}</div>
               <div class="user-role">
-                <span class="role-badge ${roleBadgeClass(u.type)}">${u.type}</span>
+                <span class="role-badge ${roleBadgeClass(u.type)}">${safeType}</span>
                 <span class="face-badge ${u.has_face ? 'badge-face-ok' : 'badge-face-none'}">
                   ${u.has_face ? 'Enrolled' : 'No Face'}
                 </span>
               </div>
             </div>
             <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'In Lab' : 'Out'}"></div>
-            ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${u.name}')">Force Out</button>` : ''}
-            <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${u.name.replace(/'/g,"\\'")}', '${u.type}')" title="Edit Name / Role">✎</button>
-            <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${u.name.replace(/'/g,"\\'")}')" title="Re-Register Face">⊙</button>
-            <button class="del-btn" onclick="deleteUser(${u.id}, '${u.name}')">Delete</button>
+            ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${argName}')">Force Out</button>` : ''}
+            <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${argName}', '${argType}')" title="Edit Name / Role">✎</button>
+            <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${argName}')" title="Re-Register Face">⊙</button>
+            <button class="del-btn" onclick="deleteUser(${u.id}, '${argName}')">Delete</button>
           </div>`;
       }).join('');
     } catch (err) {
@@ -66,9 +70,9 @@
         return `
           <div class="log-row">
             <div class="log-icon ${isIn ? 'log-in' : 'log-out'}">${isIn ? '+' : '×'}</div>
-            <div class="log-name">${r.name}</div>
-            <div class="log-ts">${r.timestamp}</div>
-            <div class="status-pill ${isIn ? 'pill-in' : 'pill-out'}">${label}</div>
+            <div class="log-name">${esc(r.name)}</div>
+            <div class="log-ts">${esc(r.timestamp)}</div>
+            <div class="status-pill ${isIn ? 'pill-in' : 'pill-out'}">${esc(label)}</div>
           </div>`;
       }).join('');
     } catch (err) {
@@ -86,7 +90,7 @@
 
     row.innerHTML = `
       <div class="edit-user-form" style="grid-column:1/-1;display:flex;gap:8px;align-items:center;padding:4px 0;">
-        <input class="edit-input" id="edit-name-${userId}" value="${currentName}" style="flex:1" />
+        <input class="edit-input" id="edit-name-${userId}" value="${esc(currentName)}" style="flex:1" />
         <select class="edit-input" id="edit-type-${userId}">${ROLE_OPTIONS}</select>
         <button class="icon-btn ok-btn" onclick="saveEditUser(${userId})">✓</button>
         <button class="icon-btn" onclick="loadAdminUsers()">✗</button>
