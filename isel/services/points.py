@@ -97,12 +97,3 @@ def adjust_points(user_id: int, delta: int, note: str = '', performed_by: str = 
         return False
     finally:
         session.close()
-
-
-def _get_bonuses(session) -> dict[int, int]:
-    stmt = (
-        select(PointAdjustment.user_id, func.sum(PointAdjustment.delta).label('bonus'))
-        .group_by(PointAdjustment.user_id)
-    )
-    rows = session.execute(stmt).all()
-    return {r.user_id: (r.bonus or 0) for r in rows}
