@@ -72,7 +72,7 @@ body {
 .sw-btn.active {
   background: var(--color-accent);
   color: #FFFFFF;
-  box-shadow: 0 1px 4px rgba(232, 106, 42, 0.3);
+  box-shadow: 0 1px 4px rgba(29, 92, 78, 0.3);
 }
 
 .kbd-badge {
@@ -115,7 +115,7 @@ body {
 
 .live-dot {
   width: 7px; height: 7px;
-  background: #06D6A0;
+  background: var(--color-success);
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
@@ -127,7 +127,7 @@ body {
 
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(26, 46, 40, 0.5);
   display: flex; align-items: center; justify-content: center;
   z-index: 100;
   backdrop-filter: blur(2px);
@@ -181,7 +181,7 @@ body {
 
 .modal-cam {
   width: 100%; aspect-ratio: 4/3;
-  background: #1C1410;
+  background: var(--color-surface-dark);
   border-radius: var(--border-radius-md);
   overflow: hidden;
   margin-bottom: 10px;
@@ -200,8 +200,8 @@ body {
   border-radius: var(--border-radius-md);
 }
 
-.modal-msg.ok  { color: #009E78; background: rgba(6, 214, 160, 0.08); }
-.modal-msg.err { color: #E84545; background: rgba(232, 69, 69, 0.08); }
+.modal-msg.ok  { color: var(--color-success); background: rgba(15, 158, 110, 0.08); }
+.modal-msg.err { color: var(--color-error); background: rgba(232, 69, 69, 0.08); }
 
 .btn-primary {
   background: var(--color-accent);
@@ -213,7 +213,7 @@ body {
   font-family: 'Nunito', sans-serif;
   cursor: pointer; flex: 1;
   transition: background 0.15s;
-  box-shadow: 0 2px 8px rgba(232, 106, 42, 0.25);
+  box-shadow: 0 2px 8px rgba(29, 92, 78, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); }

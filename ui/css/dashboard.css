@@ -135,7 +135,7 @@
 }
 
 .stat-value { font-size: 36px; font-weight: 700; line-height: 1; font-family: 'IBM Plex Mono', monospace; }
-.stat-value.green { color: #009E78; }
+.stat-value.green { color: var(--color-success); }
 
 /* ── Chart row ── */
 .chart-row {
@@ -192,7 +192,7 @@
 }
 
 .member-card:hover { transform: translateY(-2px); border-color: var(--color-border-primary); }
-.member-card.present { background: #E6FBF6; border: 2px solid #06D6A0; }
+.member-card.present { background: var(--color-success-bg); border: 2px solid var(--color-success); }
 .member-card.absent  { opacity: 0.55; }
 
 /* Avatar circles */
@@ -204,9 +204,9 @@
   font-family: 'Syne', sans-serif;
 }
 
-.av-teal   { background: #E6FBF6; color: #009E78; }
-.av-blue   { background: #EFF6FF; color: #3B82F6; }
-.av-amber  { background: #FFF1E6; color: #E86A2A; }
+.av-teal   { background: var(--color-success-bg); color: var(--color-success); }
+.av-blue   { background: var(--color-blue-light); color: var(--color-blue-mid); }
+.av-amber  { background: var(--color-warning-bg); color: var(--color-warning); }
 .av-pink   { background: var(--color-accent-light); color: var(--color-accent); }
 .av-purple { background: #EEEDFE; color: #534AB7; }
 .av-gray   { background: var(--color-background-secondary); color: var(--color-text-secondary); }
@@ -223,7 +223,7 @@
   border-radius: 999px; font-family: 'IBM Plex Mono', monospace;
 }
 
-.pill-in  { background: #E6FBF6; color: #009E78; }
+.pill-in  { background: var(--color-success-bg); color: var(--color-success); }
 .pill-out { background: var(--color-background-secondary); color: var(--color-text-secondary); }
 
 /* ── Activity log ── */
@@ -258,7 +258,7 @@
   font-size: 12px; flex-shrink: 0;
 }
 
-.log-in  { background: #E6FBF6; color: #009E78; }
+.log-in  { background: var(--color-success-bg); color: var(--color-success); }
 .log-out { background: var(--color-accent-light); color: var(--color-accent); }
 
 .log-name { font-size: 13px; font-weight: 600; font-family: 'Nunito', sans-serif; flex: 1; }
@@ -429,7 +429,7 @@
   transition: background 0.12s, color 0.12s;
 }
 .icon-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
-.icon-btn.ok-btn { color: #009E78; border-color: #009E78; }
+.icon-btn.ok-btn { color: var(--color-success); border-color: var(--color-success); }
 
 .edit-input {
   font-family: 'Nunito', sans-serif; font-size: 12px;
@@ -446,7 +446,7 @@
   font-size: 12px; font-weight: 600;
   cursor: pointer; font-family: 'Nunito', sans-serif;
   transition: background 0.15s, transform 0.1s;
-  box-shadow: 0 2px 8px rgba(232, 106, 42, 0.3);
+  box-shadow: 0 2px 8px rgba(29, 92, 78, 0.3);
 }
 
 .add-btn:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
@@ -474,8 +474,8 @@
   margin-left: 4px;
 }
 
-.badge-admin   { background: #FFF1E6; color: #E86A2A; }
-.badge-student { background: #EFF6FF; color: #3B82F6; }
+.badge-admin   { background: var(--color-accent-light); color: var(--color-accent); }
+.badge-student { background: var(--color-blue-light); color: var(--color-blue); }
 .badge-grad    { background: var(--color-background-secondary); color: var(--color-text-secondary); }
 
 .user-row-grad { opacity: 0.55; }
@@ -485,22 +485,22 @@
   border-radius: 999px; font-family: 'IBM Plex Mono', monospace;
   margin-left: 4px;
 }
-.badge-face-ok   { background: #E6FBF6; color: #009E78; }
-.badge-face-none { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+.badge-face-ok   { background: var(--color-success-bg); color: var(--color-success); }
+.badge-face-none { background: var(--color-warning-bg); color: var(--color-warning); }
 
 .status-dot {
   width: 8px; height: 8px;
   border-radius: 50%; flex-shrink: 0;
 }
 
-.status-dot.in  { background: #06D6A0; }
+.status-dot.in  { background: var(--color-success); }
 .status-dot.out { background: var(--color-border-primary); }
 
 /* ── Delete Button ── */
 .del-btn {
   background: transparent;
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border-secondary);
+  color: var(--color-error);
+  border: 1.5px solid var(--color-error);
   border-radius: var(--border-radius-md);
   padding: 6px 12px;
   font-size: 11px; font-weight: 500;
@@ -510,15 +510,15 @@
 }
 
 .del-btn:hover {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 .force-btn {
   background: transparent;
-  color: #A05800;
-  border: 1px solid #F4A836;
+  color: var(--color-error);
+  border: 1.5px solid var(--color-error);
   border-radius: var(--border-radius-md);
   padding: 6px 12px;
   font-size: 11px; font-weight: 500;
@@ -528,9 +528,9 @@
 }
 
 .force-btn:hover {
-  background: #FFF8EC;
-  border-color: #E4901A;
-  color: #8C4400;
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 /* ── Profile modal ── */

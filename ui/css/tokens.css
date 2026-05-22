@@ -1,18 +1,45 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --color-background-primary:   #FFFAF5;
-  --color-background-secondary: #FFF1E6;
-  --color-background-tertiary:  #FFE8D6;
-  --color-border-primary:       #E8C4A0;
-  --color-border-secondary:     #FFD166;
-  --color-border-tertiary:      #FFE0A3;
-  --color-text-primary:         #1C1410;
-  --color-text-secondary:       #6B4E35;
-  --color-text-tertiary:        #A07850;
-  --color-accent:               #E86A2A;
-  --color-accent-light:         #FFF1E6;
-  --color-accent-hover:         #D45A1A;
+  /* Backgrounds */
+  --color-background-primary:   #FFFFFF;
+  --color-background-secondary: #F4FAF9;
+  --color-background-tertiary:  #E8F2F0;
+
+  /* Borders */
+  --color-border-primary:       #7AB5A8;
+  --color-border-secondary:     #C8DDD8;
+  --color-border-tertiary:      #DFF0ED;
+
+  /* Text */
+  --color-text-primary:         #1A2E28;
+  --color-text-secondary:       #4A7A6E;
+  --color-text-tertiary:        #7AAF9F;
+
+  /* Accent — primary interactive colour */
+  --color-accent:               #1D5C4E;
+  --color-accent-mid:           #2E8B70;
+  --color-accent-soft:          #7AB5A8;
+  --color-accent-light:         #D4EDE8;
+  --color-accent-hover:         #164A3E;
+
+  /* Secondary accent — blue */
+  --color-blue:                 #1A5FA5;
+  --color-blue-mid:             #4A90D4;
+  --color-blue-light:           #E0EDFB;
+
+  /* Status colours */
+  --color-success:              #0F9E6E;
+  --color-success-bg:           #D4EDE8;
+  --color-warning:              #C07A00;
+  --color-warning-bg:           #FEF3DC;
+  --color-error:                #E84545;
+  --color-error-bg:             #FDECEA;
+
+  /* Dark surface (camera feed background) */
+  --color-surface-dark:         #1A2E28;
+
+  /* Radius / shadow */
   --border-radius-lg:           12px;
   --border-radius-md:           10px;
   --shadow-card:                none;

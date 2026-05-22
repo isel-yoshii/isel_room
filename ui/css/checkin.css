@@ -17,7 +17,7 @@
 .cam-feed {
   width: clamp(240px, 32vw, 520px);
   height: clamp(240px, 32vw, 520px);
-  background: #1C1410;
+  background: var(--color-surface-dark);
   border-radius: var(--border-radius-lg);
   border: 1.5px solid var(--color-border-primary);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -62,17 +62,17 @@
 .corner.br { bottom: 0; right: 0; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
 
 /* Corner colours per state */
-.state-idle     .corner { border-color: #3D2E20; }
-.state-scanning .corner { border-color: #F4A836; }
+.state-idle     .corner { border-color: var(--color-surface-dark); }
+.state-scanning .corner { border-color: var(--color-accent-mid); }
 .state-checkin  .corner,
-.state-checkout .corner { border-color: #06D6A0; }
-.state-fail     .corner { border-color: #E84545; }
+.state-checkout .corner { border-color: var(--color-success); }
+.state-fail     .corner { border-color: var(--color-error); }
 
 /* Animated scan line (visible only in scanning state) */
 .scan-line {
   position: absolute; left: 0; right: 0;
   height: 1px;
-  background: #F4A836; opacity: 0.7;
+  background: var(--color-accent-mid); opacity: 0.7;
   animation: scandown 1.8s linear infinite;
 }
 
@@ -96,15 +96,15 @@
 }
 
 .tag-idle     { background: var(--color-background-secondary); color: var(--color-text-secondary); }
-.tag-scanning { background: #FFF8EC;                           color: #B56B0A; }
-.tag-success  { background: #E6FBF6;                           color: #009E78; }
+.tag-scanning { background: var(--color-warning-bg);           color: var(--color-warning); }
+.tag-success  { background: var(--color-success-bg);           color: var(--color-success); }
 .tag-fail     { background: var(--color-accent-light);         color: var(--color-accent); }
 
 .dot { width: 6px; height: 6px; border-radius: 50%; }
 .dot-gray  { background: var(--color-border-primary); }
-.dot-amber { background: #F4A836; animation: blink 1s infinite; }
-.dot-green { background: #06D6A0; }
-.dot-red   { background: #E84545; }
+.dot-amber { background: var(--color-accent-mid); animation: blink 1s infinite; }
+.dot-green { background: var(--color-success); }
+.dot-red   { background: var(--color-error); }
 
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
@@ -136,7 +136,7 @@
   font-family: 'Syne', sans-serif;
 }
 
-.av-green { background: #E6FBF6; color: #009E78; }
+.av-green { background: var(--color-success-bg); color: var(--color-success); }
 .av-red   { background: var(--color-accent-light); color: var(--color-accent); }
 
 .checkin-info { flex: 1; min-width: 0; }
@@ -148,7 +148,7 @@
   padding: 3px 9px; border-radius: 999px; white-space: nowrap;
 }
 
-.badge-in  { background: #E6FBF6; color: #009E78; }
+.badge-in  { background: var(--color-success-bg); color: var(--color-success); }
 .badge-out { background: var(--color-accent-light); color: var(--color-accent); }
 
 /* ── Scan button ── */
@@ -163,7 +163,7 @@
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
   width: fit-content;
-  box-shadow: 0 4px 14px rgba(232, 106, 42, 0.3);
+  box-shadow: 0 4px 14px rgba(29, 92, 78, 0.3);
 }
 
 .btn-scan:hover:not(:disabled) { background: var(--color-accent-hover); transform: translateY(-1px); }
@@ -294,8 +294,8 @@
   transition: box-shadow 0.15s;
 }
 
-.mini-dot  { width: 5px; height: 5px; border-radius: 50%; background: #06D6A0; }
-.mini-dot.mini-dot-out { background: #A09090; }
+.mini-dot  { width: 5px; height: 5px; border-radius: 50%; background: var(--color-success); }
+.mini-dot.mini-dot-out { background: var(--color-border-secondary); }
 .mini-member.mini-out  { opacity: 0.45; }
 .mini-name { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; }
 
@@ -310,9 +310,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: rgba(28, 20, 16, 0.92);
+  background: rgba(26, 46, 40, 0.92);
   z-index: 10;
 }
-.cam-error-icon { font-size: 32px; color: #F4A836; line-height: 1; }
+.cam-error-icon { font-size: 32px; color: var(--color-warning); line-height: 1; }
 .cam-error-msg  { font-size: 14px; font-weight: 600; color: #F0F0F0; font-family: 'Nunito', sans-serif; }
-.cam-error-hint { font-size: 11px; color: #888; font-family: 'IBM Plex Mono', monospace; }
+.cam-error-hint { font-size: 11px; color: var(--color-text-tertiary); font-family: 'IBM Plex Mono', monospace; }
