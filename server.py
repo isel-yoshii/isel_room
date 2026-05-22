@@ -1,12 +1,13 @@
-from flask import Flask, render_template, request, jsonify, session, Response
 from dotenv import load_dotenv
 load_dotenv()
 
+from flask import render_template, request, jsonify, session, Response
 import os
 import base64
 import numpy as np
 import cv2
 
+from app import create_app
 from core.database import SQLDatabase
 from core.face_engine import FaceEngine
 from core.slack_bot import send_slack_message
@@ -17,12 +18,11 @@ import time as time_module
 import csv
 import io
 
-app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')
+app = create_app('dev')
 db = SQLDatabase()
 engine = FaceEngine(db)
 
-LOW_CONFIDENCE_THRESHOLD = float(os.getenv('LOW_CONFIDENCE_THRESHOLD', '0.40'))
+LOW_CONFIDENCE_THRESHOLD = app.config['LOW_CONFIDENCE_THRESHOLD']
 
 # Kioskで最後に認証アクションが起きた時間を記録（初期値は過去）
 last_kiosk_activity = datetime.min
