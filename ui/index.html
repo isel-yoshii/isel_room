@@ -199,9 +199,9 @@
           <div class="admin-header">
             <button class="add-btn" onclick="openRegModal()">+ Add Member</button>
             <div class="admin-header-right">
-              <button class="btn-ghost" onclick="runPromotion()">Promote Students</button>
-              <button class="btn-ghost" onclick="exportSessionsCsv()">Export Sessions CSV</button>
-              <button class="btn-ghost" onclick="adminLogout()">Logout</button>
+              <button class="add-btn" onclick="runPromotion()">Promote Students</button>
+              <button class="add-btn" onclick="exportSessionsCsv()">Export Sessions CSV</button>
+              <button class="add-btn" onclick="adminLogout()">Logout</button>
             </div>
           </div>
           <div class="section-label">All Members</div>
@@ -215,7 +215,7 @@
           <div class="admin-header">
             <div class="page-subtitle" style="margin:0;">Filter, search and inspect all admin / attendance events.</div>
             <div class="admin-header-right">
-              <button class="btn-ghost" onclick="exportAuditCsv()">Export Audit CSV</button>
+              <button class="add-btn" onclick="exportAuditCsv()">Export Audit CSV</button>
             </div>
           </div>
           <div class="audit-filters">
@@ -274,7 +274,7 @@
             <button class="stats-nav-btn" onclick="changeGridWeek(-1)">←</button>
             <span id="grid-week-label" class="stats-month-label">–</span>
             <button class="stats-nav-btn" id="grid-nav-next" onclick="changeGridWeek(1)">→</button>
-            <button class="btn-ghost" onclick="goCurrentWeek()">This week</button>
+            <button class="add-btn" onclick="goCurrentWeek()">This week</button>
             <div class="grid-member-filter" id="grid-member-filter"></div>
           </div>
           <div id="grid-content"><div class="log-empty">Loading…</div></div>
