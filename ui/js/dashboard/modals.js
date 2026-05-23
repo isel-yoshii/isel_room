@@ -83,6 +83,29 @@
 
   let _regStream = null;
 
+  /* ── Registration 3-step wizard (normal → glasses → mask) ── */
+
+  const REG_STEPS = [
+    { key: 'normal',  label: 'Normal',  hint: 'no glasses, no mask', skippable: false },
+    { key: 'glasses', label: 'Glasses', hint: 'put glasses on now',  skippable: true  },
+    { key: 'mask',    label: 'Mask',    hint: 'put a mask on now',   skippable: true  },
+  ];
+  let _regStep = 0;
+  let _regVariants = {};
+
+  function _renderRegStep() {
+    document.querySelectorAll('#reg-modal .reg-dot').forEach((el, i) => {
+      el.classList.toggle('reg-dot-on',   i === _regStep);
+      el.classList.toggle('reg-dot-done', i <  _regStep);
+    });
+    const s = REG_STEPS[_regStep];
+    document.getElementById('reg-step-label').innerHTML =
+      `Step ${_regStep + 1} of 3 — <strong>${s.label}</strong> (${s.hint})`;
+    document.getElementById('btn-register').textContent =
+      _regStep < REG_STEPS.length - 1 ? 'Capture' : 'Capture & Register';
+    document.getElementById('btn-register-skip').hidden = !s.skippable;
+  }
+
   window.openRegModal = function openRegModal() {
     const modal = document.getElementById('reg-modal');
     modal.classList.remove('hidden');
@@ -91,6 +114,10 @@
     const msg = document.getElementById('reg-msg');
     msg.textContent = '';
     msg.className   = 'modal-msg';
+    document.getElementById('btn-register').disabled = false;
+    _regStep = 0;
+    _regVariants = {};
+    _renderRegStep();
 
     navigator.mediaDevices.getUserMedia({ video: true, audio: false })
       .then(stream => {
@@ -115,18 +142,16 @@
     if (event.target === document.getElementById('reg-modal')) closeRegModal();
   };
 
-  window.captureAndRegister = async function captureAndRegister() {
-    const name     = document.getElementById('reg-name').value.trim();
-    const userType = document.getElementById('reg-type').value;
-    const msg      = document.getElementById('reg-msg');
-    const btn      = document.getElementById('btn-register');
+  window.onRegStepCapture = async function onRegStepCapture() {
+    const name = document.getElementById('reg-name').value.trim();
+    const msg  = document.getElementById('reg-msg');
+    const btn  = document.getElementById('btn-register');
 
     if (!name) {
       msg.textContent = 'Please Enter A Name';
       msg.className   = 'modal-msg err';
       return;
     }
-
     if (!_regStream) {
       msg.textContent = 'Camera Not Available';
       msg.className   = 'modal-msg err';
@@ -134,13 +159,40 @@
     }
 
     btn.disabled    = true;
-    msg.textContent = 'Capturing 3 frames…';
+    msg.textContent = `Capturing ${REG_STEPS[_regStep].label}…`;
     msg.className   = 'modal-msg';
-    const images = await captureBurst('reg-video');
-    msg.textContent = 'Processing…';
+    const frames = await captureBurst('reg-video');
+    _regVariants[REG_STEPS[_regStep].key] = frames;
+    _regStep++;
+    if (_regStep < REG_STEPS.length) {
+      btn.disabled = false;
+      msg.textContent = '';
+      _renderRegStep();
+    } else {
+      await _submitRegistration();
+    }
+  };
 
+  window.onRegStepSkip = function onRegStepSkip() {
+    _regStep++;
+    if (_regStep < REG_STEPS.length) {
+      _renderRegStep();
+    } else {
+      _submitRegistration();
+    }
+  };
+
+  async function _submitRegistration() {
+    const name     = document.getElementById('reg-name').value.trim();
+    const userType = document.getElementById('reg-type').value;
+    const msg      = document.getElementById('reg-msg');
+    const btn      = document.getElementById('btn-register');
+    msg.textContent = 'Processing…';
+    msg.className   = 'modal-msg';
     try {
-      const data = await api.post('/api/register', { name, user_type: userType, images });
+      const data = await api.post('/api/register', {
+        name, user_type: userType, variants: _regVariants,
+      });
       if (data.success) {
         msg.textContent = data.message || `${name} registered!`;
         msg.className   = 'modal-msg ok';
@@ -148,14 +200,17 @@
       } else {
         msg.textContent = data.message || 'Registration Failed';
         msg.className   = 'modal-msg err';
+        _regStep = 0;
+        _regVariants = {};
+        _renderRegStep();
+        btn.disabled = false;
       }
     } catch {
       msg.textContent = 'Server Error — Please Try Again';
       msg.className   = 'modal-msg err';
+      btn.disabled = false;
     }
-
-    btn.disabled = false;
-  };
+  }
 
   /* ── Face re-registration modal ── */
 
@@ -165,6 +220,8 @@
   window.openFaceReregModal = function openFaceReregModal(userId, userName) {
     _faceReregUserId = userId;
     document.getElementById('face-rereg-title').textContent = `Add Face Variant — ${userName}`;
+    const normalRadio = document.querySelector('input[name="rereg-variant"][value="normal"]');
+    if (normalRadio) normalRadio.checked = true;
     const msg = document.getElementById('face-rereg-msg');
     msg.textContent = '';
     msg.className   = 'modal-msg';
@@ -197,10 +254,11 @@
 
   window.captureAndReregFace = async function captureAndReregFace() {
     if (!_faceReregUserId || !_faceReregStream) return;
+    const variant = document.querySelector('input[name="rereg-variant"]:checked')?.value || 'normal';
     const msg = document.getElementById('face-rereg-msg');
     const btn = document.getElementById('btn-face-rereg');
     btn.disabled    = true;
-    msg.textContent = 'Capturing 3 frames…';
+    msg.textContent = `Capturing ${variant}…`;
     msg.className   = 'modal-msg';
     const images = await captureBurst('face-rereg-video');
     msg.textContent = 'Processing…';
@@ -209,12 +267,12 @@
       const r = await fetch(`/api/user/${_faceReregUserId}/face`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images }),
+        body: JSON.stringify({ variant, images }),
       }).then(r => r.json());
 
       if (r.success) {
-        msg.textContent = r.variant_count
-          ? `Face variant added (${r.variant_count} total)`
+        msg.textContent = r.variants
+          ? `Updated ${variant} (now: ${r.variants.join(' · ')})`
           : 'Face Updated';
         msg.className   = 'modal-msg ok';
         setTimeout(() => { closeFaceReregModal(); loadMembers(); }, 1400);

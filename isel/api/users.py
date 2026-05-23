@@ -2,6 +2,7 @@ from __future__ import annotations
 from flask import Blueprint, request, jsonify, current_app
 import isel.services.users as users_svc
 import isel.services.audit as audit_svc
+from isel.services.users import VARIANT_KEYS
 from isel.utils import admin_required
 from isel.utils.image import decode_image
 
@@ -35,29 +36,39 @@ def register():
         return jsonify({'success': False, 'message': f'「{name}」は既に登録されています'})
 
     engine = current_app.config['FACE_ENGINE']
-    frames_b64 = data.get('images') or ([data['image']] if data.get('image') else [])
-    embeddings = []
-    for b64 in frames_b64:
-        frame = decode_image(b64)
-        emb = engine.extract_embedding(frame, enforce=True)
-        if emb is not None:
-            embeddings.append([float(v) for v in emb])
+    variants_b64 = data.get('variants')
+    if variants_b64 is None:
+        # Backward-compat: prior `images` / `image` payloads → treat as 'normal'.
+        legacy = data.get('images') or ([data['image']] if data.get('image') else [])
+        variants_b64 = {'normal': legacy} if legacy else {}
 
-    if not embeddings:
-        return jsonify({'success': False, 'message': '顔を検出できませんでした'})
+    variants_emb: dict[str, list[list[float]]] = {}
+    for key, b64_list in variants_b64.items():
+        if key not in VARIANT_KEYS or not b64_list:
+            continue
+        embs = []
+        for b64 in b64_list[:3]:
+            frame = decode_image(b64)
+            emb = engine.extract_embedding(frame, enforce=True)
+            if emb is not None:
+                embs.append([float(v) for v in emb])
+        if embs:
+            variants_emb[key] = embs
 
-    dup_id, dup_name, _ = engine.find_match(embeddings[0], engine.reg_threshold)
+    if 'normal' not in variants_emb:
+        return jsonify({'success': False, 'message': '顔を検出できませんでした (normal variant required)'})
+
+    dup_id, dup_name, _ = engine.find_match(variants_emb['normal'][0], engine.reg_threshold)
     if dup_id is not None:
         return jsonify({'success': False, 'message': f'この方は既に「{dup_name}」として登録されています'})
 
-    new_user_id = users_svc.register_user(name, user_type, embeddings)
+    new_user_id = users_svc.register_user(name, user_type, variants_emb)
     audit_svc.record('REGISTER', new_user_id, name)
-    variant_suffix = '' if len(embeddings) == 1 else f' ({len(embeddings)} face variants)'
     return jsonify({
         'success': True,
-        'message': f'{name}さんを登録しました{variant_suffix}',
+        'message': f'{name}さんを登録しました ({", ".join(variants_emb.keys())})',
         'user_id': new_user_id,
-        'variant_count': len(embeddings),
+        'variants': list(variants_emb.keys()),
     })
 
 
@@ -87,18 +98,20 @@ def update_user(user_id: int):
 
 @bp.post('/api/user/<int:user_id>/face')
 @admin_required
-def add_user_face_variant(user_id: int):
+def set_user_face_variant(user_id: int):
     engine = current_app.config['FACE_ENGINE']
     data = request.json or {}
+    variant = data.get('variant')
+    if variant not in VARIANT_KEYS:
+        return jsonify({'success': False, 'message': 'Invalid variant'}), 400
     frames_b64 = data.get('images') or ([data['image']] if data.get('image') else [])
-    new_variants = []
-    for b64 in frames_b64:
+    frames_emb = []
+    for b64 in frames_b64[:3]:
         frame = decode_image(b64)
         emb = engine.extract_embedding(frame, enforce=True)
         if emb is not None:
-            new_variants.append([float(v) for v in emb])
-
-    if not new_variants:
-        return jsonify({'success': False, 'message': 'No face detected in image'}), 400
-    result = users_svc.add_face_variant(user_id, new_variants)
+            frames_emb.append([float(v) for v in emb])
+    if not frames_emb:
+        return jsonify({'success': False, 'message': 'No face detected in any frame'}), 400
+    result = users_svc.set_face_variant(user_id, variant, frames_emb)
     return jsonify(result), (200 if result['success'] else 400)

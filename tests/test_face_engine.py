@@ -40,6 +40,24 @@ def test_find_match_handles_legacy_single_vector(db_session):
     assert uid == user.user_id
 
 
+def test_find_match_with_variant_dict(db_session):
+    """Match works when stored embedding is a {variant: [vec, ...]} dict (new shape)."""
+    user = User(
+        name='Variants', user_type='M1', status=False,
+        embedding={
+            'normal':  [[1.0, 0.0, 0.0]],
+            'glasses': [[0.0, 1.0, 0.0]],
+        },
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    engine = FaceEngine(users_svc.get_all_embeddings, auth_threshold=0.55)
+    uid, name, _ = engine.find_match([0.0, 0.99, 0.0], 0.55)
+    assert uid == user.user_id
+    assert name == 'Variants'
+
+
 def test_find_match_returns_none_when_no_variant_below_threshold(db_session):
     user = User(
         name='Far',

@@ -863,3 +863,32 @@
   color: var(--color-text-primary);
   min-width: 120px;
 }
+
+/* ── Registration wizard step indicator ── */
+.reg-step-bar { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; }
+.reg-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--color-background-tertiary);
+  color: var(--color-text-tertiary);
+  font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  transition: background 0.15s, color 0.15s;
+}
+.reg-dot-on   { background: var(--color-accent);  color: #FFFFFF; }
+.reg-dot-done { background: var(--color-success); color: #FFFFFF; }
+.reg-step-label {
+  text-align: center; font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ── Face-rereg variant picker ── */
+.variant-picker {
+  display: flex; gap: 14px;
+  font-family: 'Nunito', sans-serif; font-size: 13px;
+  margin-top: 4px;
+}
+.variant-picker label { display: flex; gap: 4px; cursor: pointer; align-items: center; }
+.variant-picker input[type="radio"] { cursor: pointer; }

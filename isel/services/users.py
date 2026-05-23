@@ -7,29 +7,44 @@ from isel.db import SessionLocal
 from isel.db.models import User, Session as LabSession, AuditLog
 
 
-def _as_embedding_list(stored) -> list[list[float]]:
-    """Normalize a stored embedding to a list-of-vectors.
+VARIANT_KEYS = ('normal', 'glasses', 'mask')
+MAX_FRAMES_PER_VARIANT = 3
 
-    Legacy format: a single flat list of floats -> wrap as [stored]
-    New format:    list of flat lists of floats -> return as-is
-    None / empty:                               -> []
+
+def _as_variant_dict(stored) -> dict[str, list[list[float]]]:
+    """Normalise any historical embedding shape to {variant: [vec, ...]}.
+
+    Cases:
+      None / empty            -> {}
+      Flat list of floats     -> {'normal': [stored]}        (legacy single vector)
+      List of flat lists      -> {'normal': stored[:3]}      (prior-commit flat list)
+      Dict already            -> filter to VARIANT_KEYS, capped at 3 frames per slot
     """
     if not stored:
-        return []
-    if isinstance(stored, list) and stored and isinstance(stored[0], (int, float)):
-        return [stored]
-    return stored
+        return {}
+    if isinstance(stored, list):
+        if stored and isinstance(stored[0], (int, float)):
+            return {'normal': [stored]}
+        return {'normal': stored[:MAX_FRAMES_PER_VARIANT]}
+    if isinstance(stored, dict):
+        return {
+            k: list(v)[:MAX_FRAMES_PER_VARIANT]
+            for k, v in stored.items()
+            if k in VARIANT_KEYS and v
+        }
+    return {}
 
 
-def register_user(name: str, user_type: str, embedding) -> int:
+def register_user(name: str, user_type: str, variants) -> int:
     """Create a new user and return the generated user_id.
 
-    `embedding` may be a single vector or a list of vectors; always stored as a list.
+    `variants` may be a {variant_key: [vec, ...]} dict or a legacy list/single vector;
+    always stored as a dict of variants.
     """
-    embeddings = _as_embedding_list(embedding)
+    variant_dict = _as_variant_dict(variants)
     session = SessionLocal()
     try:
-        user = User(name=name, user_type=user_type, embedding=embeddings)
+        user = User(name=name, user_type=user_type, embedding=variant_dict)
         session.add(user)
         session.commit()
         session.refresh(user)
@@ -89,7 +104,7 @@ def get_all_users_info() -> list[dict]:
                 'type': u.user_type,
                 'status': u.status,
                 'has_face': bool(u.embedding),
-                'face_count': len(_as_embedding_list(u.embedding)),
+                'face_variants': [k for k in VARIANT_KEYS if k in _as_variant_dict(u.embedding)],
                 'last_seen': last_seen_map[u.user_id].isoformat() if u.user_id in last_seen_map else None,
             }
             for u in users
@@ -99,12 +114,12 @@ def get_all_users_info() -> list[dict]:
 
 
 def get_all_embeddings() -> dict[int, dict]:
-    """Return {user_id: {name, embeddings}}; embeddings is always a list-of-vectors."""
+    """Return {user_id: {name, variants}}; variants is {variant_key: [vec, ...]}."""
     session = SessionLocal()
     try:
         users = list(session.execute(select(User)).scalars().all())
         return {
-            u.user_id: {'name': u.name, 'embeddings': _as_embedding_list(u.embedding)}
+            u.user_id: {'name': u.name, 'variants': _as_variant_dict(u.embedding)}
             for u in users
         }
     finally:
@@ -128,23 +143,25 @@ def update_user(user_id: int, name: str, user_type: str) -> dict:
         session.close()
 
 
-def add_face_variant(user_id: int, embedding) -> dict:
-    """Append one or more face embeddings to the user's stored list.
+def set_face_variant(user_id: int, variant_key: str, frames: list[list[float]]) -> dict:
+    """Replace one variant slot (normal/glasses/mask) with the given frames.
 
-    `embedding` may be a single vector or a list of vectors.
+    Caps at MAX_FRAMES_PER_VARIANT. Returns the present variant keys after the update.
     """
-    new_variants = _as_embedding_list(embedding)
-    if not new_variants:
-        return {'success': False, 'message': 'No embedding provided'}
+    if variant_key not in VARIANT_KEYS:
+        return {'success': False, 'message': f'Invalid variant: {variant_key}'}
+    if not frames:
+        return {'success': False, 'message': 'No frames provided'}
     session = SessionLocal()
     try:
         user = session.get(User, user_id)
         if not user:
             return {'success': False, 'message': 'User not found'}
-        existing = _as_embedding_list(user.embedding)
-        user.embedding = existing + new_variants
+        current = _as_variant_dict(user.embedding)
+        current[variant_key] = list(frames)[:MAX_FRAMES_PER_VARIANT]
+        user.embedding = current
         session.commit()
-        return {'success': True, 'variant_count': len(user.embedding)}
+        return {'success': True, 'variants': [k for k in VARIANT_KEYS if k in current]}
     except Exception as e:
         session.rollback()
         return {'success': False, 'message': str(e)}

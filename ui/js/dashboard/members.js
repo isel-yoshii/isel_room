@@ -25,7 +25,7 @@
               <div class="user-role">
                 <span class="role-badge ${roleBadgeClass(u.type)}">${safeType}</span>
                 <span class="face-badge ${u.has_face ? 'badge-face-ok' : 'badge-face-none'}">
-                  ${u.has_face ? (u.face_count > 1 ? `${u.face_count} faces` : 'Enrolled') : 'No Face'}
+                  ${u.face_variants && u.face_variants.length ? u.face_variants.join(' · ') : 'No Face'}
                 </span>
               </div>
             </div>

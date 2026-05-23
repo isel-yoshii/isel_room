@@ -37,15 +37,16 @@ class FaceEngine:
         target_vec = np.array(target_embedding, dtype=float).flatten()
 
         for u_id, info in self.get_embeddings().items():
-            for stored in info.get('embeddings', []):
-                if stored is None:
-                    continue
-                stored_vec = np.array(stored, dtype=float).flatten()
-                dist = distance.cosine(target_vec, stored_vec)
-                if dist < min_dist:
-                    min_dist = dist
-                    matched_id = u_id
-                    matched_name = info['name']
+            for _variant_key, frames in info.get('variants', {}).items():
+                for stored in frames:
+                    if stored is None:
+                        continue
+                    stored_vec = np.array(stored, dtype=float).flatten()
+                    dist = distance.cosine(target_vec, stored_vec)
+                    if dist < min_dist:
+                        min_dist = dist
+                        matched_id = u_id
+                        matched_name = info['name']
 
         if matched_id is None:
             return None, None, None

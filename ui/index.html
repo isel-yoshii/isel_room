@@ -319,7 +319,14 @@
       </div>
 
       <div class="modal-field">
-        <label>Face Photo — Look At The Camera, Then Click Register</label>
+        <div class="reg-step-bar">
+          <span class="reg-dot reg-dot-on" data-step="1">1</span>
+          <span class="reg-dot"            data-step="2">2</span>
+          <span class="reg-dot"            data-step="3">3</span>
+        </div>
+        <div class="reg-step-label" id="reg-step-label">
+          Step 1 of 3 — <strong>Normal</strong> (no glasses, no mask)
+        </div>
         <div class="modal-cam">
           <video id="reg-video" autoplay playsinline muted></video>
         </div>
@@ -328,8 +335,9 @@
       <div class="modal-msg" id="reg-msg"></div>
 
       <div class="modal-actions">
-        <button class="btn-ghost"   onclick="closeRegModal()">Cancel</button>
-        <button class="btn-primary" id="btn-register" onclick="captureAndRegister()">Capture &amp; Register</button>
+        <button class="btn-ghost" onclick="closeRegModal()">Cancel</button>
+        <button class="btn-ghost" id="btn-register-skip" onclick="onRegStepSkip()" hidden>Skip</button>
+        <button class="btn-primary" id="btn-register" onclick="onRegStepCapture()">Capture</button>
       </div>
     </div>
   </div>
@@ -337,9 +345,17 @@
   <!-- Face re-registration modal -->
   <div class="modal-overlay hidden" id="face-rereg-modal" onclick="closeFaceReregModalOnBg(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-title" id="face-rereg-title">Re-Register Face</div>
+      <div class="modal-title" id="face-rereg-title">Add Face Variant</div>
       <div class="modal-field">
-        <label>Face Photo — Look At The Camera, Then Click Save</label>
+        <label>Which variant to (re-)capture?</label>
+        <div class="variant-picker">
+          <label><input type="radio" name="rereg-variant" value="normal" checked> Normal</label>
+          <label><input type="radio" name="rereg-variant" value="glasses"> Glasses</label>
+          <label><input type="radio" name="rereg-variant" value="mask"> Mask</label>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>Look at the camera, then click Save</label>
         <div class="modal-cam">
           <video id="face-rereg-video" autoplay playsinline muted></video>
         </div>
