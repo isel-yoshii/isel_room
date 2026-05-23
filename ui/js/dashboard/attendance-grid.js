@@ -78,15 +78,29 @@
     try {
       const params = new URLSearchParams({ start: isoDate(_gridWeekStart) });
       if (_selectedUserIds) params.set('user_ids', _selectedUserIds.join(','));
-      const data = await api.get('/api/stats/weekly-grid?' + params.toString());
-      renderGrid(data);
+      const [data, anomData] = await Promise.all([
+        api.get('/api/stats/weekly-grid?' + params.toString()),
+        api.get('/api/stats/anomalies?days=7'),
+      ]);
+      const anomByUser = {};
+      for (const a of anomData) anomByUser[a.user_id] = a;
+      renderGrid(data, anomByUser);
     } catch (err) {
       console.error('loadGrid error:', err);
       content.innerHTML = '<div class="log-empty">Failed to load grid</div>';
     }
   };
 
-  function renderGrid(rows) {
+  function badgesHtml(anom) {
+    if (!anom) return '';
+    const out = [];
+    if (anom.missing_days > 0)    out.push(`<span class="grid-badge" title="Missed weekdays in last 7 days">📅 ${anom.missing_days}</span>`);
+    if (anom.long_sessions > 0)   out.push(`<span class="grid-badge" title="Sessions over 12h (likely forgot to check out)">⏱ ${anom.long_sessions}</span>`);
+    if (anom.force_checkouts > 0) out.push(`<span class="grid-badge grid-badge-warn" title="Force-checkouts by admin">⚠ ${anom.force_checkouts}</span>`);
+    return out.join('');
+  }
+
+  function renderGrid(rows, anomByUser = {}) {
     const content = document.getElementById('grid-content');
     if (!rows.length) {
       content.innerHTML = '<div class="log-empty">No members match the current filter</div>';
@@ -113,7 +127,7 @@
           <div class="avatar ${avColor(i)}" style="width:28px;height:28px;font-size:10px;">${esc(initials(u.name))}</div>
           <div class="grid-name-info">
             <div class="grid-name">${esc(u.name)}</div>
-            <div class="grid-row-badges" id="grid-badges-${u.id}"></div>
+            <div class="grid-row-badges">${badgesHtml(anomByUser[u.id])}</div>
           </div>
         </div>`;
       const dayCells = u.days.map(d => {
