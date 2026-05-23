@@ -710,3 +710,49 @@
   color: var(--color-text-secondary);
 }
 .grid-cell-present .grid-cell-label { color: var(--color-success); font-weight: 600; }
+
+/* ── Activity log polish: presets, footer, dividers ── */
+.chip-presets { display: flex; gap: 4px; }
+.chip-preset {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 12px;
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.chip-preset:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+.audit-filters-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px dashed var(--color-border-tertiary);
+}
+.audit-result-count {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.filter-clear-link {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: 'Nunito', sans-serif;
+}
+.filter-clear-link:hover { color: var(--color-text-primary); }
+
+.log-date-divider {
+  padding: 8px 18px 6px;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+  font-family: 'IBM Plex Mono', monospace;
+  background: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border-tertiary);
+  position: sticky; top: 0; z-index: 1;
+}
+
+.filter-date-custom.hidden { display: none; }

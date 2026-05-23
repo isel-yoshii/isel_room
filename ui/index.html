@@ -230,21 +230,41 @@
               </label>
               <label class="filter-field">
                 <span class="filter-label">Date</span>
+                <select id="filter-date-preset" onchange="applyDatePreset(this.value)">
+                  <option value="this-week">This week</option>
+                  <option value="last-week">Last week</option>
+                  <option value="this-month">This month</option>
+                  <option value="last-month">Last month</option>
+                  <option value="all">All time</option>
+                  <option value="custom">Custom range…</option>
+                </select>
+              </label>
+              <div class="filter-field filter-date-custom hidden" id="filter-date-custom">
+                <span class="filter-label">Custom range</span>
                 <div class="filter-date-range">
                   <input type="date" id="filter-start" oninput="scheduleFilterReload()" />
                   <span class="filter-date-sep">→</span>
                   <input type="date" id="filter-end" oninput="scheduleFilterReload()" />
                 </div>
-              </label>
+              </div>
               <label class="filter-field filter-field-grow">
-                <span class="filter-label">Search</span>
-                <input type="search" id="filter-q" oninput="scheduleFilterReload()" placeholder="Name or action…" />
+                <span class="filter-label">Search (matches name OR action)</span>
+                <input type="search" id="filter-q" oninput="scheduleFilterReload()" placeholder='e.g. "tanaka" or "force"' />
               </label>
-              <button class="btn-ghost filter-clear" onclick="clearAuditFilters()">Clear filters</button>
             </div>
             <div class="audit-filters-row audit-filters-row-chips">
               <span class="filter-label">Actions</span>
+              <div class="chip-presets">
+                <button class="chip-preset" onclick="applyActionPreset('all')">All</button>
+                <button class="chip-preset" onclick="applyActionPreset('anomalies')">Anomalies only</button>
+                <button class="chip-preset" onclick="applyActionPreset('attendance')">Attendance</button>
+                <button class="chip-preset" onclick="applyActionPreset('admin')">Admin</button>
+              </div>
               <div class="chip-group" id="filter-actions"></div>
+            </div>
+            <div class="audit-filters-footer">
+              <span id="audit-result-count" class="audit-result-count">– events</span>
+              <a class="filter-clear-link" onclick="clearAuditFilters()">Clear filters</a>
             </div>
           </div>
           <div class="log-section">
