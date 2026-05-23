@@ -79,9 +79,12 @@
     }
 
     function findActivePreset() {
+      if (state.selectedIds.size === 0) return 'all';
       const presetNames = ['all', 'B4', 'M1', 'M2', 'Intern', 'students', '先生', '卒業'];
       for (const p of presetNames) {
-        if (setsEqual(state.selectedIds, presetIdsFor(p))) return p;
+        const ids = presetIdsFor(p);
+        if (ids.size === 0) continue;  // skip presets with no matching users
+        if (setsEqual(state.selectedIds, ids)) return p;
       }
       return null;
     }
