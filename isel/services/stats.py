@@ -234,3 +234,105 @@ def export_monthly_csv(year: int, month: int) -> list[dict]:
         return result
     finally:
         session.close()
+
+
+def weekly_grid(start_date: date, user_ids: list[int] | None = None) -> list[dict]:
+    """Per-user × per-day attendance grid for the 7-day window starting at start_date."""
+    session = SessionLocal()
+    try:
+        user_stmt = select(User)
+        if user_ids:
+            user_stmt = user_stmt.where(User.user_id.in_(user_ids))
+        users = list(session.execute(user_stmt).scalars().all())
+        users.sort(key=lambda u: u.name)
+
+        window_end = datetime.combine(start_date + timedelta(days=7), dt_time(0, 0))
+        window_start = datetime.combine(start_date, dt_time(0, 0))
+        sess_stmt = select(LabSession).where(
+            LabSession.checked_in_at >= window_start,
+            LabSession.checked_in_at < window_end,
+        )
+        if user_ids:
+            sess_stmt = sess_stmt.where(LabSession.user_id.in_(user_ids))
+        all_sessions = list(session.execute(sess_stmt).scalars().all())
+
+        now = datetime.now()
+        by_user_day: dict[tuple[int, date], dict] = defaultdict(
+            lambda: {'total_minutes': 0, 'sessions': 0, 'has_anomaly': False}
+        )
+        for s in all_sessions:
+            day_key = (s.user_id, s.checked_in_at.date())
+            end = s.checked_out_at or now
+            minutes = max(0, int((end - s.checked_in_at).total_seconds() / 60))
+            bucket = by_user_day[day_key]
+            bucket['total_minutes'] += minutes
+            bucket['sessions'] += 1
+            if minutes > 12 * 60 or s.check_in_method in ('auto_checkout', 'force_checkout'):
+                bucket['has_anomaly'] = True
+
+        result = []
+        for u in users:
+            days = []
+            for i in range(7):
+                d = start_date + timedelta(days=i)
+                bucket = by_user_day.get((u.user_id, d), {'total_minutes': 0, 'sessions': 0, 'has_anomaly': False})
+                days.append({
+                    'date': d.isoformat(),
+                    'total_minutes': bucket['total_minutes'],
+                    'sessions': bucket['sessions'],
+                    'has_anomaly': bucket['has_anomaly'],
+                })
+            result.append({
+                'id': u.user_id,
+                'name': u.name,
+                'type': u.user_type,
+                'days': days,
+            })
+        return result
+    finally:
+        session.close()
+
+
+def anomalies(days: int = 7) -> list[dict]:
+    """Per-user anomaly counters over the last `days` days."""
+    session = SessionLocal()
+    try:
+        now = datetime.now()
+        window_start = datetime.combine((now - timedelta(days=days - 1)).date(), dt_time(0, 0))
+        users = list(session.execute(select(User)).scalars().all())
+
+        sess_stmt = select(LabSession).where(LabSession.checked_in_at >= window_start)
+        all_sessions = list(session.execute(sess_stmt).scalars().all())
+
+        per_user_days: dict[int, set[date]] = defaultdict(set)
+        per_user_long: dict[int, int] = defaultdict(int)
+        per_user_force: dict[int, int] = defaultdict(int)
+        for s in all_sessions:
+            per_user_days[s.user_id].add(s.checked_in_at.date())
+            end = s.checked_out_at or now
+            minutes = max(0, int((end - s.checked_in_at).total_seconds() / 60))
+            if minutes > 12 * 60:
+                per_user_long[s.user_id] += 1
+            if s.check_in_method == 'force_checkout':
+                per_user_force[s.user_id] += 1
+
+        weekdays_in_window = sum(
+            1
+            for i in range(days)
+            if (now - timedelta(days=i)).weekday() < 5
+        )
+
+        result = []
+        for u in users:
+            present_weekdays = sum(1 for d in per_user_days.get(u.user_id, set()) if d.weekday() < 5)
+            missing = max(0, weekdays_in_window - present_weekdays)
+            result.append({
+                'user_id': u.user_id,
+                'name': u.name,
+                'missing_days': missing,
+                'long_sessions': per_user_long.get(u.user_id, 0),
+                'force_checkouts': per_user_force.get(u.user_id, 0),
+            })
+        return result
+    finally:
+        session.close()

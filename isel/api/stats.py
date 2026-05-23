@@ -1,12 +1,17 @@
 from __future__ import annotations
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from flask import Blueprint, request, jsonify, Response
 import isel.services.stats as stats_svc
 from isel.utils import admin_required
 
 bp = Blueprint('stats', __name__)
+
+
+def _week_start_today() -> date:
+    today = date.today()
+    return today - timedelta(days=today.weekday())
 
 
 @bp.get('/api/log/today')
@@ -59,3 +64,18 @@ def export_csv():
         mimetype='text/csv',
         headers={'Content-Disposition': f'attachment; filename={filename}'},
     )
+
+
+@bp.get('/api/stats/weekly-grid')
+def weekly_grid():
+    start = request.args.get('start')
+    user_ids_arg = request.args.get('user_ids')
+    parsed_start = date.fromisoformat(start) if start else _week_start_today()
+    parsed_ids = [int(x) for x in user_ids_arg.split(',') if x] if user_ids_arg else None
+    return jsonify(stats_svc.weekly_grid(parsed_start, parsed_ids))
+
+
+@bp.get('/api/stats/anomalies')
+def anomalies():
+    days = request.args.get('days', default=7, type=int)
+    return jsonify(stats_svc.anomalies(days))
