@@ -107,6 +107,11 @@ def auto_checkout_all() -> None:
         session.commit()
         if present_users:
             print(f'[{now.strftime("%H:%M:%S")}] {len(present_users)}名の自動退室処理を完了しました。')
+        try:
+            from isel.integrations.slack import update_status_board
+            update_status_board()
+        except Exception as e:
+            print(f'Slack board refresh after auto-checkout failed: {e}')
     except Exception as e:
         session.rollback()
         print(f'自動退室処理でエラー: {e}')

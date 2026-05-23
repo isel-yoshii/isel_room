@@ -46,8 +46,7 @@ def toggle():
             return jsonify({'success': False, 'message': 'User ID mismatch'}), 403
 
     result = attendance_svc.toggle_entry(data['user_id'], check_in_method)
-    event = result['event_type']
 
-    from isel.integrations.slack import send_slack_message
-    send_slack_message(f"{result['name']}さんが{'入室' if event == 'IN' else '退室'}しました")
+    from isel.integrations.slack import update_status_board
+    update_status_board()
     return jsonify(result)
