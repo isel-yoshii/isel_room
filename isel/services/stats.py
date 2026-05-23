@@ -1,7 +1,6 @@
 """Stats service — activity logs, monthly/weekly/daily aggregations, CSV export."""
 from __future__ import annotations
 import calendar
-import os
 from collections import defaultdict
 from datetime import datetime, timedelta, time as dt_time, date
 from sqlalchemy import select, func
@@ -10,21 +9,16 @@ from isel.db.models import User, Session as LabSession
 
 
 def daily_log(date_str: str | None = None) -> list[dict]:
-    """Return activity log for a logical day, sorted newest-first.
-
-    A logical day runs from DAY_RESET_HOUR to the same hour the next day.
-    """
+    """Return activity log for a calendar day, sorted newest-first."""
     session = SessionLocal()
-    reset_hour = int(os.getenv('DAY_RESET_HOUR', '4'))
     try:
         now = datetime.now()
-        if date_str:
-            logical_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        else:
-            logical_date = (now - timedelta(days=1)).date() if now.hour < reset_hour else now.date()
-
-        day_start = datetime.combine(logical_date, dt_time(reset_hour, 0))
-        day_end = datetime.combine(logical_date + timedelta(days=1), dt_time(reset_hour, 0))
+        logical_date = (
+            datetime.strptime(date_str, '%Y-%m-%d').date()
+            if date_str else now.date()
+        )
+        day_start = datetime.combine(logical_date, dt_time(0, 0))
+        day_end   = datetime.combine(logical_date + timedelta(days=1), dt_time(0, 0))
 
         checkins = session.execute(
             select(LabSession, User)
