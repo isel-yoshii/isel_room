@@ -45,7 +45,7 @@
     const row = document.getElementById(`user-row-${userId}`);
     if (!row) return;
 
-    const ROLE_OPTIONS = ['先生', 'B4', 'M1', 'M2', 'Intern', '卒業']
+    const ROLE_OPTIONS = ['先生', 'B4', 'M1', 'M2', 'PhD', 'Intern', '卒業']
       .map(t => `<option value="${t}" ${t === currentType ? 'selected' : ''}>${t}</option>`)
       .join('');
 

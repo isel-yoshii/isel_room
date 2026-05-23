@@ -17,8 +17,9 @@
             <button type="button" data-preset="B4">B4</button>
             <button type="button" data-preset="M1">M1</button>
             <button type="button" data-preset="M2">M2</button>
+            <button type="button" data-preset="PhD">PhD</button>
             <button type="button" data-preset="Intern">Intern</button>
-            <button type="button" data-preset="students">Students</button>
+            <button type="button" data-preset="students">学生</button>
             <button type="button" data-preset="先生">先生</button>
             <button type="button" data-preset="卒業">卒業</button>
           </div>
@@ -67,7 +68,7 @@
     function presetIdsFor(preset) {
       if (preset === 'all') return new Set(state.allUsers.map(u => u.id));
       if (preset === 'students') return new Set(
-        state.allUsers.filter(u => ['B4','M1','M2'].includes(u.type)).map(u => u.id)
+        state.allUsers.filter(u => ['B4','M1','M2','PhD','Intern'].includes(u.type)).map(u => u.id)
       );
       return new Set(state.allUsers.filter(u => u.type === preset).map(u => u.id));
     }
@@ -80,7 +81,7 @@
 
     function findActivePreset() {
       if (state.selectedIds.size === 0) return 'all';
-      const presetNames = ['all', 'B4', 'M1', 'M2', 'Intern', 'students', '先生', '卒業'];
+      const presetNames = ['all', 'B4', 'M1', 'M2', 'PhD', 'Intern', 'students', '先生', '卒業'];
       for (const p of presetNames) {
         const ids = presetIdsFor(p);
         if (ids.size === 0) continue;  // skip presets with no matching users
