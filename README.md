@@ -1,374 +1,263 @@
-# ISEL Room — Lab Presence & Attendance System
+# ISEL 在室管理システム
 
-A face-recognition-based check-in/check-out system for the Intelligent Software Engineering Lab (KIT). Members enter and leave the lab by scanning their face at a check-in terminal; admins get a live dashboard, monthly attendance stats, a points leaderboard, and an audit trail of every action.
+> Face-recognition-based lab presence tracking for the Intelligent Software Engineering Lab (KIT).
+
+Members check in and out by looking at a camera at the lab door. The sensei gets a live dashboard, weekly attendance grid, monthly and academic-year leaderboards, and a full audit trail. Optional Slack integration keeps the lab Slack channel always up to date with who's in.
+
+---
+
+## Table of Contents
+
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Basic Usage](#basic-usage)
+- [Configuration](#configuration)
+- [Slack Setup (Optional)](#slack-setup-optional)
+- [Project Layout](#project-layout)
+- [Testing](#testing)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
+---
+
+## Screenshots
+
+_Add screenshots once the lab kiosk is in production. Suggested:_
+
+- **Check-in screen** — full-screen kiosk with live camera feed, scan state, and the bottom presence strip.
+- **Dashboard overview** — stat cards, 7-day check-in trend, monthly activity chart.
+- **Attendance tab** — weekly grid + monthly leaderboard + academic-year leaderboard.
+
+---
+
+## Features
+
+- **Face check-in / check-out** with a 3-variant capture system (normal / glasses / mask) so glasses-on vs glasses-off doesn't trip up recognition.
+- **Live presence strip** at the bottom of the kiosk — green dot = currently in, grey = out.
+- **Weekly attendance grid** (GitHub-style heat-map) showing who came in which days.
+- **Leaderboards** — points are 1-per-day-present, browseable by month or by academic year (`2026年度`). All-time resets every April 1.
+- **Member management** — add, edit, delete, re-register faces, and a Promotion Wizard to walk through grade transitions each April.
+- **Audit log** — every admin and attendance event recorded, filterable by member / action / date / free-text, exportable as CSV.
+- **Slack daily status board** — a single message in your lab channel, edited in place as people come and go (no chat firehose).
+- **Auto-checkout cron** — nightly job force-closes any forgotten sessions.
+- **Manual fallback** — when face recognition fails, anyone can pick their name from a list.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Version |
-|---|---|---|
-| Language | Python | 3.10+ |
-| Web framework | Flask | 3.x |
-| ORM | SQLAlchemy | 2.0 |
-| Database | SQLite (dev) / MySQL-compatible | — |
-| Face recognition | DeepFace — ArcFace model | latest |
-| Image processing | OpenCV | 4.13 |
-| Vector math | NumPy + SciPy (cosine distance) | 2.4 / 1.17 |
-| Frontend | Vanilla JavaScript (ES2020+) | — |
-| Charts | Chart.js | 4.4 |
-| Fonts | Syne, Nunito, IBM Plex Mono | Google Fonts |
-| Slack | Slack Bolt (Socket Mode) | latest |
-| Environment | python-dotenv | latest |
-
----
-
-## Project Structure
-
-```
-isel_room/
-├── app.py              # Flask app factory (create_app)
-├── wsgi.py             # Production entry point
-├── config.py           # Config classes (Dev/Prod/Test)
-├── seed_db.py          # Populate DB with realistic mock data
-├── requirements.txt
-├── .env.example        # Template — copy to .env and fill in
-│
-├── isel/
-│   ├── api/            # Flask blueprints (28 API endpoints)
-│   │   ├── auth.py         # /api/admin/login|logout|status
-│   │   ├── checkin.py      # /api/auth, /api/toggle
-│   │   ├── users.py        # /api/users, /api/user/*, /api/register
-│   │   ├── sessions.py     # /api/session/<id>
-│   │   ├── presence.py     # /api/present, /api/present-detailed
-│   │   ├── stats.py        # /api/stats/*, /api/log/*, /api/export/csv
-│   │   └── admin.py        # /api/admin/promote, force-checkout, audit
-│   ├── services/       # Business logic
-│   │   ├── attendance.py
-│   │   ├── users.py
-│   │   ├── points.py
-│   │   ├── stats.py
-│   │   └── audit.py
-│   ├── db/             # SQLAlchemy layer
-│   │   ├── __init__.py     # engine, SessionLocal, init_db()
-│   │   ├── models.py       # User, Session, AuditLog
-│   │   └── repositories/   # user, session, audit, points repos
-│   ├── face_engine.py  # DeepFace ArcFace wrapper
-│   ├── integrations/
-│   │   └── slack.py    # Slack Bolt app + send_slack_message()
-│   ├── jobs/
-│   │   └── auto_checkout.py  # Daily checkout daemon + April promotion
-│   └── utils/
-│       ├── admin_auth.py   # @admin_required decorator
-│       └── image.py        # decode_image() helper
-│
-├── tests/              # pytest suite (16 tests)
-│   ├── conftest.py
-│   ├── test_attendance.py
-│   ├── test_points.py
-│   ├── test_users.py
-│   └── test_api_checkin.py
-│
-└── ui/
-    ├── index.html
-    ├── img/
-    │   └── logo.png        # ISEL brand logo (transparent PNG)
-    ├── css/
-    │   ├── tokens.css      # CSS variables only
-    │   ├── base.css        # Reset, topbar, modals, shared buttons
-    │   ├── checkin.css     # Check-in screen styles
-    │   └── dashboard.css   # Dashboard styles
-    └── js/
-        ├── core/           # api.js, camera.js, clock.js, nav.js, utils.js
-        ├── checkin/        # state-machine.js, manual-picker.js,
-        │                   # presence-strip.js, index.js
-        └── dashboard/      # overview.js, attendance.js, admin.js,
-                            # modals.js, index.js
-```
-
----
-
-## Database Schema
-
-### `users`
-| Column | Type | Notes |
-|---|---|---|
-| user_id | INT PK | auto-increment |
-| name | VARCHAR(255) | display name |
-| user_type | VARCHAR(50) | `先生` · `B4` · `M1` · `M2` · `Intern` · `卒業` |
-| embedding | JSON | 512-dim ArcFace float array |
-| status | BOOL | `True` = currently in lab |
-
-### `sessions`
-| Column | Type | Notes |
-|---|---|---|
-| id | INT PK | auto-increment |
-| user_id | INT FK | → users |
-| checked_in_at | DATETIME | entry timestamp |
-| checked_out_at | DATETIME | exit timestamp; NULL = still in lab |
-| check_in_method | VARCHAR(20) | `face` · `manual` · `auto_checkout` |
-
-### `audit_log`
-| Column | Type | Notes |
-|---|---|---|
-| id | INT PK | auto-increment |
-| action_type | VARCHAR(30) | `REGISTER` `DELETE` `CHECKIN` `CHECKOUT` `MANUAL_CHECKIN` `MANUAL_CHECKOUT` `AUTO_CHECKOUT` `FORCE_CHECKOUT` `PROMOTE` |
-| target_user_id | INT | user affected |
-| target_name | VARCHAR(255) | name at time of action |
-| performed_by | VARCHAR(50) | `admin` · `check-in` · `system` |
-| timestamp | DATETIME | |
-
-**Points are awarded automatically:** 1 point per calendar day a member checked in (counted from the `sessions` table). No manual overrides.
-
----
-
-## System Flow
-
-### Check-in / Check-out
-
-```
-User faces camera
-      │
-      ▼
-[Check-in screen captures frame as base64 JPEG]
-      │
-      ▼
-POST /api/auth
-  └─ FaceEngine.extract_embedding()     ← DeepFace ArcFace, 512-dim vector
-  └─ FaceEngine.find_match()            ← cosine distance vs all stored embeddings
-        │
-        ├─ distance < 0.40 ──────────────► match confirmed → show name + predicted event
-        │
-        ├─ 0.40 ≤ distance < 0.50 ──────► low confidence → show fail state (Space to pick manually)
-        │
-        └─ distance ≥ 0.50 ─────────────► no match → fail state
-                                                            │
-User confirms (↵) or picks manually (Space) ◄──────────────┘
-      │
-      ▼
-POST /api/toggle
-  └─ AttendanceService.toggle_entry()
-        ├─ status=False → set status=True, open Session row
-        └─ status=True  → set status=False, close Session row (set checked_out_at)
-  └─ AuditLog entry written
-  └─ Slack notification sent (if configured)
-```
-
-### User Registration
-
-```
-Admin opens Add Member modal (admin PIN required)
-      │
-      ▼
-Enter name + role → look at camera → click Capture & Register
-      │
-      ▼
-POST /api/register
-  └─ extract_embedding(enforce=True)    ← must detect a clear face
-  └─ duplicate check (cosine distance vs existing embeddings)
-  └─ store User row with embedding as JSON array
-  └─ AuditLog entry: REGISTER
-```
-
-### Daily Auto-Checkout
-
-`flask auto-checkout` force-closes all open `Session` rows, marks every user's `status = False`, and writes an `AUTO_CHECKOUT` AuditLog entry per affected user. Run nightly at the configured reset hour (default 10 PM).
-
-Stale sessions (>24h with no checkout) are also closed lazily on the next check-in, so missing a single cron tick is non-catastrophic.
-
-Promotions (B4→M1 / M1→M2 / M2→卒業 / M2→PhD / PhD→卒業) are no longer automatic. Use the **Members tab → Promote Students** wizard once a year to review and confirm each student's new role manually.
-
-Sample crontab:
-
-```
-# crontab -e
-0 22 * * *  cd /path/to/isel_room && FLASK_APP="app:create_app" flask auto-checkout
-```
-
----
-
-## UI Screens
-
-### Check-in Screen
-
-The full-screen terminal view. Camera feed is always live. States cycle automatically:
-
-| State | Description |
+| Layer | Choice |
 |---|---|
-| `idle` | Waiting — press `Enter` or click Scan Face |
-| `scanning` | Frame captured, ArcFace running |
-| `confirmation` | Matched name shown; press `Enter` to confirm or `Esc` to cancel |
-| `fail` | Face not recognised; press `Space` to open manual picker |
-| `success` | Result displayed for 3 s, then resets to idle |
-
-**Keyboard shortcuts:**
-
-| Key | Action |
-|---|---|
-| `Enter` | Scan face / confirm pending action |
-| `Space` | Open manual member picker |
-| `Esc` | Cancel pending action |
-| `C` | Switch to Check-in screen (global) |
-| `D` | Switch to Dashboard (global) |
-
-The **bottom presence strip** shows every registered member — in-lab members (green dot) sorted first, out-of-lab members (grey, dimmed) sorted alphabetically after.
+| Language | Python 3.10+ |
+| Web framework | Flask 3 |
+| ORM / DB | SQLAlchemy 2.0, SQLite (dev) / MySQL (prod) |
+| Face recognition | DeepFace + ArcFace (512-dim embeddings, cosine distance) |
+| Image processing | OpenCV 4, NumPy, SciPy |
+| Frontend | Vanilla JavaScript (no build step, no framework) |
+| Charts | Chart.js 4 |
+| Fonts | Syne, Nunito, IBM Plex Mono |
+| Slack | slack-bolt (post-only, no Socket Mode) |
 
 ---
 
-### Dashboard
+## Quick Start
 
-Three tabs accessible from the left sidebar (keyboard shortcuts `1` – `3`):
-
-**Overview `[1]`**
-- Stat cards: members currently in lab, unique check-ins today, total registered members
-- 7-day check-in trend (line chart) and monthly activity hours (bar chart, top 8)
-- Member grid — all members, present ones highlighted; click any card to open the profile modal
-- Activity log with ← → date navigation
-
-**Attendance `[2]`**
-- Month navigator (← →)
-- Points leaderboard — days present in the selected month, ranked 1st/2nd/3rd/…
-- "All-Time" leaderboard — total days present across all months
-- Session stats table — every member's session count, total time, average session length
-
-**Admin `[3]`** — PIN required
-- Add Member button — opens registration modal (name, role, live camera)
-- Member list with: role badge, face-enrolled status, in-lab indicator, Force Out, Edit (name/role), Re-Register Face (⊙), Delete
-- Promote Students — batch-promotes `B4→M1`, `M1→M2`, `M2→卒業`
-- Audit log — full append-only history of every admin action
-
----
-
-## API Reference
-
-### Auth & Admin
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/admin/login` | — | Authenticate with PIN; sets server-side session |
-| POST | `/api/admin/logout` | admin | End admin session |
-| GET | `/api/admin/status` | — | `{authenticated: bool}` |
-| POST | `/api/admin/force-checkout/<user_id>` | admin | Force a user out |
-| POST | `/api/admin/promote-students` | admin | Apply an explicit `{promotions: [{user_id, new_type}, ...]}` batch |
-
-### Check-in / Check-out
-
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/auth` | Send base64 face image; returns `{matched, user_id, name, status, low_confidence}` |
-| POST | `/api/toggle` | Toggle presence for `{user_id, check_in_method}`; returns `{name, event_type}` |
-
-### Users
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/register` | admin | Register new user `{name, user_type, image}` |
-| GET | `/api/users` | — | All users with `{id, name, type, status, has_face, last_seen}` |
-| GET | `/api/user/<id>/profile` | — | Profile + recent 10 sessions + monthly stats |
-| PUT | `/api/user/<id>` | admin | Update name/role `{name, user_type}` |
-| DELETE | `/api/user/<id>` | admin | Delete user + all sessions |
-| POST | `/api/user/<id>/face` | admin | Replace stored face embedding `{image}` |
-
-### Sessions
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| PUT | `/api/session/<id>` | admin | Edit session times `{checked_in_at, checked_out_at}` |
-
-### Presence
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/present` | Names of members currently in lab |
-| GET | `/api/present-detailed` | Names + duration since check-in |
-
-### Logs & Stats
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/log/today` | Today's check-in/out events |
-| GET | `/api/log?date=YYYY-MM-DD` | Events for a specific date |
-| GET | `/api/audit/log` | Full admin audit log |
-| GET | `/api/stats/today` | `{unique_checkins}` for today |
-| GET | `/api/stats/weekly` | Check-in counts for past 7 days |
-| GET | `/api/stats/monthly?year=&month=` | Per-user sessions + total minutes |
-| GET | `/api/stats/points?year=&month=` | Monthly point ranking (days present + bonuses) |
-| GET | `/api/stats/points/total` | All-time point ranking |
-| GET | `/api/export/csv?year=&month=` | Download monthly attendance CSV (admin) |
-
----
-
-## Setup
+Tested on macOS, Linux, and WSL. Windows native should work but is untested.
 
 ### Prerequisites
 
-- Python 3.10+
-- A webcam (for check-in use)
-- (Optional) Slack app credentials for notifications
+- Python 3.10 or newer
+- A webcam (for kiosk use — the dashboard works fine without one)
+- (Optional) Slack workspace + bot token
 
 ### Install
 
 ```bash
 git clone https://github.com/your-org/isel_room.git
 cd isel_room
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate           # macOS/Linux
+# .venv\Scripts\activate            # Windows
 pip install -r requirements.txt
 ```
 
-### Configure
+> The first `pip install` is slow (~3 minutes) because DeepFace pulls in TensorFlow. This is one-time.
 
-Copy `.env.example` to `.env` and fill in the required values:
+### Configure
 
 ```bash
 cp .env.example .env
 ```
 
-| Variable | Default | Description |
-|---|---|---|
-| `FLASK_SECRET_KEY` | **required** | Random secret for Flask sessions — generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
-| `ADMIN_PIN` | **required** | PIN for the admin dashboard (any length) |
-| `DATABASE_URL` | `sqlite:///isel_room.db` | SQLAlchemy DB URL; swap for MySQL in production |
-| `SLACK_BOT_TOKEN` | — | Slack bot token (`xoxb-...`) |
-| `SLACK_APP_TOKEN` | — | Slack app token for Socket Mode (`xapp-...`) |
-| `LOW_CONFIDENCE_THRESHOLD` | `0.40` | Cosine distance above which a face match is flagged as low-confidence |
-| `DAY_RESET_HOUR` | `22` | Hour (0–23) at which the daily auto-checkout runs (lab closing time) |
+Open `.env` and set at minimum:
 
-> **Production note:** the app refuses to start if `FLASK_SECRET_KEY` is unset or left as the default `change-me-to-a-random-string`.
+```env
+FLASK_SECRET_KEY=<generate with: python -c "import secrets; print(secrets.token_hex(32))">
+ADMIN_PIN=<choose any string>
+```
 
-### Run (development)
+Leave the rest at defaults for now.
+
+### Seed the database
 
 ```bash
-# First time — seed the database with mock data
 python seed_db.py
+```
 
-# Start the dev server
+This drops and recreates the DB with 11 mock members and ~60 days of fake attendance history. Re-run any time during development to reset.
+
+### Run
+
+```bash
 flask --app app run --host 0.0.0.0 --port 5001
 ```
 
-Open `http://localhost:5001` in a browser — the Check-in screen loads by default. Switch to the Dashboard with the `D` key or the top-right nav link.
+Open <http://localhost:5001> in a browser. The Check-in screen loads by default. Press `D` to switch to the Dashboard.
 
-> **Production:** use `wsgi.py` with gunicorn. The auto-checkout daemon and Slack listener start automatically via `wsgi.py`; in dev they start only once (Werkzeug reloader guard is in place).
+> **Production:** use `wsgi.py` with gunicorn. The auto-checkout job is a CLI command (`flask auto-checkout`) — schedule it via cron, not as part of the web process.
 
-### Run tests
+---
+
+## Basic Usage
+
+### As a lab member (at the kiosk)
+
+1. Walk up to the camera.
+2. Press `Enter` (or click **Scan Face**).
+3. Confirm the match with `Enter`. The screen says "Welcome, <name>!" or "See you, <name>!".
+
+If your face isn't matched, press `Space` to pick your name from a list.
+
+### As the sensei / admin (on the dashboard)
+
+| Key | Tab |
+|---|---|
+| `1` | Overview — stat cards, charts, recent activity |
+| `2` | Attendance — weekly grid + leaderboards |
+| `3` | Members — add / edit / delete / re-register (PIN required) |
+| `4` | Activity Log — full audit log with filters (PIN required) |
+
+**Add a new member:** Members tab → Add Member → enter name + role → 3-step face capture wizard (Normal required, Glasses and Mask optional). The wizard bursts 3 frames per step for robustness.
+
+**Promote students at year-end:** Members tab → Promote Students → walk through each student in the wizard and pick their new role (M1 → M2, M2 → 卒業 or PhD, etc.). All changes are applied atomically and logged.
+
+### Nightly auto-checkout (cron)
+
+Add to your crontab to force-close forgotten sessions every night at 22:00:
+
+```cron
+0 22 * * *  cd /path/to/isel_room && FLASK_APP="app:create_app" flask auto-checkout
+```
+
+If you miss a tick, no big deal — any session open over 24 hours is closed automatically on the user's next check-in.
+
+---
+
+## Configuration
+
+All configuration is via environment variables (load via `.env`):
+
+| Variable | Default | Required? | Purpose |
+|---|---|---|---|
+| `FLASK_SECRET_KEY` | `dev-secret-change-me` | **Yes in prod** | Flask session signing key |
+| `ADMIN_PIN` | _(empty)_ | **Yes** | PIN for the admin dashboard |
+| `DATABASE_URL` | `sqlite:///isel_room.db` | No | SQLAlchemy connection string |
+| `LOW_CONFIDENCE_THRESHOLD` | `0.40` | No | UI badge cutoff for "low-confidence" matches (cosmetic only) |
+| `DAY_RESET_HOUR` | `22` | No | Documents your lab's closing hour (the cron is the actual reset trigger) |
+| `SLACK_BOT_TOKEN` | _(empty)_ | No | Set to enable Slack integration |
+
+`ProdConfig` (used by `wsgi.py`) refuses to start without `FLASK_SECRET_KEY` and `ADMIN_PIN` — this is intentional.
+
+---
+
+## Slack Setup (Optional)
+
+Posts and edits **one** message per day in your lab channel — not a chat firehose.
+
+1. Create a Slack app at <https://api.slack.com/apps>.
+2. Add bot scope: `chat:write`.
+3. Install to your workspace, copy the bot token (`xoxb-...`).
+4. Invite the bot to your channel: `/invite @YourBotName`.
+5. Set `SLACK_BOT_TOKEN` in `.env` and restart the app.
+
+The default channel is `#a-lab-status` — change `_DEFAULT_CHANNEL` in [isel/integrations/slack.py](isel/integrations/slack.py) if needed.
+
+---
+
+## Project Layout
+
+```
+isel_room/
+├── app.py                  # Flask app factory
+├── wsgi.py                 # Production entry point
+├── config.py               # Dev / Prod / Test configs
+├── seed_db.py              # Reset DB with mock data
+├── isel/
+│   ├── api/                # Flask blueprints (HTTP layer)
+│   ├── services/           # Business logic (attendance, users, points, stats, audit)
+│   ├── db/                 # SQLAlchemy models + session
+│   ├── face_engine.py      # DeepFace ArcFace wrapper
+│   ├── integrations/       # Slack status board
+│   └── utils/              # Decorators + image helpers
+├── tests/                  # pytest suite
+└── ui/
+    ├── index.html          # Single-page shell
+    ├── css/                # tokens, base, checkin, dashboard
+    └── js/                 # core, checkin, dashboard
+```
+
+See [DEVELOPER_GUIDE.md §3](DEVELOPER_GUIDE.md#3-repository-layout) for the annotated tree.
+
+---
+
+## Testing
 
 ```bash
 python -m pytest
 ```
 
-### Seed / reset the database
-
-```bash
-python seed_db.py
-```
-
-Wipes and recreates the DB with 10 mock members (Choi Eunjong 先生, Okura/Inoue M2, Naimi/Yoshii/Tasaki/Hashimoto M1, Yamamoto/Yamaguchi B4, Lee Intern), ~60 days of session history, and 3 members currently in lab. Safe to re-run any time during development.
+Runs the full suite (~21 tests) against an in-memory SQLite. No external services required.
 
 ---
 
-## Slack Integration
+## Documentation
 
-When `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` are set, the bot:
-- Posts to `#a-lab-status` on every check-in/check-out
-- Replies with the current member list when a message matches `在室`, `メンバー`, `だれ`, or `誰`
+For everything beyond getting it running:
 
-To enable: create a Slack app with Socket Mode enabled, add the tokens to `.env`, and invite the bot to `#a-lab-status`.
+- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** — comprehensive architecture, every layer explained, face pipeline deep-dive, frontend module map, state machines, testing patterns, common workflows (recipes), and troubleshooting. Read this on your first day.
+
+---
+
+## Contributing
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+feat(points): academic-year leaderboard resets every Apr 1
+fix(ui): rotate avatar colours in kiosk manual picker
+refactor(slack): single daily status board updated via chat.update
+chore(seed): update members to actual lab roster
+docs(guide): document 3-variant face slot system
+```
+
+Subject in lowercase, no trailing period. Body optional, wrapped at 72.
+
+Other conventions (no Co-Authored-By lines, comment policy, naming, file-length guidance) are in [DEVELOPER_GUIDE.md §12](DEVELOPER_GUIDE.md#12-conventions--house-style).
+
+---
+
+## License
+
+_Internal use — KIT Intelligent Software Engineering Lab. Add a formal LICENSE file before publishing externally._
+
+---
+
+## Acknowledgments
+
+- Built for the **ISEL Lab** at the Kyoto Institute of Technology.
+- Face recognition via [DeepFace](https://github.com/serengil/deepface) (ArcFace).
+- Inspired by [GitHub's contribution graph](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/managing-contribution-settings-on-your-profile/viewing-contributions-on-your-profile) for the weekly attendance grid.

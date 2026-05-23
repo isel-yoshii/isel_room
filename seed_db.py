@@ -85,7 +85,7 @@ def make_sessions(user_id, days_back=62, today=None):
 MEMBERS = [
     # (name, user_type, has_face, currently_in_lab)
     ('Choi Eunjong',  '先生',   True,  False),
-    ('Tanaka',        'PhD',    True,  False),
+    ('Kondo',        'PhD',    True,  False),
     ('Okura',         'M2',     True,  False),
     ('Inoue',         'M2',     True,  True),
     ('Naimi',         'M1',     True,  True),
