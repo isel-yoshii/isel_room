@@ -1,4 +1,4 @@
-"""Attendance service — toggle entry, force checkout, auto checkout, presence queries."""
+"""Attendance service — toggle entry, auto checkout, presence queries."""
 from __future__ import annotations
 from datetime import datetime, timedelta
 from sqlalchemy import select
@@ -57,33 +57,6 @@ def toggle_entry(user_id: int, check_in_method: str = 'face') -> dict:
     except Exception:
         session.rollback()
         raise
-    finally:
-        session.close()
-
-
-def force_checkout(user_id: int, performed_by: str = 'admin') -> dict:
-    session = SessionLocal()
-    try:
-        user = session.get(User, user_id)
-        if not user:
-            return {'success': False, 'message': 'User not found'}
-        if not user.status:
-            return {'success': False, 'message': 'User is not currently in the lab'}
-        now = datetime.now()
-        user.status = False
-        _close_open_session(session, user_id, now, method='auto_checkout')
-        session.add(AuditLog(
-            action_type='FORCE_CHECKOUT',
-            target_user_id=user_id,
-            target_name=user.name,
-            performed_by=performed_by,
-            timestamp=now,
-        ))
-        session.commit()
-        return {'success': True, 'message': f'{user.name} checked out'}
-    except Exception as e:
-        session.rollback()
-        return {'success': False, 'message': str(e)}
     finally:
         session.close()
 

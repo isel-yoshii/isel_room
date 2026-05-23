@@ -29,7 +29,6 @@
                 </span>
               </div>
             </div>
-            ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${argName}')">Force Out</button>` : ''}
             <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${argName}', '${argType}')" title="Edit Name / Role">✎</button>
             <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${argName}')" title="Add Face Variant">⊙</button>
             <button class="del-btn" onclick="deleteUser(${u.id}, '${argName}')">Delete</button>
@@ -70,18 +69,6 @@
       if (r.success) { loadMembers(); loadOverview(); }
       else alert(`Failed: ${r.message}`);
     } catch (e) { console.error(e); }
-  };
-
-  window.forceCheckout = async function forceCheckout(userId, userName) {
-    if (!confirm(`Force "${userName}" out of the lab?`)) return;
-    try {
-      const res = await api.post(`/api/admin/force-checkout/${userId}`, {});
-      if (res.success) { loadMembers(); loadOverview(); }
-      else alert(`Failed: ${res.message}`);
-    } catch (e) {
-      console.error('forceCheckout error:', e);
-      alert('Network error occurred.');
-    }
   };
 
   window.deleteUser = async function deleteUser(userId, userName) {

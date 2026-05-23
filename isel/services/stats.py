@@ -261,7 +261,7 @@ def weekly_grid(start_date: date, user_ids: list[int] | None = None) -> list[dic
             bucket = by_user_day[day_key]
             bucket['total_minutes'] += minutes
             bucket['sessions'] += 1
-            if minutes > 12 * 60 or s.check_in_method in ('auto_checkout', 'force_checkout'):
+            if minutes > 12 * 60 or s.check_in_method == 'auto_checkout':
                 bucket['has_anomaly'] = True
 
         result = []
@@ -300,15 +300,12 @@ def anomalies(days: int = 7) -> list[dict]:
 
         per_user_days: dict[int, set[date]] = defaultdict(set)
         per_user_long: dict[int, int] = defaultdict(int)
-        per_user_force: dict[int, int] = defaultdict(int)
         for s in all_sessions:
             per_user_days[s.user_id].add(s.checked_in_at.date())
             end = s.checked_out_at or now
             minutes = max(0, int((end - s.checked_in_at).total_seconds() / 60))
             if minutes > 12 * 60:
                 per_user_long[s.user_id] += 1
-            if s.check_in_method == 'force_checkout':
-                per_user_force[s.user_id] += 1
 
         weekdays_in_window = sum(
             1
@@ -325,7 +322,6 @@ def anomalies(days: int = 7) -> list[dict]:
                 'name': u.name,
                 'missing_days': missing,
                 'long_sessions': per_user_long.get(u.user_id, 0),
-                'force_checkouts': per_user_force.get(u.user_id, 0),
             })
         return result
     finally:

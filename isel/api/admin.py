@@ -54,13 +54,6 @@ def export_audit_csv():
     )
 
 
-@bp.post('/api/admin/force-checkout/<int:user_id>')
-@admin_required
-def force_checkout_user(user_id: int):
-    result = attendance_svc.force_checkout(user_id)
-    return jsonify(result), (200 if result['success'] else 400)
-
-
 @bp.post('/api/admin/promote-students')
 @admin_required
 def promote_students():

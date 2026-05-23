@@ -1,4 +1,4 @@
-"""Tests for attendance toggle, force-checkout, and stale-session safeguard."""
+"""Tests for attendance toggle and stale-session safeguard."""
 from __future__ import annotations
 from datetime import datetime, timedelta
 
@@ -61,21 +61,3 @@ def test_stale_session_closed_on_new_checkin(db_session):
     assert audit is not None
 
 
-def test_force_checkout_clears_status(db_session):
-    uid = _make_user(db_session)
-    attendance.toggle_entry(uid, check_in_method='face')
-
-    res = attendance.force_checkout(uid)
-
-    assert res['success'] is True
-    db_session.expire_all()
-    user = db_session.get(User, uid)
-    assert user.status is False
-
-
-def test_force_checkout_fails_if_not_in(db_session):
-    uid = _make_user(db_session)
-
-    res = attendance.force_checkout(uid)
-
-    assert res['success'] is False

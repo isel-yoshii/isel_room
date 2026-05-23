@@ -500,24 +500,6 @@
   border-color: var(--color-error);
 }
 
-.force-btn {
-  background: transparent;
-  color: var(--color-error);
-  border: 1.5px solid var(--color-error);
-  border-radius: var(--border-radius-md);
-  padding: 6px 12px;
-  font-size: 11px; font-weight: 500;
-  font-family: 'Nunito', sans-serif;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.force-btn:hover {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border-color: var(--color-error);
-}
-
 /* ── Profile modal ── */
 .profile-box { max-width: 640px; width: 100%; }
 
