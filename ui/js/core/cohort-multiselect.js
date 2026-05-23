@@ -17,6 +17,7 @@
             <button type="button" data-preset="B4">B4</button>
             <button type="button" data-preset="M1">M1</button>
             <button type="button" data-preset="M2">M2</button>
+            <button type="button" data-preset="Intern">Intern</button>
             <button type="button" data-preset="students">Students</button>
             <button type="button" data-preset="先生">先生</button>
             <button type="button" data-preset="卒業">卒業</button>
@@ -65,8 +66,9 @@
 
     function applyPreset(preset) {
       state.selectedIds.clear();
-      if (preset === 'all') { /* empty == all */ }
-      else if (preset === 'students') {
+      if (preset === 'all') {
+        state.allUsers.forEach(u => state.selectedIds.add(u.id));
+      } else if (preset === 'students') {
         state.allUsers.forEach(u => { if (['B4','M1','M2'].includes(u.type)) state.selectedIds.add(u.id); });
       } else {
         state.allUsers.forEach(u => { if (u.type === preset) state.selectedIds.add(u.id); });
@@ -76,6 +78,13 @@
 
     function openPopover() {
       popover.classList.remove('hidden');
+      popover.style.left = '0';
+      popover.style.right = 'auto';
+      const rect = popover.getBoundingClientRect();
+      if (rect.right > window.innerWidth - 8) {
+        popover.style.left = 'auto';
+        popover.style.right = '0';
+      }
       setTimeout(() => searchEl.focus(), 0);
     }
     function closePopover() {
