@@ -33,6 +33,7 @@ def record(
 def recent_entries(
     limit: int = 200,
     user_id: int | None = None,
+    user_ids: list[int] | None = None,
     action_types: list[str] | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
@@ -43,6 +44,8 @@ def recent_entries(
         stmt = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(limit)
         if user_id is not None:
             stmt = stmt.where(AuditLog.target_user_id == user_id)
+        if user_ids:
+            stmt = stmt.where(AuditLog.target_user_id.in_(user_ids))
         if action_types:
             stmt = stmt.where(AuditLog.action_type.in_(action_types))
         if start is not None:

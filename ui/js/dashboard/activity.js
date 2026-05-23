@@ -24,6 +24,8 @@
   const _selectedActions = new Set();
   let _filterDebounce = null;
   let _filtersInitialized = false;
+  let _selectedUserIds = [];
+  let _memberMs = null;
 
   function isoDay(d) {
     const y = d.getFullYear();
@@ -77,8 +79,7 @@
 
   window.buildAuditFilterParams = function buildAuditFilterParams() {
     const params = new URLSearchParams();
-    const uid = document.getElementById('filter-user')?.value;
-    if (uid) params.set('user_id', uid);
+    if (_selectedUserIds.length) params.set('user_ids', _selectedUserIds.join(','));
     if (_selectedActions.size) params.set('actions', [..._selectedActions].join(','));
     const start = document.getElementById('filter-start')?.value;
     const end   = document.getElementById('filter-end')?.value;
@@ -107,8 +108,9 @@
   };
 
   window.clearAuditFilters = function clearAuditFilters() {
-    document.getElementById('filter-user').value  = '';
-    document.getElementById('filter-q').value     = '';
+    _selectedUserIds = [];
+    if (_memberMs) _memberMs.setSelected([]);
+    document.getElementById('filter-q').value = '';
     _selectedActions.clear();
     document.querySelectorAll('#filter-actions .chip').forEach(c => c.classList.remove('chip-active'));
     document.getElementById('filter-date-preset').value = 'this-week';
@@ -118,17 +120,11 @@
   async function initAuditFilters() {
     if (_filtersInitialized) return;
     _filtersInitialized = true;
-    try {
-      const users = await api.get('/api/users');
-      const sel = document.getElementById('filter-user');
-      users.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.id;
-        opt.textContent = u.name;
-        sel.appendChild(opt);
+    const container = document.getElementById('audit-member-filter');
+    if (container && typeof mountCohortMultiselect === 'function') {
+      _memberMs = mountCohortMultiselect(container, {
+        onChange: (ids) => { _selectedUserIds = ids; loadAuditLog(); },
       });
-    } catch (err) {
-      console.error('initAuditFilters users error:', err);
     }
     const chipBar = document.getElementById('filter-actions');
     chipBar.innerHTML = ACTION_TYPES.map(a =>

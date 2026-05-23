@@ -16,11 +16,13 @@ def _parse_audit_filters() -> dict:
     args = request.args
     actions = args.get('actions')
     user_id = args.get('user_id', type=int)
+    user_ids_arg = args.get('user_ids')
     start = args.get('start')
     end = args.get('end')
     return {
         'limit': args.get('limit', default=200, type=int),
         'user_id': user_id,
+        'user_ids': [int(x) for x in user_ids_arg.split(',') if x] if user_ids_arg else None,
         'action_types': [a for a in actions.split(',') if a] if actions else None,
         'start': datetime.fromisoformat(start) if start else None,
         'end': datetime.fromisoformat(end) if end else None,

@@ -224,9 +224,7 @@
             <div class="audit-filters-row">
               <label class="filter-field">
                 <span class="filter-label">Member</span>
-                <select id="filter-user" onchange="loadAuditLog()">
-                  <option value="">All members</option>
-                </select>
+                <div id="audit-member-filter"></div>
               </label>
               <label class="filter-field">
                 <span class="filter-label">Date</span>
@@ -434,6 +432,7 @@
   <script src="/ui/js/core/camera.js"></script>
   <script src="/ui/js/core/clock.js"></script>
   <script src="/ui/js/core/nav.js"></script>
+  <script src="/ui/js/core/cohort-multiselect.js"></script>
   <script src="/ui/js/checkin/state-machine.js"></script>
   <script src="/ui/js/checkin/manual-picker.js"></script>
   <script src="/ui/js/checkin/presence-strip.js"></script>

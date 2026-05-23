@@ -2,6 +2,19 @@
   const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   let _gridWeekStart = mondayOf(new Date());
   let _selectedUserIds = null;
+  let _memberMs = null;
+  let _gridFilterInitialized = false;
+
+  function initGridFilter() {
+    if (_gridFilterInitialized) return;
+    _gridFilterInitialized = true;
+    const container = document.getElementById('grid-member-filter');
+    if (container && typeof mountCohortMultiselect === 'function') {
+      _memberMs = mountCohortMultiselect(container, {
+        onChange: (ids) => { _selectedUserIds = ids.length ? ids : null; loadGrid(); },
+      });
+    }
+  }
 
   function mondayOf(d) {
     const x = new Date(d);
@@ -54,6 +67,7 @@
   };
 
   window.loadGrid = async function loadGrid() {
+    initGridFilter();
     document.getElementById('grid-week-label').textContent = formatWeekLabel(_gridWeekStart);
     const nextBtn = document.getElementById('grid-nav-next');
     const today = mondayOf(new Date());
