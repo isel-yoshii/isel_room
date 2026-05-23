@@ -558,3 +558,40 @@
 }
 .profile-sess-row { color: var(--color-text-primary); font-family: 'IBM Plex Mono', monospace; }
 .profile-sess-row:last-child { border-bottom: none; }
+
+/* Audit log filter bar */
+.audit-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.audit-filters select,
+.audit-filters input {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 6px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+}
+.audit-filters input[type="search"] { min-width: 180px; }
+.chip-group { display: flex; gap: 4px; flex-wrap: wrap; flex-basis: 100%; }
+.chip {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-tertiary);
+  background: var(--color-background-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.chip-active {
+  background: var(--color-accent);
+  color: var(--color-background-primary);
+  border-color: var(--color-accent);
+}

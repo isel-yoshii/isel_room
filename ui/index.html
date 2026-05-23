@@ -199,6 +199,16 @@
           </div>
 
           <div class="section-label" style="margin-top:24px;">Audit Log</div>
+          <div class="audit-filters">
+            <select id="filter-user" onchange="loadAuditLog()">
+              <option value="">All members</option>
+            </select>
+            <input type="date" id="filter-start" oninput="scheduleFilterReload()" title="Start date" />
+            <input type="date" id="filter-end"   oninput="scheduleFilterReload()" title="End date" />
+            <input type="search" id="filter-q"   oninput="scheduleFilterReload()" placeholder="Search name / action" />
+            <button class="btn-ghost" onclick="clearAuditFilters()">Clear</button>
+            <div class="chip-group" id="filter-actions"></div>
+          </div>
           <div class="log-section">
             <div id="audit-body"><div class="log-empty">Loading…</div></div>
           </div>

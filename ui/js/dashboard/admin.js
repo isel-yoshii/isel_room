@@ -1,6 +1,17 @@
 (function () {
+  const ACTION_TYPES = [
+    'REGISTER', 'DELETE',
+    'CHECKIN', 'CHECKOUT',
+    'MANUAL_CHECKIN', 'MANUAL_CHECKOUT',
+    'AUTO_CHECKOUT', 'FORCE_CHECKOUT',
+    'PROMOTE', 'POINTS_ADJUST',
+  ];
+  const _selectedActions = new Set();
+  let _filterDebounce = null;
+  let _filtersInitialized = false;
+
   window.loadAdmin = async function loadAdmin() {
-    await Promise.all([loadAdminUsers(), loadAuditLog()]);
+    await Promise.all([loadAdminUsers(), initAuditFilters(), loadAuditLog()]);
   };
 
   window.loadAdminUsers = async function loadAdminUsers() {
@@ -46,13 +57,78 @@
     }
   };
 
+  window.buildAuditFilterParams = function buildAuditFilterParams() {
+    const params = new URLSearchParams();
+    const uid = document.getElementById('filter-user')?.value;
+    if (uid) params.set('user_id', uid);
+    if (_selectedActions.size) params.set('actions', [..._selectedActions].join(','));
+    const start = document.getElementById('filter-start')?.value;
+    const end   = document.getElementById('filter-end')?.value;
+    if (start) params.set('start', `${start}T00:00:00`);
+    if (end)   params.set('end',   `${end}T23:59:59`);
+    const q = document.getElementById('filter-q')?.value.trim();
+    if (q) params.set('q', q);
+    return params;
+  };
+
+  window.scheduleFilterReload = function scheduleFilterReload() {
+    if (_filterDebounce) clearTimeout(_filterDebounce);
+    _filterDebounce = setTimeout(loadAuditLog, 250);
+  };
+
+  window.toggleActionChip = function toggleActionChip(action) {
+    const el = document.querySelector(`.chip[data-action="${action}"]`);
+    if (_selectedActions.has(action)) {
+      _selectedActions.delete(action);
+      el?.classList.remove('chip-active');
+    } else {
+      _selectedActions.add(action);
+      el?.classList.add('chip-active');
+    }
+    loadAuditLog();
+  };
+
+  window.clearAuditFilters = function clearAuditFilters() {
+    document.getElementById('filter-user').value  = '';
+    document.getElementById('filter-start').value = '';
+    document.getElementById('filter-end').value   = '';
+    document.getElementById('filter-q').value     = '';
+    _selectedActions.clear();
+    document.querySelectorAll('#filter-actions .chip').forEach(c => c.classList.remove('chip-active'));
+    loadAuditLog();
+  };
+
+  async function initAuditFilters() {
+    if (_filtersInitialized) return;
+    _filtersInitialized = true;
+    try {
+      const users = await api.get('/api/users');
+      const sel = document.getElementById('filter-user');
+      users.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = u.name;
+        sel.appendChild(opt);
+      });
+    } catch (err) {
+      console.error('initAuditFilters users error:', err);
+    }
+    const chipBar = document.getElementById('filter-actions');
+    chipBar.innerHTML = ACTION_TYPES.map(a =>
+      `<span class="chip" data-action="${a}" onclick="toggleActionChip('${a}')">${a}</span>`
+    ).join('');
+  }
+
   window.loadAuditLog = async function loadAuditLog() {
     try {
-      const rows = await api.get('/api/audit/log');
+      const params = buildAuditFilterParams();
+      const qs = params.toString();
+      const rows = await api.get('/api/audit/log' + (qs ? '?' + qs : ''));
       const body = document.getElementById('audit-body');
 
       if (!rows.length) {
-        body.innerHTML = '<div class="log-empty">No Admin Actions Recorded Yet</div>';
+        const hasFilters = params.toString().length > 0;
+        body.innerHTML = `<div class="log-empty">${hasFilters ? 'No entries match the current filters' : 'No Admin Actions Recorded Yet'}</div>`;
         return;
       }
 
