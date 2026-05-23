@@ -698,6 +698,16 @@
   cursor: pointer;
 }
 .chip-preset:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.chip-preset-active {
+  background: var(--color-accent);
+  color: var(--color-background-primary);
+  border-color: var(--color-accent);
+}
+.chip-preset-active:hover {
+  background: var(--color-accent-hover);
+  color: var(--color-background-primary);
+  border-color: var(--color-accent-hover);
+}
 
 .audit-filters-footer {
   display: flex; justify-content: space-between; align-items: center;
@@ -769,6 +779,16 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 .cohort-ms-presets button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.cohort-ms-presets button.cohort-ms-preset-active {
+  background: var(--color-accent);
+  color: var(--color-background-primary);
+  border-color: var(--color-accent);
+}
+.cohort-ms-presets button.cohort-ms-preset-active:hover {
+  background: var(--color-accent-hover);
+  color: var(--color-background-primary);
+  border-color: var(--color-accent-hover);
+}
 
 .cohort-ms-search {
   width: 100%;

@@ -64,16 +64,44 @@
       listEl.innerHTML = items || '<div class="cohort-ms-empty">No matches</div>';
     }
 
+    function presetIdsFor(preset) {
+      if (preset === 'all') return new Set(state.allUsers.map(u => u.id));
+      if (preset === 'students') return new Set(
+        state.allUsers.filter(u => ['B4','M1','M2'].includes(u.type)).map(u => u.id)
+      );
+      return new Set(state.allUsers.filter(u => u.type === preset).map(u => u.id));
+    }
+
+    function setsEqual(a, b) {
+      if (a.size !== b.size) return false;
+      for (const v of a) if (!b.has(v)) return false;
+      return true;
+    }
+
+    function findActivePreset() {
+      const presetNames = ['all', 'B4', 'M1', 'M2', 'Intern', 'students', '先生', '卒業'];
+      for (const p of presetNames) {
+        if (setsEqual(state.selectedIds, presetIdsFor(p))) return p;
+      }
+      return null;
+    }
+
+    function updatePresetHighlight() {
+      const active = findActivePreset();
+      presets.querySelectorAll('button[data-preset]').forEach(btn => {
+        btn.classList.toggle('cohort-ms-preset-active', btn.dataset.preset === active);
+      });
+    }
+
     function applyPreset(preset) {
+      const wasActive = findActivePreset() === preset;
       state.selectedIds.clear();
-      if (preset === 'all') {
-        state.allUsers.forEach(u => state.selectedIds.add(u.id));
-      } else if (preset === 'students') {
-        state.allUsers.forEach(u => { if (['B4','M1','M2'].includes(u.type)) state.selectedIds.add(u.id); });
-      } else {
-        state.allUsers.forEach(u => { if (u.type === preset) state.selectedIds.add(u.id); });
+      if (!wasActive || preset === 'all') {
+        const ids = presetIdsFor(preset);
+        ids.forEach(id => state.selectedIds.add(id));
       }
       renderList();
+      updatePresetHighlight();
     }
 
     function openPopover() {
@@ -109,6 +137,7 @@
       const id = parseInt(cb.dataset.id, 10);
       if (cb.checked) state.selectedIds.add(id);
       else state.selectedIds.delete(id);
+      updatePresetHighlight();
     });
     cancelBtn.addEventListener('click', closePopover);
     applyBtn.addEventListener('click', () => {
@@ -121,6 +150,7 @@
     api.get('/api/users').then(users => {
       state.allUsers = users;
       renderList();
+      updatePresetHighlight();
     }).catch(err => console.error('cohort-multiselect load users error:', err));
 
     return {

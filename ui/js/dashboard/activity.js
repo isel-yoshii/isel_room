@@ -67,13 +67,34 @@
     loadAuditLog();
   };
 
-  window.applyActionPreset = function applyActionPreset(name) {
-    const target = new Set(PRESET_GROUPS[name] || []);
-    _selectedActions.clear();
-    target.forEach(a => _selectedActions.add(a));
-    document.querySelectorAll('#filter-actions .chip').forEach(c => {
-      c.classList.toggle('chip-active', target.has(c.dataset.action));
+  function findActivePresetKey() {
+    if (_selectedActions.size === 0) return 'all';
+    for (const [key, actions] of Object.entries(PRESET_GROUPS)) {
+      if (key === 'all') continue;
+      if (actions.length === _selectedActions.size && actions.every(a => _selectedActions.has(a))) {
+        return key;
+      }
+    }
+    return null;  // custom selection
+  }
+
+  function updatePresetHighlight() {
+    const active = findActivePresetKey();
+    document.querySelectorAll('.chip-preset[data-preset]').forEach(btn => {
+      btn.classList.toggle('chip-preset-active', btn.dataset.preset === active);
     });
+  }
+
+  window.applyActionPreset = function applyActionPreset(name) {
+    const wasActive = findActivePresetKey() === name;
+    _selectedActions.clear();
+    if (!wasActive || name === 'all') {
+      (PRESET_GROUPS[name] || []).forEach(a => _selectedActions.add(a));
+    }
+    document.querySelectorAll('#filter-actions .chip').forEach(c => {
+      c.classList.toggle('chip-active', _selectedActions.has(c.dataset.action));
+    });
+    updatePresetHighlight();
     loadAuditLog();
   };
 
@@ -104,6 +125,7 @@
       _selectedActions.add(action);
       el?.classList.add('chip-active');
     }
+    updatePresetHighlight();
     loadAuditLog();
   };
 
@@ -113,6 +135,7 @@
     document.getElementById('filter-q').value = '';
     _selectedActions.clear();
     document.querySelectorAll('#filter-actions .chip').forEach(c => c.classList.remove('chip-active'));
+    updatePresetHighlight();
     document.getElementById('filter-date-preset').value = 'this-week';
     applyDatePreset('this-week');
   };
@@ -130,6 +153,7 @@
     chipBar.innerHTML = ACTION_TYPES.map(a =>
       `<span class="chip" data-action="${a}" onclick="toggleActionChip('${a}')">${ACTION_LABEL[a] ?? a}</span>`
     ).join('');
+    updatePresetHighlight();
   }
 
   function dateLabel(yyyy_mm_dd) {
