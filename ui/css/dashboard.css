@@ -562,34 +562,75 @@
 /* Audit log filter bar */
 .audit-filters {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 12px;
+  padding: 14px 16px;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
 }
-.audit-filters select,
-.audit-filters input {
+.audit-filters-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.audit-filters-row-chips { align-items: center; }
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.filter-field-grow { flex: 1; min-width: 180px; }
+
+.filter-label {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+}
+
+.filter-field select,
+.filter-field input,
+.filter-date-range input {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 12px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border: 1px solid var(--color-border-tertiary);
   border-radius: 6px;
-  background: var(--color-background-secondary);
+  background: var(--color-background-primary);
   color: var(--color-text-primary);
 }
-.audit-filters input[type="search"] { min-width: 180px; }
-.chip-group { display: flex; gap: 4px; flex-wrap: wrap; flex-basis: 100%; }
+
+.filter-date-range { display: flex; align-items: center; gap: 6px; }
+.filter-date-sep   { color: var(--color-text-tertiary); font-size: 12px; }
+
+.filter-clear {
+  font-size: 11px;
+  padding: 6px 12px;
+  margin-left: auto;
+  align-self: flex-end;
+}
+
+.chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
   font-size: 11px;
   font-family: 'IBM Plex Mono', monospace;
-  padding: 3px 8px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 12px;
   border: 1px solid var(--color-border-tertiary);
-  background: var(--color-background-secondary);
+  background: var(--color-background-primary);
   color: var(--color-text-secondary);
   cursor: pointer;
   user-select: none;
+  transition: all 0.12s;
 }
+.chip:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .chip-active {
   background: var(--color-accent);
   color: var(--color-background-primary);

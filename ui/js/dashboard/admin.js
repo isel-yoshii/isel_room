@@ -6,6 +6,14 @@
     'AUTO_CHECKOUT', 'FORCE_CHECKOUT',
     'PROMOTE', 'POINTS_ADJUST',
   ];
+  const ACTION_LABEL = {
+    REGISTER: 'Registered', DELETE: 'Deleted',
+    CHECKIN: 'Check-In', CHECKOUT: 'Check-Out',
+    MANUAL_CHECKIN: 'Manual In', MANUAL_CHECKOUT: 'Manual Out',
+    AUTO_CHECKOUT: 'Auto-Out', FORCE_CHECKOUT: 'Force-Out',
+    PROMOTE: 'Promoted', POINTS_ADJUST: 'Points Adjusted',
+  };
+  const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
   const _selectedActions = new Set();
   let _filterDebounce = null;
   let _filtersInitialized = false;
@@ -115,7 +123,7 @@
     }
     const chipBar = document.getElementById('filter-actions');
     chipBar.innerHTML = ACTION_TYPES.map(a =>
-      `<span class="chip" data-action="${a}" onclick="toggleActionChip('${a}')">${a}</span>`
+      `<span class="chip" data-action="${a}" onclick="toggleActionChip('${a}')">${ACTION_LABEL[a] ?? a}</span>`
     ).join('');
   }
 
@@ -131,15 +139,6 @@
         body.innerHTML = `<div class="log-empty">${hasFilters ? 'No entries match the current filters' : 'No Admin Actions Recorded Yet'}</div>`;
         return;
       }
-
-      const ACTION_LABEL = {
-        REGISTER: 'Registered', DELETE: 'Deleted',
-        CHECKIN: 'Check-In', CHECKOUT: 'Check-Out',
-        MANUAL_CHECKIN: 'Manual In', MANUAL_CHECKOUT: 'Manual Out',
-        AUTO_CHECKOUT: 'Auto-Out', FORCE_CHECKOUT: 'Force-Out',
-        PROMOTE: 'Promoted', POINTS_ADJUST: 'Points Adjusted',
-      };
-      const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
 
       body.innerHTML = rows.map(r => {
         const isIn  = IN_ACTIONS.has(r.action);

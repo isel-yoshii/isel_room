@@ -202,14 +202,31 @@
 
           <div class="section-label" style="margin-top:24px;">Audit Log</div>
           <div class="audit-filters">
-            <select id="filter-user" onchange="loadAuditLog()">
-              <option value="">All members</option>
-            </select>
-            <input type="date" id="filter-start" oninput="scheduleFilterReload()" title="Start date" />
-            <input type="date" id="filter-end"   oninput="scheduleFilterReload()" title="End date" />
-            <input type="search" id="filter-q"   oninput="scheduleFilterReload()" placeholder="Search name / action" />
-            <button class="btn-ghost" onclick="clearAuditFilters()">Clear</button>
-            <div class="chip-group" id="filter-actions"></div>
+            <div class="audit-filters-row">
+              <label class="filter-field">
+                <span class="filter-label">Member</span>
+                <select id="filter-user" onchange="loadAuditLog()">
+                  <option value="">All members</option>
+                </select>
+              </label>
+              <label class="filter-field">
+                <span class="filter-label">Date</span>
+                <div class="filter-date-range">
+                  <input type="date" id="filter-start" oninput="scheduleFilterReload()" />
+                  <span class="filter-date-sep">→</span>
+                  <input type="date" id="filter-end" oninput="scheduleFilterReload()" />
+                </div>
+              </label>
+              <label class="filter-field filter-field-grow">
+                <span class="filter-label">Search</span>
+                <input type="search" id="filter-q" oninput="scheduleFilterReload()" placeholder="Name or action…" />
+              </label>
+              <button class="btn-ghost filter-clear" onclick="clearAuditFilters()">Clear filters</button>
+            </div>
+            <div class="audit-filters-row audit-filters-row-chips">
+              <span class="filter-label">Actions</span>
+              <div class="chip-group" id="filter-actions"></div>
+            </div>
           </div>
           <div class="log-section">
             <div id="audit-body"><div class="log-empty">Loading…</div></div>
