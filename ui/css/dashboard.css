@@ -686,30 +686,13 @@
 .grid-row-badges { display: flex; gap: 4px; margin-top: 2px; }
 
 .grid-cell {
-  padding: 8px 6px;
   border-bottom: 1px solid var(--color-border-tertiary);
   border-radius: 4px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px;
   min-height: 44px;
-}
-.grid-cell-present { background: var(--color-success-bg); }
-.grid-cell-today   { box-shadow: inset 0 0 0 1.5px var(--color-accent); }
-.grid-bar-wrap {
-  width: 90%; height: 6px;
   background: var(--color-background-tertiary);
-  border-radius: 3px; overflow: hidden;
 }
-.grid-bar {
-  height: 100%;
-  background: var(--color-success);
-  border-radius: 3px;
-}
-.grid-cell-label {
-  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
-  color: var(--color-text-secondary);
-}
-.grid-cell-present .grid-cell-label { color: var(--color-success); font-weight: 600; }
+.grid-cell-present { background: var(--color-success); }
+.grid-cell-today   { box-shadow: inset 0 0 0 1.5px var(--color-accent); }
 
 /* ── Activity log polish: presets, footer, dividers ── */
 .chip-presets { display: flex; gap: 4px; }

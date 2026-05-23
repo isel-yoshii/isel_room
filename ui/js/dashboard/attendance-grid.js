@@ -44,13 +44,6 @@
     return `${startStr} – ${endStr}, ${start.getFullYear()}`;
   }
 
-  function formatHours(minutes) {
-    if (!minutes) return '';
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
-  }
-
   window.changeGridWeek = function changeGridWeek(delta) {
     _gridWeekStart.setDate(_gridWeekStart.getDate() + delta * 7);
     loadGrid();
@@ -134,13 +127,10 @@
         const todayCls   = isToday(d.date) ? ' grid-cell-today' : '';
         const anomalyCls = d.has_anomaly  ? ' grid-cell-anomaly' : '';
         const presentCls = d.total_minutes > 0 ? ' grid-cell-present' : '';
-        const pct = Math.min(100, Math.round(d.total_minutes / (8 * 60) * 100));
-        const bar = d.total_minutes > 0 ? `<div class="grid-bar-wrap"><div class="grid-bar" style="width:${pct}%"></div></div>` : '';
-        return `
-          <div class="grid-cell${todayCls}${anomalyCls}${presentCls}" title="${d.date}: ${formatHours(d.total_minutes)} · ${d.sessions} session(s)">
-            ${bar}
-            <div class="grid-cell-label">${formatHours(d.total_minutes) || '–'}</div>
-          </div>`;
+        const tip = d.total_minutes > 0
+          ? `${d.date}: ${d.sessions} session${d.sessions === 1 ? '' : 's'}`
+          : `${d.date}: no sessions`;
+        return `<div class="grid-cell${todayCls}${anomalyCls}${presentCls}" title="${tip}"></div>`;
       }).join('');
       return nameCell + dayCells;
     }).join('');
