@@ -1,6 +1,6 @@
 # ISEL Room — Lab Presence & Attendance System
 
-A face-recognition-based check-in/check-out system for the Intelligent Software Engineering Lab (KIT). Members enter and leave the lab by scanning their face at a kiosk terminal; admins get a live dashboard, monthly attendance stats, a points leaderboard, and an audit trail of every action.
+A face-recognition-based check-in/check-out system for the Intelligent Software Engineering Lab (KIT). Members enter and leave the lab by scanning their face at a check-in terminal; admins get a live dashboard, monthly attendance stats, a points leaderboard, and an audit trail of every action.
 
 ---
 
@@ -76,14 +76,14 @@ isel_room/
     ├── css/
     │   ├── tokens.css      # CSS variables only
     │   ├── base.css        # Reset, topbar, modals, shared buttons
-    │   ├── checkin.css     # Kiosk-specific styles
+    │   ├── checkin.css     # Check-in screen styles
     │   └── dashboard.css   # Dashboard styles
     └── js/
-        ├── core/           # api.js, camera.js, clock.js, nav.js
+        ├── core/           # api.js, camera.js, clock.js, nav.js, utils.js
         ├── checkin/        # state-machine.js, manual-picker.js,
         │                   # presence-strip.js, index.js
-        └── dashboard/      # overview.js, statistics.js, points.js,
-                            # admin.js, modals.js, index.js
+        └── dashboard/      # overview.js, attendance.js, admin.js,
+                            # modals.js, index.js
 ```
 
 ---
@@ -115,7 +115,7 @@ isel_room/
 | action_type | VARCHAR(30) | `REGISTER` `DELETE` `CHECKIN` `CHECKOUT` `MANUAL_CHECKIN` `MANUAL_CHECKOUT` `AUTO_CHECKOUT` `FORCE_CHECKOUT` `PROMOTE` |
 | target_user_id | INT | user affected |
 | target_name | VARCHAR(255) | name at time of action |
-| performed_by | VARCHAR(50) | `admin` · `kiosk` · `system` |
+| performed_by | VARCHAR(50) | `admin` · `check-in` · `system` |
 | timestamp | DATETIME | |
 
 ### `point_adjustments`
@@ -140,7 +140,7 @@ Points shown in the UI = auto-calculated days present + sum of all delta rows fo
 User faces camera
       │
       ▼
-[Kiosk captures frame as base64 JPEG]
+[Check-in screen captures frame as base64 JPEG]
       │
       ▼
 POST /api/auth
@@ -182,7 +182,18 @@ POST /api/register
 
 ### Daily Auto-Checkout
 
-A daemon thread runs continuously, sleeping until the configured reset hour (default 4 AM). At that time it force-closes all open `Session` rows and marks every user's `status = False`. AuditLog entries with `AUTO_CHECKOUT` are written for each affected user.
+`flask auto-checkout` force-closes all open `Session` rows, marks every user's `status = False`, and writes an `AUTO_CHECKOUT` AuditLog entry per affected user. Run nightly at the configured reset hour (default 10 PM).
+
+Stale sessions (>24h with no checkout) are also closed lazily on the next check-in, so missing a single cron tick is non-catastrophic.
+
+Promotions (B4→M1 / M1→M2 / M2→卒業 / M2→PhD / PhD→卒業) are no longer automatic. Use the **Members tab → Promote Students** wizard once a year to review and confirm each student's new role manually.
+
+Sample crontab:
+
+```
+# crontab -e
+0 22 * * *  cd /path/to/isel_room && FLASK_APP="app:create_app" flask auto-checkout
+```
 
 ---
 
@@ -216,7 +227,7 @@ The **bottom presence strip** shows every registered member — in-lab members (
 
 ### Dashboard
 
-Four tabs accessible from the left sidebar (keyboard shortcuts `1` – `4`):
+Three tabs accessible from the left sidebar (keyboard shortcuts `1` – `3`):
 
 **Overview `[1]`**
 - Stat cards: members currently in lab, unique check-ins today, total registered members
@@ -224,16 +235,14 @@ Four tabs accessible from the left sidebar (keyboard shortcuts `1` – `4`):
 - Member grid — all members, present ones highlighted; click any card to open the profile modal
 - Activity log with ← → date navigation
 
-**Statistics `[2]`**
+**Attendance `[2]`**
 - Month navigator (← →)
-- Table: every member's session count, total time, average session length for the selected month
+- Points leaderboard — days present in the selected month, ranked 1st/2nd/3rd/…
+- "All-Time" leaderboard — total days present + any admin-applied bonuses
+- Session stats table — every member's session count, total time, average session length
+- When admin is authenticated: `+` / `−` buttons to apply a ±1 point adjustment (with optional note)
 
-**Points `[3]`**
-- "This Month" leaderboard — days present in the selected month, ranked 1st/2nd/3rd/…
-- "All-Time" leaderboard — total days present since the beginning + any admin-applied bonuses
-- When admin is authenticated: `+` / `−` buttons on each row to apply a ±1 point adjustment (with optional note)
-
-**Admin `[4]`** — PIN required
+**Admin `[3]`** — PIN required
 - Add Member button — opens registration modal (name, role, live camera)
 - Member list with: role badge, face-enrolled status, in-lab indicator, Force Out, Edit (name/role), Re-Register Face (⊙), Delete
 - Promote Students — batch-promotes `B4→M1`, `M1→M2`, `M2→卒業`
@@ -251,7 +260,7 @@ Four tabs accessible from the left sidebar (keyboard shortcuts `1` – `4`):
 | POST | `/api/admin/logout` | admin | End admin session |
 | GET | `/api/admin/status` | — | `{authenticated: bool}` |
 | POST | `/api/admin/force-checkout/<user_id>` | admin | Force a user out |
-| POST | `/api/admin/promote-students` | admin | Batch-promote all students one grade |
+| POST | `/api/admin/promote-students` | admin | Apply an explicit `{promotions: [{user_id, new_type}, ...]}` batch |
 | POST | `/api/admin/points/adjust` | admin | Apply ±point bonus `{user_id, delta, note}` |
 
 ### Check-in / Check-out
@@ -306,7 +315,7 @@ Four tabs accessible from the left sidebar (keyboard shortcuts `1` – `4`):
 ### Prerequisites
 
 - Python 3.10+
-- A webcam (for kiosk use)
+- A webcam (for check-in use)
 - (Optional) Slack app credentials for notifications
 
 ### Install
@@ -328,23 +337,29 @@ cp .env.example .env
 
 | Variable | Default | Description |
 |---|---|---|
-| `ADMIN_PIN` | required | 6–8 digit PIN for admin access |
-| `FLASK_SECRET_KEY` | required | Flask session signing key |
+| `FLASK_SECRET_KEY` | **required** | Random secret for Flask sessions — generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `ADMIN_PIN` | **required** | PIN for the admin dashboard (any length) |
 | `DATABASE_URL` | `sqlite:///isel_room.db` | SQLAlchemy DB URL; swap for MySQL in production |
 | `SLACK_BOT_TOKEN` | — | Slack bot token (`xoxb-...`) |
 | `SLACK_APP_TOKEN` | — | Slack app token for Socket Mode (`xapp-...`) |
-| `LOW_CONFIDENCE_THRESHOLD` | `0.40` | Distance above which a match is flagged as low-confidence |
-| `DAY_RESET_HOUR` | `4` | Hour (0–23) at which daily auto-checkout runs |
+| `LOW_CONFIDENCE_THRESHOLD` | `0.40` | Cosine distance above which a face match is flagged as low-confidence |
+| `DAY_RESET_HOUR` | `22` | Hour (0–23) at which the daily auto-checkout runs (lab closing time) |
 
-### Run
+> **Production note:** the app refuses to start if `FLASK_SECRET_KEY` is unset or left as the default `change-me-to-a-random-string`.
+
+### Run (development)
 
 ```bash
+# First time — seed the database with mock data
+python seed_db.py
+
+# Start the dev server
 flask --app app run --host 0.0.0.0 --port 5001
 ```
 
-The app starts on `http://0.0.0.0:5001`. Open it in a browser — the Check-in screen loads by default.
+Open `http://localhost:5001` in a browser — the Check-in screen loads by default. Switch to the Dashboard with the `D` key or the top-right nav link.
 
-> The background auto-checkout daemon and Slack listener are started automatically when running via `wsgi.py` in production (e.g. with gunicorn). For development, invoke them via `isel.jobs.auto_checkout` and `isel.integrations.slack` if needed.
+> **Production:** use `wsgi.py` with gunicorn. The auto-checkout daemon and Slack listener start automatically via `wsgi.py`; in dev they start only once (Werkzeug reloader guard is in place).
 
 ### Run tests
 
@@ -352,13 +367,13 @@ The app starts on `http://0.0.0.0:5001`. Open it in a browser — the Check-in s
 python -m pytest
 ```
 
-### Seed test data (optional)
+### Seed / reset the database
 
 ```bash
 python seed_db.py
 ```
 
-Creates 7 members (1 先生, 6 students across B4/M1/M2), ~60 days of session history with realistic attendance patterns, and 3 members currently marked as in-lab.
+Wipes and recreates the DB with 10 mock members (Choi Eunjong 先生, Okura/Inoue M2, Naimi/Yoshii/Tasaki/Hashimoto M1, Yamamoto/Yamaguchi B4, Lee Intern), ~60 days of session history, and 3 members currently in lab. Safe to re-run any time during development.
 
 ---
 

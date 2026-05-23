@@ -34,11 +34,6 @@ def create_app(config_name: str = 'dev') -> Flask:
         from isel.services.attendance import auto_checkout_all
         auto_checkout_all()
 
-    @app.cli.command('promote-students')
-    def _cli_promote():
-        from isel.services.users import promote_students
-        print(promote_students())
-
     @app.get('/')
     def index():
         return render_template('index.html')

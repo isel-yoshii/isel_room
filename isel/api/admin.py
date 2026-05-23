@@ -64,8 +64,10 @@ def force_checkout_user(user_id: int):
 @bp.post('/api/admin/promote-students')
 @admin_required
 def promote_students():
+    data = request.json or {}
+    promotions = data.get('promotions', [])
     try:
-        counts = users_svc.promote_students()
+        counts = users_svc.promote_students(promotions)
         return jsonify({'success': True, 'promoted': counts})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

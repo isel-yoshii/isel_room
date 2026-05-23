@@ -97,18 +97,92 @@
     }
   };
 
+  const PROMOTE_OPTIONS = {
+    B4:  { default: 'M1',   choices: ['M1', '卒業', '__skip__'] },
+    M1:  { default: 'M2',   choices: ['M2', '__skip__'] },
+    M2:  { default: '卒業', choices: ['卒業', 'PhD', '__skip__'] },
+    PhD: { default: '卒業', choices: ['卒業', '__skip__'] },
+  };
+
   window.runPromotion = async function runPromotion() {
-    if (!confirm('Promote all students?\nB4 → M1 · M1 → M2 · M2 → 卒業\n\nThis cannot be undone.')) return;
+    document.getElementById('promote-modal').classList.remove('hidden');
+    document.getElementById('promote-msg').textContent = '';
+    const body = document.getElementById('promote-body');
+    body.innerHTML = '<div class="log-empty">Loading…</div>';
     try {
-      const r = await fetch('/api/admin/promote-students', { method: 'POST' }).then(r => r.json());
-      if (r.success) {
-        const { B4, M1, M2 } = r.promoted;
-        alert(`Promotion complete.\n${B4} B4 → M1 · ${M1} M1 → M2 · ${M2} M2 → 卒業`);
-        loadMembers();
-      } else {
-        alert(`Failed: ${r.message}`);
+      const users = await api.get('/api/users');
+      const promotable = users.filter(u => PROMOTE_OPTIONS[u.type]);
+      if (!promotable.length) {
+        body.innerHTML = '<div class="log-empty">No promotable students right now.</div>';
+        return;
       }
-    } catch { alert('Network Error Occurred.'); }
+      body.innerHTML = `
+        <table class="promote-table">
+          <thead><tr><th>Name</th><th>Current</th><th></th><th>New role</th></tr></thead>
+          <tbody>
+            ${promotable.map(u => {
+              const opts = PROMOTE_OPTIONS[u.type].choices;
+              const def  = PROMOTE_OPTIONS[u.type].default;
+              return `
+                <tr data-user-id="${u.id}">
+                  <td>${esc(u.name)}</td>
+                  <td><span class="role-badge ${roleBadgeClass(u.type)}">${esc(u.type)}</span></td>
+                  <td class="promote-arrow">→</td>
+                  <td>
+                    <select class="promote-select">
+                      ${opts.map(o => {
+                        const label = o === '__skip__' ? 'No change' : o;
+                        return `<option value="${o}" ${o === def ? 'selected' : ''}>${label}</option>`;
+                      }).join('')}
+                    </select>
+                  </td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    } catch (err) {
+      console.error('runPromotion error:', err);
+      body.innerHTML = '<div class="log-empty">Failed to load members.</div>';
+    }
+  };
+
+  window.closePromoteModal = function closePromoteModal() {
+    document.getElementById('promote-modal').classList.add('hidden');
+  };
+
+  window.closePromoteModalOnBg = function closePromoteModalOnBg(event) {
+    if (event.target === document.getElementById('promote-modal')) closePromoteModal();
+  };
+
+  window.applyPromotions = async function applyPromotions() {
+    const rows = document.querySelectorAll('#promote-body tr[data-user-id]');
+    const promotions = [];
+    rows.forEach(r => {
+      const newType = r.querySelector('.promote-select').value;
+      if (newType === '__skip__') return;
+      promotions.push({ user_id: parseInt(r.dataset.userId, 10), new_type: newType });
+    });
+    const msg = document.getElementById('promote-msg');
+    if (!promotions.length) {
+      msg.textContent = 'No changes selected.';
+      return;
+    }
+    if (!confirm(`Apply ${promotions.length} promotion${promotions.length === 1 ? '' : 's'}?`)) return;
+    try {
+      const r = await api.post('/api/admin/promote-students', { promotions });
+      if (r.success) {
+        const summary = Object.entries(r.promoted).map(([k, v]) => `${v}× ${k}`).join(' · ');
+        alert(`Promotion complete: ${summary || 'no changes'}`);
+        closePromoteModal();
+        loadMembers();
+        if (typeof loadOverview === 'function') loadOverview();
+      } else {
+        msg.textContent = r.message || 'Failed.';
+      }
+    } catch (e) {
+      console.error('applyPromotions error:', e);
+      msg.textContent = 'Network error.';
+    }
   };
 
   /* ── Points adjustment modal ── */

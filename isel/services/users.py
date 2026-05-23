@@ -121,28 +121,40 @@ def update_face(user_id: int, embedding: list) -> dict:
         session.close()
 
 
-def promote_students() -> dict[str, int]:
-    """Promote B4→M1, M1→M2, M2→卒業. Returns counts per grade."""
+def promote_students(promotions: list[dict]) -> dict[str, int]:
+    """Apply a list of explicit promotions. Each item: {user_id, new_type}.
+
+    Returns counts keyed by 'old_type→new_type' transitions for the summary.
+    All-or-nothing transaction; any error rolls back the whole batch.
+    """
+    if not promotions:
+        return {}
     session = SessionLocal()
-    counts = {'B4': 0, 'M1': 0, 'M2': 0}
+    counts: dict[str, int] = {}
     try:
-        for from_type, to_type in [('M2', '卒業'), ('M1', 'M2'), ('B4', 'M1')]:
-            stmt = select(User).where(User.user_type == from_type)
-            users = list(session.execute(stmt).scalars().all())
-            for user in users:
-                user.user_type = to_type
-                counts[from_type] += 1
-                session.add(AuditLog(
-                    action_type='PROMOTE',
-                    target_user_id=user.user_id,
-                    target_name=user.name,
-                    performed_by='system',
-                    timestamp=datetime.now(),
-                ))
+        now = datetime.now()
+        for entry in promotions:
+            user = session.get(User, entry['user_id'])
+            if user is None:
+                continue
+            new_type = entry['new_type']
+            if new_type == user.user_type:
+                continue
+            old_type = user.user_type
+            user.user_type = new_type
+            key = f'{old_type}→{new_type}'
+            counts[key] = counts.get(key, 0) + 1
+            session.add(AuditLog(
+                action_type='PROMOTE',
+                target_user_id=user.user_id,
+                target_name=user.name,
+                performed_by='admin',
+                timestamp=now,
+            ))
         session.commit()
-    except Exception as e:
+        return counts
+    except Exception:
         session.rollback()
-        raise e
+        raise
     finally:
         session.close()
-    return counts

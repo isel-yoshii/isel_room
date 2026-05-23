@@ -30,7 +30,7 @@
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
     const anyModalOpen = [
       'reg-modal', 'picker-modal', 'pin-modal', 'profile-modal',
-      'points-modal', 'face-rereg-modal', 'context-modal',
+      'points-modal', 'face-rereg-modal', 'context-modal', 'promote-modal',
     ].some(id => {
       const el = document.getElementById(id);
       return el && !el.classList.contains('hidden');

@@ -43,16 +43,25 @@ def test_deletion_removes_user(db_session):
     assert result is None
 
 
-def test_promotion_advances_all_grades(db_session):
-    for name, grade in [('Carol', 'B4'), ('Dave', 'M1'), ('Eve', 'M2')]:
-        db_session.add(User(name=name, user_type=grade, status=False, embedding=None))
+def test_promotion_applies_explicit_targets(db_session):
+    carol = User(name='Carol', user_type='B4',  status=False, embedding=None)
+    dave  = User(name='Dave',  user_type='M1',  status=False, embedding=None)
+    eve   = User(name='Eve',   user_type='M2',  status=False, embedding=None)
+    finn  = User(name='Finn',  user_type='PhD', status=False, embedding=None)
+    db_session.add_all([carol, dave, eve, finn])
     db_session.commit()
 
-    counts = users.promote_students()
+    counts = users.promote_students([
+        {'user_id': carol.user_id, 'new_type': 'M1'},
+        {'user_id': dave.user_id,  'new_type': 'M2'},
+        {'user_id': eve.user_id,   'new_type': 'PhD'},   # branching: M2→PhD instead of 卒業
+        {'user_id': finn.user_id,  'new_type': '卒業'},
+    ])
 
-    assert counts['B4'] == 1
-    assert counts['M1'] == 1
-    assert counts['M2'] == 1
+    assert counts['B4→M1']   == 1
+    assert counts['M1→M2']   == 1
+    assert counts['M2→PhD']  == 1
+    assert counts['PhD→卒業'] == 1
 
     db_session.expire_all()
     def grade_of(name):
@@ -60,4 +69,16 @@ def test_promotion_advances_all_grades(db_session):
 
     assert grade_of('Carol') == 'M1'
     assert grade_of('Dave')  == 'M2'
-    assert grade_of('Eve')   == '卒業'
+    assert grade_of('Eve')   == 'PhD'
+    assert grade_of('Finn')  == '卒業'
+
+
+def test_promotion_skips_noops(db_session):
+    user = User(name='Sam', user_type='M2', status=False, embedding=None)
+    db_session.add(user)
+    db_session.commit()
+
+    counts = users.promote_students([
+        {'user_id': user.user_id, 'new_type': 'M2'},  # same as current
+    ])
+    assert counts == {}

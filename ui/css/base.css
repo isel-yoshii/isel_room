@@ -136,6 +136,7 @@ body {
 
 .modal-sm { max-width: 300px; }
 .modal-md { max-width: 560px; }
+.modal-lg { max-width: 640px; }
 
 .modal-title {
   font-size: 16px; font-weight: 700;

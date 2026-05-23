@@ -401,6 +401,20 @@
     </div>
   </div>
 
+  <!-- Promote-students wizard modal -->
+  <div class="modal-overlay hidden" id="promote-modal" onclick="closePromoteModalOnBg(event)">
+    <div class="modal-box modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-title">Promote Students</div>
+      <div class="modal-subtitle">Review and adjust the next role for each promotable member, then click Apply.</div>
+      <div id="promote-body"><div class="log-empty">Loading…</div></div>
+      <div class="modal-msg" id="promote-msg"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closePromoteModal()">Cancel</button>
+        <button class="add-btn"   id="btn-promote-apply" onclick="applyPromotions()">Apply</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Audit context modal -->
   <div class="modal-overlay hidden" id="context-modal" onclick="closeContextModalOnBg(event)">
     <div class="modal-box modal-md" onclick="event.stopPropagation()">
