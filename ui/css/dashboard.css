@@ -410,8 +410,10 @@
 }
 
 .admin-header-right { display: flex; gap: 8px; align-items: center; }
-.admin-logout-btn  { font-size: 11px; padding: 6px 12px; }
-.promote-btn       { font-size: 11px; padding: 6px 12px; }
+.admin-header-right .btn-ghost {
+  min-width: 160px;
+  text-align: center;
+}
 
 .icon-btn {
   background: none; border: 1px solid var(--color-border-primary);
