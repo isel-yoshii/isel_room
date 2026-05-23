@@ -35,12 +35,19 @@ def monthly_leaderboard(year: int, month: int) -> list[dict]:
             .group_by(User.user_id)
         ).all()
 
+        bonus_rows = session.execute(
+            select(PointAdjustment.user_id, func.sum(PointAdjustment.delta))
+            .where(PointAdjustment.timestamp >= start, PointAdjustment.timestamp <= end)
+            .group_by(PointAdjustment.user_id)
+        ).all()
+        bonus_by_user = {uid: int(total or 0) for uid, total in bonus_rows}
+
         result = [
             {
                 'id': r.user_id,
                 'name': r.name,
                 'type': r.user_type,
-                'points': r.points,
+                'points': r.points + bonus_by_user.get(r.user_id, 0),
             }
             for r in rows
         ]
@@ -64,12 +71,18 @@ def all_time_leaderboard() -> list[dict]:
             .group_by(User.user_id)
         ).all()
 
+        bonus_rows = session.execute(
+            select(PointAdjustment.user_id, func.sum(PointAdjustment.delta))
+            .group_by(PointAdjustment.user_id)
+        ).all()
+        bonus_by_user = {uid: int(total or 0) for uid, total in bonus_rows}
+
         result = [
             {
                 'id': r.user_id,
                 'name': r.name,
                 'type': r.user_type,
-                'points': r.points,
+                'points': r.points + bonus_by_user.get(r.user_id, 0),
             }
             for r in rows
         ]
