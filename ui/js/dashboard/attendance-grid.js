@@ -71,29 +71,38 @@
     try {
       const params = new URLSearchParams({ start: isoDate(_gridWeekStart) });
       if (_selectedUserIds) params.set('user_ids', _selectedUserIds.join(','));
-      const [data, anomData] = await Promise.all([
-        api.get('/api/stats/weekly-grid?' + params.toString()),
-        api.get('/api/stats/anomalies?days=7'),
-      ]);
-      const anomByUser = {};
-      for (const a of anomData) anomByUser[a.user_id] = a;
-      renderGrid(data, anomByUser);
+      const data = await api.get('/api/stats/weekly-grid?' + params.toString());
+      const medalByUser = computeWeeklyMedals(data);
+      renderGrid(data, medalByUser);
     } catch (err) {
       console.error('loadGrid error:', err);
       content.innerHTML = '<div class="log-empty">Failed to load grid</div>';
     }
   };
 
-  function badgesHtml(anom) {
-    if (!anom) return '';
-    const out = [];
-    if (anom.missing_days > 0)    out.push(`<span class="grid-badge" title="Missed weekdays in last 7 days">📅 ${anom.missing_days}</span>`);
-    if (anom.long_sessions > 0)   out.push(`<span class="grid-badge" title="Sessions over 12h (likely forgot to check out)">⏱ ${anom.long_sessions}</span>`);
-    if (anom.force_checkouts > 0) out.push(`<span class="grid-badge grid-badge-warn" title="Force-checkouts by admin">⚠ ${anom.force_checkouts}</span>`);
-    return out.join('');
+  function computeWeeklyMedals(rows) {
+    const ranked = rows
+      .map(u => ({ id: u.id, name: u.name, days: u.days.filter(d => d.total_minutes > 0).length }))
+      .filter(u => u.days > 0)
+      .sort((a, b) => b.days - a.days || a.name.localeCompare(b.name));
+    const medals = {};
+    if (ranked[0]) medals[ranked[0].id] = '🥇';
+    if (ranked[1]) medals[ranked[1].id] = '🥈';
+    if (ranked[2]) medals[ranked[2].id] = '🥉';
+    return medals;
   }
 
-  function renderGrid(rows, anomByUser = {}) {
+  function medalHtml(emoji) {
+    if (!emoji) return '';
+    const label = {
+      '🥇': '1st most days this week',
+      '🥈': '2nd most days this week',
+      '🥉': '3rd most days this week',
+    }[emoji];
+    return `<span class="grid-medal" title="${label}">${emoji}</span>`;
+  }
+
+  function renderGrid(rows, medalByUser = {}) {
     const content = document.getElementById('grid-content');
     if (!rows.length) {
       content.innerHTML = '<div class="log-empty">No members match the current filter</div>';
@@ -120,17 +129,16 @@
           <div class="avatar ${avColor(i)}" style="width:28px;height:28px;font-size:10px;">${esc(initials(u.name))}</div>
           <div class="grid-name-info">
             <div class="grid-name">${esc(u.name)}</div>
-            <div class="grid-row-badges">${badgesHtml(anomByUser[u.id])}</div>
+            <div class="grid-row-badges">${medalHtml(medalByUser[u.id])}</div>
           </div>
         </div>`;
       const dayCells = u.days.map(d => {
         const todayCls   = isToday(d.date) ? ' grid-cell-today' : '';
-        const anomalyCls = d.has_anomaly  ? ' grid-cell-anomaly' : '';
         const presentCls = d.total_minutes > 0 ? ' grid-cell-present' : '';
         const tip = d.total_minutes > 0
           ? `${d.date}: ${d.sessions} session${d.sessions === 1 ? '' : 's'}`
           : `${d.date}: no sessions`;
-        return `<div class="grid-cell${todayCls}${anomalyCls}${presentCls}" title="${tip}"></div>`;
+        return `<div class="grid-cell${todayCls}${presentCls}" title="${tip}"></div>`;
       }).join('');
       return nameCell + dayCells;
     }).join('');

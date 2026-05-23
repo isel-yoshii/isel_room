@@ -817,23 +817,5 @@
 }
 .cohort-ms-actions button { font-size: 12px; padding: 5px 12px; }
 
-/* ── Grid anomaly indicators ── */
-.grid-badge {
-  display: inline-flex; align-items: center; gap: 2px;
-  font-size: 10px; padding: 1px 6px;
-  border-radius: 8px;
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  font-family: 'IBM Plex Mono', monospace;
-}
-.grid-badge-warn {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
-.grid-cell-anomaly { position: relative; }
-.grid-cell-anomaly::after {
-  content: '!';
-  position: absolute; top: 2px; right: 4px;
-  font-size: 10px; line-height: 1;
-  color: var(--color-warning); font-weight: 700;
-}
+/* ── Weekly grid medals ── */
+.grid-medal { font-size: 14px; margin-left: 4px; line-height: 1; }
