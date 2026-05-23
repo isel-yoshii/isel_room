@@ -275,6 +275,22 @@
     }
   };
 
+  /* ── CSV exports ── */
+
+  window.exportAuditCsv = function exportAuditCsv() {
+    const qs = buildAuditFilterParams().toString();
+    window.location = '/api/audit/export.csv' + (qs ? '?' + qs : '');
+  };
+
+  window.exportSessionsCsv = function exportSessionsCsv() {
+    const now = new Date();
+    const year  = prompt('Year?',  now.getFullYear());
+    if (!year) return;
+    const month = prompt('Month? (1-12)', now.getMonth() + 1);
+    if (!month) return;
+    window.location = `/api/export/csv?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`;
+  };
+
   window.Dashboard = window.Dashboard || {};
   window.Dashboard.Admin = {
     init:    () => loadAdmin(),
