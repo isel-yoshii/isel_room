@@ -1,6 +1,7 @@
 """Audit log service — single entry point for writing and reading audit entries."""
 from __future__ import annotations
 from datetime import datetime
+from sqlalchemy import select, or_
 from isel.db import SessionLocal
 from isel.db.models import AuditLog
 
@@ -29,15 +30,28 @@ def record(
         session.close()
 
 
-def recent_entries(limit: int = 200) -> list[dict]:
-    from sqlalchemy import select
+def recent_entries(
+    limit: int = 200,
+    user_id: int | None = None,
+    action_types: list[str] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    q: str | None = None,
+) -> list[dict]:
     session = SessionLocal()
     try:
-        stmt = (
-            select(AuditLog)
-            .order_by(AuditLog.timestamp.desc())
-            .limit(limit)
-        )
+        stmt = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(limit)
+        if user_id is not None:
+            stmt = stmt.where(AuditLog.target_user_id == user_id)
+        if action_types:
+            stmt = stmt.where(AuditLog.action_type.in_(action_types))
+        if start is not None:
+            stmt = stmt.where(AuditLog.timestamp >= start)
+        if end is not None:
+            stmt = stmt.where(AuditLog.timestamp <= end)
+        if q:
+            like = f'%{q}%'
+            stmt = stmt.where(or_(AuditLog.target_name.ilike(like), AuditLog.action_type.ilike(like)))
         rows = session.execute(stmt).scalars().all()
         return [
             {
