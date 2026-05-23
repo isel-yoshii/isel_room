@@ -245,15 +245,15 @@
               </div>
               <label class="filter-field filter-field-grow">
                 <span class="filter-label">Search (matches name OR action)</span>
-                <input type="search" id="filter-q" oninput="scheduleFilterReload()" placeholder='e.g. "tanaka" or "force"' />
+                <input type="search" id="filter-q" oninput="scheduleFilterReload()" placeholder='e.g. "naimi" or "Check-in"' />
               </label>
             </div>
             <div class="audit-filters-row audit-filters-row-chips">
               <span class="filter-label">Actions</span>
               <div class="chip-presets">
                 <button class="chip-preset" onclick="applyActionPreset('all')">All</button>
-                <button class="chip-preset" onclick="applyActionPreset('anomalies')">Anomalies only</button>
                 <button class="chip-preset" onclick="applyActionPreset('attendance')">Attendance</button>
+                <button class="chip-preset" onclick="applyActionPreset('manual-auto')">Manual / Auto</button>
                 <button class="chip-preset" onclick="applyActionPreset('admin')">Admin</button>
               </div>
               <div class="chip-group" id="filter-actions"></div>

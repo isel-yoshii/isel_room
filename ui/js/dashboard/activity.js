@@ -1,9 +1,9 @@
 (function () {
   const ACTION_TYPES = [
-    'REGISTER', 'DELETE',
     'CHECKIN', 'CHECKOUT',
     'MANUAL_CHECKIN', 'MANUAL_CHECKOUT',
     'AUTO_CHECKOUT', 'FORCE_CHECKOUT',
+    'REGISTER', 'DELETE',
     'PROMOTE', 'POINTS_ADJUST',
   ];
   const ACTION_LABEL = {
@@ -15,10 +15,10 @@
   };
   const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
   const PRESET_GROUPS = {
-    all:         [],
-    anomalies:   ['MANUAL_CHECKIN', 'MANUAL_CHECKOUT', 'AUTO_CHECKOUT', 'FORCE_CHECKOUT'],
-    attendance:  ['CHECKIN', 'CHECKOUT', 'MANUAL_CHECKIN', 'MANUAL_CHECKOUT', 'AUTO_CHECKOUT', 'FORCE_CHECKOUT'],
-    admin:       ['REGISTER', 'DELETE', 'PROMOTE', 'POINTS_ADJUST'],
+    'all':          [],
+    'attendance':   ['CHECKIN', 'CHECKOUT'],
+    'manual-auto':  ['MANUAL_CHECKIN', 'MANUAL_CHECKOUT', 'AUTO_CHECKOUT', 'FORCE_CHECKOUT'],
+    'admin':        ['REGISTER', 'DELETE', 'PROMOTE', 'POINTS_ADJUST'],
   };
 
   const _selectedActions = new Set();
