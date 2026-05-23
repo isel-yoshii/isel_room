@@ -8,7 +8,7 @@
     document.querySelectorAll('.sw-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('sw-' + name).classList.add('active');
 
-    if (name === 'kiosk') {
+    if (name === 'check-in') {
       clearInterval(_dashInterval);
       startCamera('checkin-video');
       loadMemberStrip();
@@ -25,7 +25,7 @@
       .some(id => !document.getElementById(id)?.classList.contains('hidden'));
     if (anyModalOpen) return;
 
-    if (e.key === 'c' || e.key === 'C') switchScreen('kiosk');
+    if (e.key === 'c' || e.key === 'C') switchScreen('check-in');
     if (e.key === 'd' || e.key === 'D') switchScreen('dashboard');
   });
 })();

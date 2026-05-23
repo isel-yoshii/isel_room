@@ -148,14 +148,14 @@ def main():
                 action_type='CHECKIN' if method != 'manual' else 'MANUAL_CHECKIN',
                 target_user_id=user.user_id,
                 target_name=user.name,
-                performed_by='kiosk',
+                performed_by='check-in',
                 timestamp=in_t,
             ))
             db.add(AuditLog(
                 action_type='CHECKOUT' if method != 'manual' else 'MANUAL_CHECKOUT',
                 target_user_id=user.user_id,
                 target_name=user.name,
-                performed_by='kiosk',
+                performed_by='check-in',
                 timestamp=out_t,
             ))
             total_sessions += 1
@@ -179,7 +179,7 @@ def main():
             action_type='CHECKIN',
             target_user_id=user.user_id,
             target_name=user.name,
-            performed_by='kiosk',
+            performed_by='check-in',
             timestamp=checked_in_at,
         ))
 

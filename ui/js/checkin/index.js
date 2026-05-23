@@ -70,7 +70,7 @@
 
   window.initCheckin = function initCheckin() {
     window.addEventListener('keydown', (e) => {
-      if (!document.getElementById('screen-kiosk').classList.contains('active')) return;
+      if (!document.getElementById('screen-check-in').classList.contains('active')) return;
 
       const pickerOpen  = !document.getElementById('picker-modal').classList.contains('hidden');
       const regOpen     = !document.getElementById('reg-modal').classList.contains('hidden');

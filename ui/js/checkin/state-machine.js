@@ -39,7 +39,7 @@
   window.getCheckinState = () => _currentState;
 
   window.setHints = function setHints(pairs) {
-    const el = document.getElementById('kiosk-hints');
+    const el = document.getElementById('check-in-hints');
     if (!el) return;
     el.innerHTML = pairs.map(([key, label]) =>
       `<div class="hint-group"><kbd class="hint-key">${key}</kbd><span class="hint-label">${label}</span></div>`

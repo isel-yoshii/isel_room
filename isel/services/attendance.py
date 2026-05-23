@@ -42,7 +42,7 @@ def toggle_entry(user_id: int, check_in_method: str = 'face') -> dict:
             action_type=action,
             target_user_id=user_id,
             target_name=user.name,
-            performed_by='kiosk',
+            performed_by='check-in',
             timestamp=now,
         ))
         session.commit()

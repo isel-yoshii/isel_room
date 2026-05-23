@@ -27,7 +27,7 @@
     </div>
 
     <div class="screen-switcher">
-      <button class="sw-btn active" id="sw-kiosk"     onclick="switchScreen('kiosk')">Check-in <kbd class="kbd-badge">C</kbd></button>
+      <button class="sw-btn active" id="sw-check-in"  onclick="switchScreen('check-in')">Check-in <kbd class="kbd-badge">C</kbd></button>
       <button class="sw-btn"        id="sw-dashboard" onclick="switchScreen('dashboard')">Dashboard <kbd class="kbd-badge">D</kbd></button>
     </div>
 
@@ -39,9 +39,9 @@
 
 
   <!-- ═══════════════════════════════════════════════════
-       SCREEN 1 — KIOSK
+       SCREEN 1 — CHECK-IN
   ═══════════════════════════════════════════════════ -->
-  <div id="screen-kiosk" class="screen active">
+  <div id="screen-check-in" class="screen active">
 
     <div class="checkin-area">
 
@@ -70,7 +70,7 @@
 
         <button class="btn-scan" id="btn-scan" onclick="onScanBtnClick()">Scan Face</button>
 
-        <div class="hint-row" id="kiosk-hints">
+        <div class="hint-row" id="check-in-hints">
           <div class="hint-group"><kbd class="hint-key">↵</kbd><span class="hint-label">Scan</span></div>
           <div class="hint-group"><kbd class="hint-key">Space</kbd><span class="hint-label">Manual</span></div>
         </div>
@@ -82,7 +82,7 @@
       <span class="strip-empty">Loading…</span>
     </div>
 
-  </div><!-- /screen-kiosk -->
+  </div><!-- /screen-check-in -->
 
 
   <!-- ═══════════════════════════════════════════════════
