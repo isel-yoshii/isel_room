@@ -132,7 +132,7 @@
       if (data.success) {
         msg.textContent = data.message || `${name} registered!`;
         msg.className   = 'modal-msg ok';
-        setTimeout(() => { closeRegModal(); loadAdmin(); }, 1500);
+        setTimeout(() => { closeRegModal(); loadMembers(); }, 1500);
       } else {
         msg.textContent = data.message || 'Registration Failed';
         msg.className   = 'modal-msg err';
@@ -208,7 +208,7 @@
       if (r.success) {
         msg.textContent = 'Face Updated';
         msg.className   = 'modal-msg ok';
-        setTimeout(() => { closeFaceReregModal(); loadAdminUsers(); }, 1200);
+        setTimeout(() => { closeFaceReregModal(); loadMembers(); }, 1200);
       } else {
         msg.textContent = r.message || 'Failed';
         msg.className   = 'modal-msg err';

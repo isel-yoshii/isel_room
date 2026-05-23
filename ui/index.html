@@ -114,13 +114,25 @@
           <kbd class="kbd-badge kbd-sidebar">2</kbd>
         </button>
 
-        <!-- Admin -->
-        <button class="sidebar-tab" id="sbt-admin"
-                onclick="switchDashTab('admin', this)" title="Admin [3]">
+        <!-- Members -->
+        <button class="sidebar-tab" id="sbt-members"
+                onclick="switchDashTab('members', this)" title="Members [3]">
           <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
-            <path d="M9 1L2 4.5v5C2 13.8 5.1 16.3 9 17c3.9-.7 7-3.2 7-7.5v-5L9 1z"/>
+            <circle cx="6" cy="6" r="2.5"/>
+            <circle cx="13" cy="6.5" r="2"/>
+            <path d="M1 16c0-2.8 2.2-5 5-5s5 2.2 5 5H1z"/>
+            <path d="M11.5 16c0-1.8 1-3.4 2.5-4.3 1.5.9 2.5 2.5 2.5 4.3h-5z"/>
           </svg>
           <kbd class="kbd-badge kbd-sidebar">3</kbd>
+        </button>
+
+        <!-- Activity log -->
+        <button class="sidebar-tab" id="sbt-activity"
+                onclick="switchDashTab('activity', this)" title="Activity log [4]">
+          <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
+            <path d="M2 3h14v2H2zM2 8h14v2H2zM2 13h10v2H2z"/>
+          </svg>
+          <kbd class="kbd-badge kbd-sidebar">4</kbd>
         </button>
       </div>
 
@@ -184,23 +196,30 @@
 
         </div><!-- /db-overview -->
 
-        <!-- ── Admin page ── -->
-        <div class="db-page" id="db-admin">
+        <!-- ── Members page ── -->
+        <div class="db-page" id="db-members">
           <div class="admin-header">
             <button class="add-btn" onclick="openRegModal()">+ Add Member</button>
             <div class="admin-header-right">
-              <button class="btn-ghost promote-btn" onclick="runPromotion()">Promote Students</button>
-              <button class="btn-ghost" onclick="exportAuditCsv()">Export Audit CSV</button>
+              <button class="btn-ghost" onclick="runPromotion()">Promote Students</button>
               <button class="btn-ghost" onclick="exportSessionsCsv()">Export Sessions CSV</button>
-              <button class="btn-ghost admin-logout-btn" onclick="adminLogout()">Logout</button>
+              <button class="btn-ghost" onclick="adminLogout()">Logout</button>
             </div>
           </div>
           <div class="section-label">All Members</div>
           <div class="admin-grid" id="admin-grid">
             <div class="log-empty">Loading…</div>
           </div>
+        </div><!-- /db-members -->
 
-          <div class="section-label" style="margin-top:24px;">Audit Log</div>
+        <!-- ── Activity log page ── -->
+        <div class="db-page" id="db-activity">
+          <div class="admin-header">
+            <div class="page-subtitle" style="margin:0;">Filter, search and inspect all admin / attendance events.</div>
+            <div class="admin-header-right">
+              <button class="btn-ghost" onclick="exportAuditCsv()">Export Audit CSV</button>
+            </div>
+          </div>
           <div class="audit-filters">
             <div class="audit-filters-row">
               <label class="filter-field">
@@ -231,7 +250,7 @@
           <div class="log-section">
             <div id="audit-body"><div class="log-empty">Loading…</div></div>
           </div>
-        </div><!-- /db-admin -->
+        </div><!-- /db-activity -->
 
         <!-- ── Attendance page ── -->
         <div class="db-page" id="db-attendance">
@@ -391,7 +410,8 @@
   <script src="/ui/js/checkin/index.js"></script>
   <script src="/ui/js/dashboard/overview.js"></script>
   <script src="/ui/js/dashboard/attendance.js"></script>
-  <script src="/ui/js/dashboard/admin.js"></script>
+  <script src="/ui/js/dashboard/members.js"></script>
+  <script src="/ui/js/dashboard/activity.js"></script>
   <script src="/ui/js/dashboard/modals.js"></script>
   <script src="/ui/js/dashboard/index.js"></script>
 

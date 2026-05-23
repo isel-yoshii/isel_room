@@ -1,8 +1,9 @@
 (function () {
   const PAGE_META = {
-    overview:   { title: 'Overview',    subtitle: "Today's Lab Activity" },
-    attendance: { title: 'Attendance',  subtitle: 'Days Present Ranking' },
-    admin:      { title: 'Admin',       subtitle: 'Manage Members And Access' },
+    overview:   { title: 'Overview',     subtitle: "Today's Lab Activity" },
+    attendance: { title: 'Attendance',   subtitle: 'Weekly Grid And Points' },
+    members:    { title: 'Members',      subtitle: 'Manage Lab Members And Access' },
+    activity:   { title: 'Activity Log', subtitle: 'Inspect All Admin And Attendance Events' },
   };
 
   window.activateDashTab = function activateDashTab(name, btn) {
@@ -34,8 +35,11 @@
   };
 
   window.switchDashTab = function switchDashTab(name, btn) {
-    if (name === 'admin') {
-      checkAdminAndProceed(() => activateDashTab('admin', btn));
+    if (name === 'members' || name === 'activity') {
+      checkAdminAndProceed(() => {
+        activateDashTab(name, btn);
+        if (name === 'activity' && typeof loadActivity === 'function') loadActivity();
+      });
       return;
     }
     activateDashTab(name, btn);
@@ -43,20 +47,21 @@
   };
 
   window.loadDashboard = async function loadDashboard() {
-    await Promise.all([loadOverview(), loadLogSection(), loadAdmin()]);
+    await Promise.all([loadOverview(), loadLogSection(), loadMembers()]);
   };
 
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('screen-dashboard').classList.contains('active')) return;
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
-    const anyModalOpen = ['reg-modal', 'pin-modal', 'profile-modal']
+    const anyModalOpen = ['reg-modal', 'pin-modal', 'profile-modal', 'points-modal', 'face-rereg-modal']
       .some(id => !document.getElementById(id)?.classList.contains('hidden'));
     if (anyModalOpen) return;
 
     const tabMap = {
-      '1': { name: 'overview',    btnId: 'sbt-overview'    },
-      '2': { name: 'attendance',  btnId: 'sbt-attendance'  },
-      '3': { name: 'admin',       btnId: 'sbt-admin'       },
+      '1': { name: 'overview',   btnId: 'sbt-overview'   },
+      '2': { name: 'attendance', btnId: 'sbt-attendance' },
+      '3': { name: 'members',    btnId: 'sbt-members'    },
+      '4': { name: 'activity',   btnId: 'sbt-activity'   },
     };
     const target = tabMap[e.key];
     if (!target) return;

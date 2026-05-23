@@ -1,28 +1,5 @@
 (function () {
-  const ACTION_TYPES = [
-    'REGISTER', 'DELETE',
-    'CHECKIN', 'CHECKOUT',
-    'MANUAL_CHECKIN', 'MANUAL_CHECKOUT',
-    'AUTO_CHECKOUT', 'FORCE_CHECKOUT',
-    'PROMOTE', 'POINTS_ADJUST',
-  ];
-  const ACTION_LABEL = {
-    REGISTER: 'Registered', DELETE: 'Deleted',
-    CHECKIN: 'Check-In', CHECKOUT: 'Check-Out',
-    MANUAL_CHECKIN: 'Manual In', MANUAL_CHECKOUT: 'Manual Out',
-    AUTO_CHECKOUT: 'Auto-Out', FORCE_CHECKOUT: 'Force-Out',
-    PROMOTE: 'Promoted', POINTS_ADJUST: 'Points Adjusted',
-  };
-  const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
-  const _selectedActions = new Set();
-  let _filterDebounce = null;
-  let _filtersInitialized = false;
-
-  window.loadAdmin = async function loadAdmin() {
-    await Promise.all([loadAdminUsers(), initAuditFilters(), loadAuditLog()]);
-  };
-
-  window.loadAdminUsers = async function loadAdminUsers() {
+  window.loadMembers = async function loadMembers() {
     try {
       const users = await api.get('/api/users');
       const grid  = document.getElementById('admin-grid');
@@ -61,101 +38,7 @@
           </div>`;
       }).join('');
     } catch (err) {
-      console.error('loadAdminUsers error:', err);
-    }
-  };
-
-  window.buildAuditFilterParams = function buildAuditFilterParams() {
-    const params = new URLSearchParams();
-    const uid = document.getElementById('filter-user')?.value;
-    if (uid) params.set('user_id', uid);
-    if (_selectedActions.size) params.set('actions', [..._selectedActions].join(','));
-    const start = document.getElementById('filter-start')?.value;
-    const end   = document.getElementById('filter-end')?.value;
-    if (start) params.set('start', `${start}T00:00:00`);
-    if (end)   params.set('end',   `${end}T23:59:59`);
-    const q = document.getElementById('filter-q')?.value.trim();
-    if (q) params.set('q', q);
-    return params;
-  };
-
-  window.scheduleFilterReload = function scheduleFilterReload() {
-    if (_filterDebounce) clearTimeout(_filterDebounce);
-    _filterDebounce = setTimeout(loadAuditLog, 250);
-  };
-
-  window.toggleActionChip = function toggleActionChip(action) {
-    const el = document.querySelector(`.chip[data-action="${action}"]`);
-    if (_selectedActions.has(action)) {
-      _selectedActions.delete(action);
-      el?.classList.remove('chip-active');
-    } else {
-      _selectedActions.add(action);
-      el?.classList.add('chip-active');
-    }
-    loadAuditLog();
-  };
-
-  window.clearAuditFilters = function clearAuditFilters() {
-    document.getElementById('filter-user').value  = '';
-    document.getElementById('filter-start').value = '';
-    document.getElementById('filter-end').value   = '';
-    document.getElementById('filter-q').value     = '';
-    _selectedActions.clear();
-    document.querySelectorAll('#filter-actions .chip').forEach(c => c.classList.remove('chip-active'));
-    loadAuditLog();
-  };
-
-  async function initAuditFilters() {
-    if (_filtersInitialized) return;
-    _filtersInitialized = true;
-    try {
-      const users = await api.get('/api/users');
-      const sel = document.getElementById('filter-user');
-      users.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.id;
-        opt.textContent = u.name;
-        sel.appendChild(opt);
-      });
-    } catch (err) {
-      console.error('initAuditFilters users error:', err);
-    }
-    const chipBar = document.getElementById('filter-actions');
-    chipBar.innerHTML = ACTION_TYPES.map(a =>
-      `<span class="chip" data-action="${a}" onclick="toggleActionChip('${a}')">${ACTION_LABEL[a] ?? a}</span>`
-    ).join('');
-  }
-
-  window.loadAuditLog = async function loadAuditLog() {
-    try {
-      const params = buildAuditFilterParams();
-      const qs = params.toString();
-      const rows = await api.get('/api/audit/log' + (qs ? '?' + qs : ''));
-      const body = document.getElementById('audit-body');
-
-      if (!rows.length) {
-        const hasFilters = params.toString().length > 0;
-        body.innerHTML = `<div class="log-empty">${hasFilters ? 'No entries match the current filters' : 'No Admin Actions Recorded Yet'}</div>`;
-        return;
-      }
-
-      body.innerHTML = rows.map(r => {
-        const isIn  = IN_ACTIONS.has(r.action);
-        const label = ACTION_LABEL[r.action] ?? r.action;
-        const clickable = r.user_id != null;
-        return `
-          <div class="log-row${clickable ? ' log-row-clickable' : ''}"
-               ${clickable ? `onclick="openProfileModal(${r.user_id})"` : ''}
-               title="${clickable ? 'Open user profile' : 'User no longer exists'}">
-            <div class="log-icon ${isIn ? 'log-in' : 'log-out'}">${isIn ? '+' : '×'}</div>
-            <div class="log-name">${esc(r.name)}</div>
-            <div class="log-ts">${esc(r.timestamp)}</div>
-            <div class="status-pill ${isIn ? 'pill-in' : 'pill-out'}">${esc(label)}</div>
-          </div>`;
-      }).join('');
-    } catch (err) {
-      console.error('loadAuditLog error:', err);
+      console.error('loadMembers error:', err);
     }
   };
 
@@ -172,7 +55,7 @@
         <input class="edit-input" id="edit-name-${userId}" value="${esc(currentName)}" style="flex:1" />
         <select class="edit-input" id="edit-type-${userId}">${ROLE_OPTIONS}</select>
         <button class="icon-btn ok-btn" onclick="saveEditUser(${userId})">✓</button>
-        <button class="icon-btn" onclick="loadAdminUsers()">✗</button>
+        <button class="icon-btn" onclick="loadMembers()">✗</button>
       </div>`;
   };
 
@@ -186,7 +69,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, user_type: userType }),
       }).then(r => r.json());
-      if (r.success) { loadAdminUsers(); loadOverview(); }
+      if (r.success) { loadMembers(); loadOverview(); }
       else alert(`Failed: ${r.message}`);
     } catch (e) { console.error(e); }
   };
@@ -195,7 +78,7 @@
     if (!confirm(`Force "${userName}" out of the lab?`)) return;
     try {
       const res = await api.post(`/api/admin/force-checkout/${userId}`, {});
-      if (res.success) { loadAdmin(); loadOverview(); }
+      if (res.success) { loadMembers(); loadOverview(); }
       else alert(`Failed: ${res.message}`);
     } catch (e) {
       console.error('forceCheckout error:', e);
@@ -207,7 +90,7 @@
     if (!confirm(`Are you sure you want to delete "${userName}"?\nThis action cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/user/${userId}`, { method: 'DELETE' }).then(r => r.json());
-      if (res.success) { loadAdmin(); loadOverview(); }
+      if (res.success) { loadMembers(); loadOverview(); }
       else alert(`Failed to delete: ${res.message}`);
     } catch (e) {
       console.error('Delete error:', e);
@@ -222,7 +105,7 @@
       if (r.success) {
         const { B4, M1, M2 } = r.promoted;
         alert(`Promotion complete.\n${B4} B4 → M1 · ${M1} M1 → M2 · ${M2} M2 → 卒業`);
-        loadAdminUsers();
+        loadMembers();
       } else {
         alert(`Failed: ${r.message}`);
       }
@@ -266,19 +149,12 @@
       const r = await api.post('/api/admin/points/adjust', {
         user_id: _pointsUserId, delta, note,
       });
-      if (r.success) { closePointsModal(); loadAuditLog(); }
+      if (r.success) { closePointsModal(); if (typeof loadActivity === 'function') loadActivity(); }
       else msg.textContent = r.message || 'Failed to adjust points.';
     } catch (e) {
       console.error('submitPointsAdjust error:', e);
       msg.textContent = 'Network error.';
     }
-  };
-
-  /* ── CSV exports ── */
-
-  window.exportAuditCsv = function exportAuditCsv() {
-    const qs = buildAuditFilterParams().toString();
-    window.location = '/api/audit/export.csv' + (qs ? '?' + qs : '');
   };
 
   window.exportSessionsCsv = function exportSessionsCsv() {
@@ -288,11 +164,5 @@
     const month = prompt('Month? (1-12)', now.getMonth() + 1);
     if (!month) return;
     window.location = `/api/export/csv?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`;
-  };
-
-  window.Dashboard = window.Dashboard || {};
-  window.Dashboard.Admin = {
-    init:    () => loadAdmin(),
-    destroy: () => {},
   };
 })();
