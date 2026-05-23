@@ -113,15 +113,6 @@ body {
   font-family: 'IBM Plex Mono', monospace;
 }
 
-.live-dot {
-  width: 7px; height: 7px;
-  background: var(--color-success);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
 .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
 .screen.active { display: flex; }
 

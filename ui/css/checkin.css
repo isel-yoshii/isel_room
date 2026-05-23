@@ -100,14 +100,6 @@
 .tag-success  { background: var(--color-success-bg);           color: var(--color-success); }
 .tag-fail     { background: var(--color-warning-bg);           color: var(--color-warning); }
 
-.dot { width: 6px; height: 6px; border-radius: 50%; }
-.dot-gray  { background: var(--color-border-primary); }
-.dot-amber { background: var(--color-accent-mid); animation: blink 1s infinite; }
-.dot-green { background: var(--color-success); }
-.dot-red   { background: var(--color-error); }
-
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
 .state-name {
   font-size: clamp(24px, 2.6vw, 44px); font-weight: 700;
   font-family: 'Syne', sans-serif;
@@ -293,8 +285,6 @@
   transition: box-shadow 0.15s;
 }
 
-.mini-dot  { width: 5px; height: 5px; border-radius: 50%; background: var(--color-success); }
-.mini-dot.mini-dot-out { background: var(--color-border-secondary); }
 .mini-member.mini-out  { opacity: 0.45; }
 .mini-name { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; }
 

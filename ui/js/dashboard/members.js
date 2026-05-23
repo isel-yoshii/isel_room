@@ -29,7 +29,6 @@
                 </span>
               </div>
             </div>
-            <div class="status-dot ${u.status ? 'in' : 'out'}" title="${u.status ? 'In Lab' : 'Out'}"></div>
             ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${argName}')">Force Out</button>` : ''}
             <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${argName}', '${argType}')" title="Edit Name / Role">✎</button>
             <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${argName}')" title="Re-Register Face">⊙</button>

@@ -1,7 +1,7 @@
 (function () {
   const CHECKIN_STATES = {
     idle: {
-      tagClass: 'tag-idle',   dotClass: 'dot-gray',  tagText: 'Waiting',
+      tagClass: 'tag-idle',     tagText: 'Waiting',
       name:     'Stand In Front<br>Of Camera',
       sub:      'Face Recognition Ready',
       faceClass: 'state-idle', scanLine: false,
@@ -9,7 +9,7 @@
       hints: [['↵', 'Scan'], ['Space', 'Manual']],
     },
     scanning: {
-      tagClass: 'tag-scanning', dotClass: 'dot-amber', tagText: 'Scanning',
+      tagClass: 'tag-scanning', tagText: 'Scanning',
       name:     'Scanning…',
       sub:      'Hold Still For A Moment',
       faceClass: 'state-scanning', scanLine: true,
@@ -17,7 +17,7 @@
       hints: [],
     },
     fail: {
-      tagClass: 'tag-fail', dotClass: 'dot-red', tagText: 'Unknown Face',
+      tagClass: 'tag-fail',     tagText: 'Unknown Face',
       name:     'Face Not<br>Recognised',
       sub:      'Not Registered In The System',
       faceClass: 'state-fail', scanLine: false,
@@ -53,7 +53,6 @@
 
     const tag = document.getElementById('state-tag');
     tag.className = 'state-tag ' + s.tagClass;
-    document.getElementById('state-dot').className = 'dot ' + s.dotClass;
     document.getElementById('tag-text').textContent = s.tagText;
 
     document.getElementById('state-name').innerHTML = s.name;
@@ -76,7 +75,6 @@
 
     const tag = document.getElementById('state-tag');
     tag.className = 'state-tag tag-scanning';
-    document.getElementById('state-dot').className = 'dot dot-amber';
     document.getElementById('tag-text').textContent = 'Confirm?';
 
     document.getElementById('state-name').innerHTML = `Is This<br>${name}?`;
@@ -102,7 +100,6 @@
 
     const tag = document.getElementById('state-tag');
     tag.className = 'state-tag tag-success';
-    document.getElementById('state-dot').className = 'dot dot-green';
     document.getElementById('tag-text').textContent = 'Recognised';
 
     document.getElementById('state-name').innerHTML = isIn

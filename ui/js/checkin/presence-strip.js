@@ -15,7 +15,6 @@
 
       strip.innerHTML = sorted.map(u => `
         <div class="mini-member ${u.status ? '' : 'mini-out'}">
-          <div class="mini-dot ${u.status ? '' : 'mini-dot-out'}"></div>
           <span class="mini-name">${u.name}</span>
         </div>`).join('');
     } catch {
