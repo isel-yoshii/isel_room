@@ -25,13 +25,13 @@
               <div class="user-role">
                 <span class="role-badge ${roleBadgeClass(u.type)}">${safeType}</span>
                 <span class="face-badge ${u.has_face ? 'badge-face-ok' : 'badge-face-none'}">
-                  ${u.has_face ? 'Enrolled' : 'No Face'}
+                  ${u.has_face ? (u.face_count > 1 ? `${u.face_count} faces` : 'Enrolled') : 'No Face'}
                 </span>
               </div>
             </div>
             ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${argName}')">Force Out</button>` : ''}
             <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${argName}', '${argType}')" title="Edit Name / Role">✎</button>
-            <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${argName}')" title="Re-Register Face">⊙</button>
+            <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${argName}')" title="Add Face Variant">⊙</button>
             <button class="del-btn" onclick="deleteUser(${u.id}, '${argName}')">Delete</button>
           </div>`;
       }).join('');

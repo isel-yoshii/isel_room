@@ -1,4 +1,21 @@
 (function () {
+  /* ── Helpers ── */
+
+  async function captureBurst(videoId, count = 3, gapMs = 350) {
+    const video  = document.getElementById(videoId);
+    const canvas = document.getElementById('capture-canvas');
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    const frames = [];
+    for (let i = 0; i < count; i++) {
+      ctx.drawImage(video, 0, 0);
+      frames.push(canvas.toDataURL('image/jpeg', 0.85));
+      if (i < count - 1) await new Promise(r => setTimeout(r, gapMs));
+    }
+    return frames;
+  }
+
   /* ── Admin PIN modal ── */
 
   let _pinCallback = null;
@@ -116,19 +133,14 @@
       return;
     }
 
-    const video  = document.getElementById('reg-video');
-    const canvas = document.getElementById('capture-canvas');
-    canvas.width  = video.videoWidth  || 640;
-    canvas.height = video.videoHeight || 480;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    const image = canvas.toDataURL('image/jpeg', 0.85);
-
     btn.disabled    = true;
-    msg.textContent = 'Processing…';
+    msg.textContent = 'Capturing 3 frames…';
     msg.className   = 'modal-msg';
+    const images = await captureBurst('reg-video');
+    msg.textContent = 'Processing…';
 
     try {
-      const data = await api.post('/api/register', { name, user_type: userType, image });
+      const data = await api.post('/api/register', { name, user_type: userType, images });
       if (data.success) {
         msg.textContent = data.message || `${name} registered!`;
         msg.className   = 'modal-msg ok';
@@ -152,7 +164,7 @@
 
   window.openFaceReregModal = function openFaceReregModal(userId, userName) {
     _faceReregUserId = userId;
-    document.getElementById('face-rereg-title').textContent = `Re-Register Face — ${userName}`;
+    document.getElementById('face-rereg-title').textContent = `Add Face Variant — ${userName}`;
     const msg = document.getElementById('face-rereg-msg');
     msg.textContent = '';
     msg.className   = 'modal-msg';
@@ -185,30 +197,27 @@
 
   window.captureAndReregFace = async function captureAndReregFace() {
     if (!_faceReregUserId || !_faceReregStream) return;
-    const video  = document.getElementById('face-rereg-video');
-    const canvas = document.getElementById('capture-canvas');
-    canvas.width  = video.videoWidth  || 640;
-    canvas.height = video.videoHeight || 480;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    const image = canvas.toDataURL('image/jpeg', 0.85);
-
     const msg = document.getElementById('face-rereg-msg');
     const btn = document.getElementById('btn-face-rereg');
     btn.disabled    = true;
-    msg.textContent = 'Processing…';
+    msg.textContent = 'Capturing 3 frames…';
     msg.className   = 'modal-msg';
+    const images = await captureBurst('face-rereg-video');
+    msg.textContent = 'Processing…';
 
     try {
       const r = await fetch(`/api/user/${_faceReregUserId}/face`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image }),
+        body: JSON.stringify({ images }),
       }).then(r => r.json());
 
       if (r.success) {
-        msg.textContent = 'Face Updated';
+        msg.textContent = r.variant_count
+          ? `Face variant added (${r.variant_count} total)`
+          : 'Face Updated';
         msg.className   = 'modal-msg ok';
-        setTimeout(() => { closeFaceReregModal(); loadMembers(); }, 1200);
+        setTimeout(() => { closeFaceReregModal(); loadMembers(); }, 1400);
       } else {
         msg.textContent = r.message || 'Failed';
         msg.className   = 'modal-msg err';

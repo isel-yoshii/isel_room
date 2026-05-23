@@ -35,18 +35,30 @@ def register():
         return jsonify({'success': False, 'message': f'「{name}」は既に登録されています'})
 
     engine = current_app.config['FACE_ENGINE']
-    frame = decode_image(data['image'])
-    embedding = engine.extract_embedding(frame, enforce=True)
-    if embedding is None:
+    frames_b64 = data.get('images') or ([data['image']] if data.get('image') else [])
+    embeddings = []
+    for b64 in frames_b64:
+        frame = decode_image(b64)
+        emb = engine.extract_embedding(frame, enforce=True)
+        if emb is not None:
+            embeddings.append([float(v) for v in emb])
+
+    if not embeddings:
         return jsonify({'success': False, 'message': '顔を検出できませんでした'})
 
-    dup_id, dup_name, _ = engine.find_match(embedding, engine.reg_threshold)
+    dup_id, dup_name, _ = engine.find_match(embeddings[0], engine.reg_threshold)
     if dup_id is not None:
         return jsonify({'success': False, 'message': f'この方は既に「{dup_name}」として登録されています'})
 
-    new_user_id = users_svc.register_user(name, user_type, embedding)
+    new_user_id = users_svc.register_user(name, user_type, embeddings)
     audit_svc.record('REGISTER', new_user_id, name)
-    return jsonify({'success': True, 'message': f'{name}さんを登録しました', 'user_id': new_user_id})
+    variant_suffix = '' if len(embeddings) == 1 else f' ({len(embeddings)} face variants)'
+    return jsonify({
+        'success': True,
+        'message': f'{name}さんを登録しました{variant_suffix}',
+        'user_id': new_user_id,
+        'variant_count': len(embeddings),
+    })
 
 
 @bp.delete('/api/user/<int:user_id>')
@@ -75,12 +87,18 @@ def update_user(user_id: int):
 
 @bp.post('/api/user/<int:user_id>/face')
 @admin_required
-def update_user_face(user_id: int):
+def add_user_face_variant(user_id: int):
     engine = current_app.config['FACE_ENGINE']
-    frame = decode_image(request.json['image'])
-    emb = engine.extract_embedding(frame, enforce=True)
-    if emb is None:
+    data = request.json or {}
+    frames_b64 = data.get('images') or ([data['image']] if data.get('image') else [])
+    new_variants = []
+    for b64 in frames_b64:
+        frame = decode_image(b64)
+        emb = engine.extract_embedding(frame, enforce=True)
+        if emb is not None:
+            new_variants.append([float(v) for v in emb])
+
+    if not new_variants:
         return jsonify({'success': False, 'message': 'No face detected in image'}), 400
-    emb_list = [float(v) for v in emb]
-    result = users_svc.update_face(user_id, emb_list)
+    result = users_svc.add_face_variant(user_id, new_variants)
     return jsonify(result), (200 if result['success'] else 400)

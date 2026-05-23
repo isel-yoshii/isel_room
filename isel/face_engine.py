@@ -6,7 +6,7 @@ from scipy.spatial import distance
 
 
 class FaceEngine:
-    def __init__(self, get_embeddings, auth_threshold: float = 0.50, reg_threshold: float = 0.50) -> None:
+    def __init__(self, get_embeddings, auth_threshold: float = 0.55, reg_threshold: float = 0.50) -> None:
         self.get_embeddings = get_embeddings
         self.auth_threshold = auth_threshold
         self.reg_threshold = reg_threshold
@@ -22,7 +22,12 @@ class FaceEngine:
         return None
 
     def find_match(self, target_embedding, threshold: float) -> tuple:
-        """Compare embedding against all registered users. Returns (user_id, name, distance)."""
+        """Compare embedding against all registered users' variants.
+
+        Returns (user_id, name, distance) for the user with the closest variant
+        below threshold. Distance is the minimum cosine distance across all
+        variants of the matched user.
+        """
         if target_embedding is None:
             return None, None, None
 
@@ -32,15 +37,15 @@ class FaceEngine:
         target_vec = np.array(target_embedding, dtype=float).flatten()
 
         for u_id, info in self.get_embeddings().items():
-            stored = info['embedding']
-            if stored is None:
-                continue
-            stored_vec = np.array(stored, dtype=float).flatten()
-            dist = distance.cosine(target_vec, stored_vec)
-            if dist < min_dist:
-                min_dist = dist
-                matched_id = u_id
-                matched_name = info['name']
+            for stored in info.get('embeddings', []):
+                if stored is None:
+                    continue
+                stored_vec = np.array(stored, dtype=float).flatten()
+                dist = distance.cosine(target_vec, stored_vec)
+                if dist < min_dist:
+                    min_dist = dist
+                    matched_id = u_id
+                    matched_name = info['name']
 
         if matched_id is None:
             return None, None, None

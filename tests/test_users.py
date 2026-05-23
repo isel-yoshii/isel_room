@@ -22,7 +22,7 @@ def test_registration_writes_audit_log(admin_client, app, db_session):
 
     resp = admin_client.post('/api/register', json={
         'name': 'Alice', 'user_type': 'B4',
-        'image': 'data:image/jpeg;base64,/9j/AA==',
+        'images': ['data:image/jpeg;base64,/9j/AA=='],
     })
     assert resp.get_json()['success'] is True
 

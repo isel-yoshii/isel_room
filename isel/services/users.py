@@ -1,4 +1,4 @@
-"""User service — registration, CRUD, face update, grade promotion."""
+"""User service — registration, CRUD, face variants, grade promotion."""
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import select, func
@@ -7,11 +7,29 @@ from isel.db import SessionLocal
 from isel.db.models import User, Session as LabSession, AuditLog
 
 
-def register_user(name: str, user_type: str, embedding: list) -> int:
-    """Create a new user and return the generated user_id."""
+def _as_embedding_list(stored) -> list[list[float]]:
+    """Normalize a stored embedding to a list-of-vectors.
+
+    Legacy format: a single flat list of floats -> wrap as [stored]
+    New format:    list of flat lists of floats -> return as-is
+    None / empty:                               -> []
+    """
+    if not stored:
+        return []
+    if isinstance(stored, list) and stored and isinstance(stored[0], (int, float)):
+        return [stored]
+    return stored
+
+
+def register_user(name: str, user_type: str, embedding) -> int:
+    """Create a new user and return the generated user_id.
+
+    `embedding` may be a single vector or a list of vectors; always stored as a list.
+    """
+    embeddings = _as_embedding_list(embedding)
     session = SessionLocal()
     try:
-        user = User(name=name, user_type=user_type, embedding=embedding)
+        user = User(name=name, user_type=user_type, embedding=embeddings)
         session.add(user)
         session.commit()
         session.refresh(user)
@@ -71,6 +89,7 @@ def get_all_users_info() -> list[dict]:
                 'type': u.user_type,
                 'status': u.status,
                 'has_face': bool(u.embedding),
+                'face_count': len(_as_embedding_list(u.embedding)),
                 'last_seen': last_seen_map[u.user_id].isoformat() if u.user_id in last_seen_map else None,
             }
             for u in users
@@ -80,10 +99,14 @@ def get_all_users_info() -> list[dict]:
 
 
 def get_all_embeddings() -> dict[int, dict]:
+    """Return {user_id: {name, embeddings}}; embeddings is always a list-of-vectors."""
     session = SessionLocal()
     try:
         users = list(session.execute(select(User)).scalars().all())
-        return {u.user_id: {'name': u.name, 'embedding': u.embedding} for u in users}
+        return {
+            u.user_id: {'name': u.name, 'embeddings': _as_embedding_list(u.embedding)}
+            for u in users
+        }
     finally:
         session.close()
 
@@ -105,15 +128,23 @@ def update_user(user_id: int, name: str, user_type: str) -> dict:
         session.close()
 
 
-def update_face(user_id: int, embedding: list) -> dict:
+def add_face_variant(user_id: int, embedding) -> dict:
+    """Append one or more face embeddings to the user's stored list.
+
+    `embedding` may be a single vector or a list of vectors.
+    """
+    new_variants = _as_embedding_list(embedding)
+    if not new_variants:
+        return {'success': False, 'message': 'No embedding provided'}
     session = SessionLocal()
     try:
         user = session.get(User, user_id)
         if not user:
             return {'success': False, 'message': 'User not found'}
-        user.embedding = embedding
+        existing = _as_embedding_list(user.embedding)
+        user.embedding = existing + new_variants
         session.commit()
-        return {'success': True}
+        return {'success': True, 'variant_count': len(user.embedding)}
     except Exception as e:
         session.rollback()
         return {'success': False, 'message': str(e)}
