@@ -402,6 +402,18 @@
     </div>
   </div>
 
+  <!-- Audit context modal -->
+  <div class="modal-overlay hidden" id="context-modal" onclick="closeContextModalOnBg(event)">
+    <div class="modal-box modal-md" onclick="event.stopPropagation()">
+      <div class="modal-title" id="context-title">Context</div>
+      <div id="context-body"><div class="log-empty">Loading…</div></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="context-profile-btn">View full profile →</button>
+        <button class="btn-primary" onclick="closeContextModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Points-adjust modal -->
   <div class="modal-overlay hidden" id="points-modal" onclick="closePointsModalOnBg(event)">
     <div class="modal-box modal-sm" onclick="event.stopPropagation()">

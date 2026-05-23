@@ -53,7 +53,7 @@
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('screen-dashboard').classList.contains('active')) return;
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
-    const anyModalOpen = ['reg-modal', 'pin-modal', 'profile-modal', 'points-modal', 'face-rereg-modal']
+    const anyModalOpen = ['reg-modal', 'pin-modal', 'profile-modal', 'points-modal', 'face-rereg-modal', 'context-modal']
       .some(id => !document.getElementById(id)?.classList.contains('hidden'));
     if (anyModalOpen) return;
 

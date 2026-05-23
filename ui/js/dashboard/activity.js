@@ -167,10 +167,11 @@
         const isIn  = IN_ACTIONS.has(r.action);
         const label = ACTION_LABEL[r.action] ?? r.action;
         const clickable = r.user_id != null;
+        const argName = escAttr(r.name);
         html.push(`
           <div class="log-row${clickable ? ' log-row-clickable' : ''}"
-               ${clickable ? `onclick="openProfileModal(${r.user_id})"` : ''}
-               title="${clickable ? 'Open user profile' : 'User no longer exists'}">
+               ${clickable ? `onclick="openContextModal(${r.user_id}, '${day}T${time}:00', '${argName}')"` : ''}
+               title="${clickable ? '±30 min around this event' : 'User no longer exists'}">
             <div class="log-icon ${isIn ? 'log-in' : 'log-out'}">${isIn ? '+' : '×'}</div>
             <div class="log-name">${esc(r.name)}</div>
             <div class="log-ts">${esc(time)}</div>
@@ -186,5 +187,55 @@
   window.exportAuditCsv = function exportAuditCsv() {
     const qs = buildAuditFilterParams().toString();
     window.location = '/api/audit/export.csv' + (qs ? '?' + qs : '');
+  };
+
+  /* ── Context modal ── */
+
+  window.openContextModal = async function openContextModal(userId, isoTs, name) {
+    document.getElementById('context-title').textContent =
+      `Context — ${name} @ ${isoTs.slice(11, 16)} on ${isoTs.slice(0, 10)}`;
+    const body = document.getElementById('context-body');
+    body.innerHTML = '<div class="log-empty">Loading…</div>';
+    document.getElementById('context-modal').classList.remove('hidden');
+    const btn = document.getElementById('context-profile-btn');
+    if (btn) btn.onclick = () => { closeContextModal(); openProfileModal(userId); };
+
+    try {
+      const center = new Date(isoTs);
+      const start = new Date(center.getTime() - 30 * 60 * 1000);
+      const end   = new Date(center.getTime() + 30 * 60 * 1000);
+      const toIso = (d) => d.toISOString().slice(0, 19);
+      const rows = await api.get(
+        `/api/audit/log?user_id=${userId}&start=${toIso(start)}&end=${toIso(end)}&limit=200`
+      );
+
+      if (!rows.length) {
+        body.innerHTML = '<div class="log-empty">No surrounding events</div>';
+        return;
+      }
+      body.innerHTML = rows.map(r => {
+        const isIn = IN_ACTIONS.has(r.action);
+        const label = ACTION_LABEL[r.action] ?? r.action;
+        const time = r.timestamp.slice(11);
+        return `
+          <div class="log-row">
+            <div class="log-icon ${isIn ? 'log-in' : 'log-out'}">${isIn ? '+' : '×'}</div>
+            <div class="log-name">${esc(r.name)}</div>
+            <div class="log-ts">${esc(time)}</div>
+            <div class="status-pill ${isIn ? 'pill-in' : 'pill-out'}">${esc(label)}</div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      console.error('openContextModal error:', err);
+      body.innerHTML = '<div class="log-empty">Failed to load context</div>';
+    }
+  };
+
+  window.closeContextModal = function closeContextModal() {
+    document.getElementById('context-modal').classList.add('hidden');
+  };
+
+  window.closeContextModalOnBg = function closeContextModalOnBg(event) {
+    if (event.target === document.getElementById('context-modal')) closeContextModal();
   };
 })();
