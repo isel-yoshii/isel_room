@@ -37,6 +37,7 @@
             ${u.status ? `<button class="force-btn" onclick="forceCheckout(${u.id}, '${argName}')">Force Out</button>` : ''}
             <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${argName}', '${argType}')" title="Edit Name / Role">✎</button>
             <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${argName}')" title="Re-Register Face">⊙</button>
+            <button class="icon-btn" onclick="openPointsModal(${u.id}, '${argName}')" title="Adjust Points">±</button>
             <button class="del-btn" onclick="deleteUser(${u.id}, '${argName}')">Delete</button>
           </div>`;
       }).join('');
@@ -60,7 +61,7 @@
         CHECKIN: 'Check-In', CHECKOUT: 'Check-Out',
         MANUAL_CHECKIN: 'Manual In', MANUAL_CHECKOUT: 'Manual Out',
         AUTO_CHECKOUT: 'Auto-Out', FORCE_CHECKOUT: 'Force-Out',
-        PROMOTE: 'Promoted',
+        PROMOTE: 'Promoted', POINTS_ADJUST: 'Points Adjusted',
       };
       const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
 
@@ -148,6 +149,51 @@
         alert(`Failed: ${r.message}`);
       }
     } catch { alert('Network Error Occurred.'); }
+  };
+
+  /* ── Points adjustment modal ── */
+
+  let _pointsUserId = null;
+
+  window.openPointsModal = function openPointsModal(userId, name) {
+    _pointsUserId = userId;
+    document.getElementById('points-modal-name').textContent = name;
+    document.getElementById('points-delta').value = '';
+    document.getElementById('points-note').value  = '';
+    document.getElementById('points-msg').textContent = '';
+    document.getElementById('points-modal').classList.remove('hidden');
+    document.getElementById('points-delta').focus();
+  };
+
+  window.closePointsModal = function closePointsModal() {
+    document.getElementById('points-modal').classList.add('hidden');
+    _pointsUserId = null;
+  };
+
+  window.closePointsModalOnBg = function closePointsModalOnBg(event) {
+    if (event.target === document.getElementById('points-modal')) closePointsModal();
+  };
+
+  window.submitPointsAdjust = async function submitPointsAdjust() {
+    if (_pointsUserId == null) return;
+    const deltaRaw = document.getElementById('points-delta').value;
+    const note     = document.getElementById('points-note').value.trim();
+    const delta    = parseInt(deltaRaw, 10);
+    const msg      = document.getElementById('points-msg');
+    if (!Number.isInteger(delta) || delta === 0) {
+      msg.textContent = 'Delta must be a non-zero integer.';
+      return;
+    }
+    try {
+      const r = await api.post('/api/admin/points/adjust', {
+        user_id: _pointsUserId, delta, note,
+      });
+      if (r.success) { closePointsModal(); loadAuditLog(); }
+      else msg.textContent = r.message || 'Failed to adjust points.';
+    } catch (e) {
+      console.error('submitPointsAdjust error:', e);
+      msg.textContent = 'Network error.';
+    }
   };
 
   window.Dashboard = window.Dashboard || {};

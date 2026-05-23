@@ -10,7 +10,7 @@ import calendar
 from datetime import datetime
 from sqlalchemy import select, func
 from isel.db import SessionLocal
-from isel.db.models import User, Session as LabSession, PointAdjustment
+from isel.db.models import User, Session as LabSession, PointAdjustment, AuditLog
 
 
 def monthly_leaderboard(year: int, month: int) -> list[dict]:
@@ -95,14 +95,25 @@ def all_time_leaderboard() -> list[dict]:
 def adjust_points(user_id: int, delta: int, note: str = '', performed_by: str = 'admin') -> bool:
     session = SessionLocal()
     try:
+        now = datetime.now()
+        user = session.get(User, user_id)
+        if user is None:
+            return False
         adj = PointAdjustment(
             user_id=user_id,
             delta=int(delta),
             note=note,
             performed_by=performed_by,
-            timestamp=datetime.now(),
+            timestamp=now,
         )
         session.add(adj)
+        session.add(AuditLog(
+            action_type='POINTS_ADJUST',
+            target_user_id=user_id,
+            target_name=user.name,
+            performed_by=performed_by,
+            timestamp=now,
+        ))
         session.commit()
         return True
     except Exception:
