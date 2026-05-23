@@ -2,7 +2,7 @@
   const ACTION_TYPES = [
     'CHECKIN', 'CHECKOUT',
     'MANUAL_CHECKIN', 'MANUAL_CHECKOUT',
-    'AUTO_CHECKOUT', 'FORCE_CHECKOUT',
+    'AUTO_CHECKOUT',
     'REGISTER', 'DELETE',
     'PROMOTE',
   ];
@@ -10,15 +10,14 @@
     REGISTER: 'Registered', DELETE: 'Deleted',
     CHECKIN: 'Check-In', CHECKOUT: 'Check-Out',
     MANUAL_CHECKIN: 'Manual In', MANUAL_CHECKOUT: 'Manual Out',
-    AUTO_CHECKOUT: 'Auto-Out', FORCE_CHECKOUT: 'Force-Out',
+    AUTO_CHECKOUT: 'Auto-Out',
     PROMOTE: 'Promoted', POINTS_ADJUST: 'Points Adjusted',
   };
   const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
   const PRESET_GROUPS = {
-    'all':          [],
-    'attendance':   ['CHECKIN', 'CHECKOUT'],
-    'manual-auto':  ['MANUAL_CHECKIN', 'MANUAL_CHECKOUT', 'AUTO_CHECKOUT', 'FORCE_CHECKOUT'],
-    'admin':        ['REGISTER', 'DELETE', 'PROMOTE'],
+    'all':        [],
+    'attendance': ['CHECKIN', 'CHECKOUT', 'MANUAL_CHECKIN', 'MANUAL_CHECKOUT', 'AUTO_CHECKOUT'],
+    'admin':      ['REGISTER', 'DELETE', 'PROMOTE'],
   };
 
   const _selectedActions = new Set();
