@@ -5,7 +5,7 @@ Run from the project root:
     python seed_db.py
 
 What it creates:
-  - 10 lab members (1 先生, 2 M2, 4 M1, 2 B4, 1 Intern — one without a face embedding)
+  - 11 lab members (1 先生, 1 PhD, 2 M2, 4 M1, 2 B4, 1 Intern — one without a face embedding)
   - ~60 days of session history with realistic lab hours
   - 3 members currently in the lab (status = True, open session)
   - Audit log entries covering registrations and attendance events
@@ -84,13 +84,14 @@ def make_sessions(user_id, days_back=62, today=None):
 
 MEMBERS = [
     # (name, user_type, has_face, currently_in_lab)
-    ('Choi Eunjong',  '先生', True,  False),
-    ('Okura',         'M2',   True,  False),
-    ('Inoue',         'M2',   True,  True),
-    ('Naimi',         'M1',   True,  True),
-    ('Yoshii',        'M1',   True,  False),
-    ('Tasaki',        'M1',   True,  False),
-    ('Hashimoto',     'M1',   False, False),  # no face enrolled
+    ('Choi Eunjong',  '先生',   True,  False),
+    ('Tanaka',        'PhD',    True,  False),
+    ('Okura',         'M2',     True,  False),
+    ('Inoue',         'M2',     True,  True),
+    ('Naimi',         'M1',     True,  True),
+    ('Yoshii',        'M1',     True,  False),
+    ('Tasaki',        'M1',     True,  False),
+    ('Hashimoto',     'M1',     False, False),  # no face enrolled
     ('Yamamoto',      'B4',     True,  True),
     ('Yamaguchi',     'B4',     True,  False),
     ('Lee',           'Intern', True,  False),
