@@ -72,37 +72,14 @@
       const params = new URLSearchParams({ start: isoDate(_gridWeekStart) });
       if (_selectedUserIds) params.set('user_ids', _selectedUserIds.join(','));
       const data = await api.get('/api/stats/weekly-grid?' + params.toString());
-      const medalByUser = computeWeeklyMedals(data);
-      renderGrid(data, medalByUser);
+      renderGrid(data);
     } catch (err) {
       console.error('loadGrid error:', err);
       content.innerHTML = '<div class="log-empty">Failed to load grid</div>';
     }
   };
 
-  function computeWeeklyMedals(rows) {
-    const ranked = rows
-      .map(u => ({ id: u.id, name: u.name, days: u.days.filter(d => d.total_minutes > 0).length }))
-      .filter(u => u.days > 0)
-      .sort((a, b) => b.days - a.days || a.name.localeCompare(b.name));
-    const medals = {};
-    if (ranked[0]) medals[ranked[0].id] = '🥇';
-    if (ranked[1]) medals[ranked[1].id] = '🥈';
-    if (ranked[2]) medals[ranked[2].id] = '🥉';
-    return medals;
-  }
-
-  function medalHtml(emoji) {
-    if (!emoji) return '';
-    const label = {
-      '🥇': '1st most days this week',
-      '🥈': '2nd most days this week',
-      '🥉': '3rd most days this week',
-    }[emoji];
-    return `<span class="grid-medal" title="${label}">${emoji}</span>`;
-  }
-
-  function renderGrid(rows, medalByUser = {}) {
+  function renderGrid(rows) {
     const content = document.getElementById('grid-content');
     if (!rows.length) {
       content.innerHTML = '<div class="log-empty">No members match the current filter</div>';
@@ -129,7 +106,6 @@
           <div class="avatar ${avColor(i)}" style="width:28px;height:28px;font-size:10px;">${esc(initials(u.name))}</div>
           <div class="grid-name-info">
             <div class="grid-name">${esc(u.name)}</div>
-            <div class="grid-row-badges">${medalHtml(medalByUser[u.id])}</div>
           </div>
         </div>`;
       const dayCells = u.days.map(d => {

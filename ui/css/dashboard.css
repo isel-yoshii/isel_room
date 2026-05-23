@@ -675,7 +675,6 @@
 .grid-name-info { min-width: 0; flex: 1; }
 .grid-name { font-size: 13px; font-weight: 600; font-family: 'Nunito', sans-serif; }
 .grid-name-grad { opacity: 0.55; }
-.grid-row-badges { display: flex; gap: 4px; margin-top: 2px; }
 
 .grid-cell {
   border-bottom: 1px solid var(--color-border-tertiary);
@@ -808,6 +807,3 @@
   padding-top: 8px;
 }
 .cohort-ms-actions button { font-size: 12px; padding: 5px 12px; }
-
-/* ── Weekly grid medals ── */
-.grid-medal { font-size: 14px; margin-left: 4px; line-height: 1; }
