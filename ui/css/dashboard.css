@@ -641,3 +641,72 @@
 
 .log-row-clickable { cursor: pointer; }
 .log-row-clickable:hover { background: var(--color-background-tertiary); }
+
+/* ── Weekly attendance grid ── */
+.grid-toolbar {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.grid-table {
+  display: grid;
+  grid-template-columns: 200px repeat(7, 1fr);
+  gap: 4px;
+  background: var(--color-background-primary);
+  border: 1.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 8px;
+}
+.grid-corner { /* top-left empty cell above name column */ }
+.grid-header-cell {
+  padding: 6px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.grid-header-day {
+  font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+}
+.grid-header-date {
+  font-size: 14px; font-weight: 700;
+  font-family: 'Syne', sans-serif;
+  color: var(--color-text-primary);
+}
+.grid-header-today .grid-header-date { color: var(--color-accent); }
+
+.grid-name-cell {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.grid-name-info { min-width: 0; flex: 1; }
+.grid-name { font-size: 13px; font-weight: 600; font-family: 'Nunito', sans-serif; }
+.grid-name-grad { opacity: 0.55; }
+.grid-row-badges { display: flex; gap: 4px; margin-top: 2px; }
+
+.grid-cell {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--color-border-tertiary);
+  border-radius: 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+}
+.grid-cell-present { background: var(--color-success-bg); }
+.grid-cell-today   { box-shadow: inset 0 0 0 1.5px var(--color-accent); }
+.grid-bar-wrap {
+  width: 90%; height: 6px;
+  background: var(--color-background-tertiary);
+  border-radius: 3px; overflow: hidden;
+}
+.grid-bar {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: 3px;
+}
+.grid-cell-label {
+  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+  color: var(--color-text-secondary);
+}
+.grid-cell-present .grid-cell-label { color: var(--color-success); font-weight: 600; }

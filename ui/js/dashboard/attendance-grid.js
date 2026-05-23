@@ -1,0 +1,122 @@
+(function () {
+  const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  let _gridWeekStart = mondayOf(new Date());
+  let _selectedUserIds = null;
+
+  function mondayOf(d) {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    const dow = (x.getDay() + 6) % 7;  // Mon=0..Sun=6
+    x.setDate(x.getDate() - dow);
+    return x;
+  }
+
+  function isoDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function isToday(isoDateStr) {
+    return isoDate(new Date()) === isoDateStr;
+  }
+
+  function formatWeekLabel(start) {
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    const fmt = { month: 'short', day: 'numeric' };
+    const startStr = start.toLocaleDateString('en-US', fmt);
+    const endStr   = end.toLocaleDateString('en-US', fmt);
+    return `${startStr} – ${endStr}, ${start.getFullYear()}`;
+  }
+
+  function formatHours(minutes) {
+    if (!minutes) return '';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+  }
+
+  window.changeGridWeek = function changeGridWeek(delta) {
+    _gridWeekStart.setDate(_gridWeekStart.getDate() + delta * 7);
+    loadGrid();
+  };
+
+  window.goCurrentWeek = function goCurrentWeek() {
+    _gridWeekStart = mondayOf(new Date());
+    loadGrid();
+  };
+
+  window.setGridMemberFilter = function setGridMemberFilter(ids) {
+    _selectedUserIds = (ids && ids.length) ? ids : null;
+    loadGrid();
+  };
+
+  window.loadGrid = async function loadGrid() {
+    document.getElementById('grid-week-label').textContent = formatWeekLabel(_gridWeekStart);
+    const nextBtn = document.getElementById('grid-nav-next');
+    const today = mondayOf(new Date());
+    if (nextBtn) nextBtn.disabled = _gridWeekStart >= today;
+
+    const content = document.getElementById('grid-content');
+    content.innerHTML = '<div class="log-empty">Loading…</div>';
+    try {
+      const params = new URLSearchParams({ start: isoDate(_gridWeekStart) });
+      if (_selectedUserIds) params.set('user_ids', _selectedUserIds.join(','));
+      const data = await api.get('/api/stats/weekly-grid?' + params.toString());
+      renderGrid(data);
+    } catch (err) {
+      console.error('loadGrid error:', err);
+      content.innerHTML = '<div class="log-empty">Failed to load grid</div>';
+    }
+  };
+
+  function renderGrid(rows) {
+    const content = document.getElementById('grid-content');
+    if (!rows.length) {
+      content.innerHTML = '<div class="log-empty">No members match the current filter</div>';
+      return;
+    }
+
+    const headerCells = [`<div class="grid-corner"></div>`];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(_gridWeekStart);
+      d.setDate(d.getDate() + i);
+      const iso = isoDate(d);
+      const todayCls = isToday(iso) ? ' grid-header-today' : '';
+      headerCells.push(`
+        <div class="grid-header-cell${todayCls}">
+          <div class="grid-header-day">${WEEKDAY_LABELS[i]}</div>
+          <div class="grid-header-date">${d.getDate()}</div>
+        </div>`);
+    }
+
+    const bodyCells = rows.map((u, i) => {
+      const grad = isGraduated(u.type);
+      const nameCell = `
+        <div class="grid-name-cell ${grad ? 'grid-name-grad' : ''}" id="grid-row-${u.id}">
+          <div class="avatar ${avColor(i)}" style="width:28px;height:28px;font-size:10px;">${esc(initials(u.name))}</div>
+          <div class="grid-name-info">
+            <div class="grid-name">${esc(u.name)}</div>
+            <div class="grid-row-badges" id="grid-badges-${u.id}"></div>
+          </div>
+        </div>`;
+      const dayCells = u.days.map(d => {
+        const todayCls   = isToday(d.date) ? ' grid-cell-today' : '';
+        const anomalyCls = d.has_anomaly  ? ' grid-cell-anomaly' : '';
+        const presentCls = d.total_minutes > 0 ? ' grid-cell-present' : '';
+        const pct = Math.min(100, Math.round(d.total_minutes / (8 * 60) * 100));
+        const bar = d.total_minutes > 0 ? `<div class="grid-bar-wrap"><div class="grid-bar" style="width:${pct}%"></div></div>` : '';
+        return `
+          <div class="grid-cell${todayCls}${anomalyCls}${presentCls}" title="${d.date}: ${formatHours(d.total_minutes)} · ${d.sessions} session(s)">
+            ${bar}
+            <div class="grid-cell-label">${formatHours(d.total_minutes) || '–'}</div>
+          </div>`;
+      }).join('');
+      return nameCell + dayCells;
+    }).join('');
+
+    content.innerHTML = `<div class="grid-table">${headerCells.join('')}${bodyCells}</div>`;
+  }
+})();

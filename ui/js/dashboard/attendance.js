@@ -27,6 +27,7 @@
   };
 
   window.loadAttendance = async function loadAttendance() {
+    if (typeof loadGrid === 'function') loadGrid();
     updatePointsMonthLabel();
     const content = document.getElementById('points-content');
     content.innerHTML = '<div class="log-empty">Loading…</div>';

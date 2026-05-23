@@ -254,6 +254,16 @@
 
         <!-- ── Attendance page ── -->
         <div class="db-page" id="db-attendance">
+          <div class="grid-toolbar">
+            <button class="stats-nav-btn" onclick="changeGridWeek(-1)">←</button>
+            <span id="grid-week-label" class="stats-month-label">–</span>
+            <button class="stats-nav-btn" id="grid-nav-next" onclick="changeGridWeek(1)">→</button>
+            <button class="btn-ghost" onclick="goCurrentWeek()">This week</button>
+            <div class="grid-member-filter" id="grid-member-filter"></div>
+          </div>
+          <div id="grid-content"><div class="log-empty">Loading…</div></div>
+
+          <div class="section-label" style="margin-top:24px;">Days-Present Leaderboard</div>
           <div class="stats-nav">
             <button class="stats-nav-btn" onclick="changePointsMonth(-1)">←</button>
             <span id="points-month-label" class="stats-month-label">–</span>
@@ -410,6 +420,7 @@
   <script src="/ui/js/checkin/index.js"></script>
   <script src="/ui/js/dashboard/overview.js"></script>
   <script src="/ui/js/dashboard/attendance.js"></script>
+  <script src="/ui/js/dashboard/attendance-grid.js"></script>
   <script src="/ui/js/dashboard/members.js"></script>
   <script src="/ui/js/dashboard/activity.js"></script>
   <script src="/ui/js/dashboard/modals.js"></script>
