@@ -28,11 +28,15 @@ def create_app(config_name: str = 'dev') -> Flask:
     from isel.api import register_blueprints
     register_blueprints(app)
 
-    import os
-    from isel.jobs.auto_checkout import start_checkout_thread, start_promotion_thread
-    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        start_checkout_thread(app)
-        start_promotion_thread(app)
+    @app.cli.command('auto-checkout')
+    def _cli_auto_checkout():
+        from isel.services.attendance import auto_checkout_all
+        auto_checkout_all()
+
+    @app.cli.command('promote-students')
+    def _cli_promote():
+        from isel.services.users import promote_students
+        print(promote_students())
 
     @app.get('/')
     def index():

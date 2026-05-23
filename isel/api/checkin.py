@@ -1,26 +1,14 @@
 from __future__ import annotations
 import time
-from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, session as flask_session
 import isel.services.attendance as attendance_svc
 from isel.utils.image import decode_image
 
 bp = Blueprint('checkin', __name__)
 
-# Tracks the last moment the kiosk handled an auth or toggle action.
-# The auto-checkout job reads this to avoid interrupting in-progress scans.
-_last_kiosk_activity: datetime = datetime.min
-
-
-def get_last_kiosk_activity() -> datetime:
-    return _last_kiosk_activity
-
 
 @bp.post('/api/auth')
 def auth():
-    global _last_kiosk_activity
-    _last_kiosk_activity = datetime.now()
-
     engine = current_app.config['FACE_ENGINE']
     low_conf_threshold = current_app.config['LOW_CONFIDENCE_THRESHOLD']
 
@@ -45,9 +33,6 @@ def auth():
 
 @bp.post('/api/toggle')
 def toggle():
-    global _last_kiosk_activity
-    _last_kiosk_activity = datetime.now()
-
     data = request.json
     check_in_method = data.get('check_in_method', 'face')
 
