@@ -2,11 +2,18 @@
   let _dashInterval = null;
 
   window.switchScreen = function switchScreen(name) {
+    const screen = document.getElementById('screen-' + name);
+    const btn    = document.getElementById('sw-' + name);
+    if (!screen || !btn) {
+      console.warn(`switchScreen: missing element for "${name}" — screen=${!!screen}, btn=${!!btn}`);
+      return;
+    }
+
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-' + name).classList.add('active');
+    screen.classList.add('active');
 
     document.querySelectorAll('.sw-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('sw-' + name).classList.add('active');
+    btn.classList.add('active');
 
     if (name === 'check-in') {
       clearInterval(_dashInterval);
@@ -21,8 +28,13 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
-    const anyModalOpen = ['reg-modal', 'picker-modal', 'pin-modal', 'profile-modal']
-      .some(id => !document.getElementById(id)?.classList.contains('hidden'));
+    const anyModalOpen = [
+      'reg-modal', 'picker-modal', 'pin-modal', 'profile-modal',
+      'points-modal', 'face-rereg-modal', 'context-modal',
+    ].some(id => {
+      const el = document.getElementById(id);
+      return el && !el.classList.contains('hidden');
+    });
     if (anyModalOpen) return;
 
     if (e.key === 'c' || e.key === 'C') switchScreen('check-in');
