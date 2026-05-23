@@ -144,8 +144,11 @@
       body.innerHTML = rows.map(r => {
         const isIn  = IN_ACTIONS.has(r.action);
         const label = ACTION_LABEL[r.action] ?? r.action;
+        const clickable = r.user_id != null;
         return `
-          <div class="log-row">
+          <div class="log-row${clickable ? ' log-row-clickable' : ''}"
+               ${clickable ? `onclick="openProfileModal(${r.user_id})"` : ''}
+               title="${clickable ? 'Open user profile' : 'User no longer exists'}">
             <div class="log-icon ${isIn ? 'log-in' : 'log-out'}">${isIn ? '+' : '×'}</div>
             <div class="log-name">${esc(r.name)}</div>
             <div class="log-ts">${esc(r.timestamp)}</div>

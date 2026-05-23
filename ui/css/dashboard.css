@@ -595,3 +595,6 @@
   color: var(--color-background-primary);
   border-color: var(--color-accent);
 }
+
+.log-row-clickable { cursor: pointer; }
+.log-row-clickable:hover { background: var(--color-background-tertiary); }

@@ -225,6 +225,7 @@
   let _currentProfileUserId = null;
 
   window.openProfileModal = async function openProfileModal(userId) {
+    if (userId == null) return;
     _currentProfileUserId = userId;
     window._currentProfileUserId = userId;
     try {
