@@ -42,7 +42,7 @@ isel_room/
 │   │   ├── sessions.py     # /api/session/<id>
 │   │   ├── presence.py     # /api/present, /api/present-detailed
 │   │   ├── stats.py        # /api/stats/*, /api/log/*, /api/export/csv
-│   │   └── admin.py        # /api/admin/promote, points/adjust, force-checkout, audit
+│   │   └── admin.py        # /api/admin/promote, force-checkout, audit
 │   ├── services/       # Business logic
 │   │   ├── attendance.py
 │   │   ├── users.py
@@ -51,7 +51,7 @@ isel_room/
 │   │   └── audit.py
 │   ├── db/             # SQLAlchemy layer
 │   │   ├── __init__.py     # engine, SessionLocal, init_db()
-│   │   ├── models.py       # User, Session, AuditLog, PointAdjustment
+│   │   ├── models.py       # User, Session, AuditLog
 │   │   └── repositories/   # user, session, audit, points repos
 │   ├── face_engine.py  # DeepFace ArcFace wrapper
 │   ├── integrations/
@@ -118,17 +118,7 @@ isel_room/
 | performed_by | VARCHAR(50) | `admin` · `check-in` · `system` |
 | timestamp | DATETIME | |
 
-### `point_adjustments`
-| Column | Type | Notes |
-|---|---|---|
-| id | INT PK | auto-increment |
-| user_id | INT FK | → users |
-| delta | INT | positive = bonus point, negative = penalty |
-| note | VARCHAR(255) | optional admin note |
-| performed_by | VARCHAR(50) | always `admin` |
-| timestamp | DATETIME | |
-
-Points shown in the UI = auto-calculated days present + sum of all delta rows for that user.
+**Points are awarded automatically:** 1 point per calendar day a member checked in (counted from the `sessions` table). No manual overrides.
 
 ---
 
@@ -238,9 +228,8 @@ Three tabs accessible from the left sidebar (keyboard shortcuts `1` – `3`):
 **Attendance `[2]`**
 - Month navigator (← →)
 - Points leaderboard — days present in the selected month, ranked 1st/2nd/3rd/…
-- "All-Time" leaderboard — total days present + any admin-applied bonuses
+- "All-Time" leaderboard — total days present across all months
 - Session stats table — every member's session count, total time, average session length
-- When admin is authenticated: `+` / `−` buttons to apply a ±1 point adjustment (with optional note)
 
 **Admin `[3]`** — PIN required
 - Add Member button — opens registration modal (name, role, live camera)
@@ -261,7 +250,6 @@ Three tabs accessible from the left sidebar (keyboard shortcuts `1` – `3`):
 | GET | `/api/admin/status` | — | `{authenticated: bool}` |
 | POST | `/api/admin/force-checkout/<user_id>` | admin | Force a user out |
 | POST | `/api/admin/promote-students` | admin | Apply an explicit `{promotions: [{user_id, new_type}, ...]}` batch |
-| POST | `/api/admin/points/adjust` | admin | Apply ±point bonus `{user_id, delta, note}` |
 
 ### Check-in / Check-out
 

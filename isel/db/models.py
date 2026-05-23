@@ -34,12 +34,3 @@ class AuditLog(Base):
     timestamp      = Column(DateTime, index=True)
 
 
-class PointAdjustment(Base):
-    __tablename__ = 'point_adjustments'
-
-    id           = Column(Integer, primary_key=True, autoincrement=True)
-    user_id      = Column(Integer, ForeignKey('users.user_id'), nullable=False, index=True)
-    delta        = Column(Integer, nullable=False)
-    note         = Column(String(255))
-    performed_by = Column(String(50), default='admin')
-    timestamp    = Column(DateTime, index=True)

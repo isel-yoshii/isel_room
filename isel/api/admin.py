@@ -73,19 +73,6 @@ def promote_students():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@bp.post('/api/admin/points/adjust')
-@admin_required
-def points_adjust():
-    data = request.json
-    user_id = data.get('user_id')
-    delta = data.get('delta')
-    note = data.get('note', '')
-    if user_id is None or delta is None:
-        return jsonify({'success': False, 'message': 'Missing user_id or delta'}), 400
-    success = points_svc.adjust_points(user_id, delta, note)
-    return jsonify({'success': success})
-
-
 @bp.get('/api/stats/points')
 def points_stats():
     year = int(request.args.get('year', datetime.now().year))

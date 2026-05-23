@@ -2,7 +2,7 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 
-from isel.db.models import User, Session as LabSession, PointAdjustment
+from isel.db.models import User, Session as LabSession
 import isel.services.points as points
 
 
@@ -57,21 +57,6 @@ def test_sessions_on_different_days_each_count(db_session):
 
     board = points.all_time_leaderboard()
     assert board[0]['points'] == 2
-
-
-def test_point_adjustment_adds_to_score(db_session):
-    user = _make_user(db_session)
-    now  = datetime.now()
-    db_session.add(_completed_session(user.user_id))
-    adj = PointAdjustment(
-        user_id=user.user_id, delta=3, note='bonus',
-        performed_by='admin', timestamp=now,
-    )
-    db_session.add(adj)
-    db_session.commit()
-
-    board = points.monthly_leaderboard(now.year, now.month)
-    assert board[0]['points'] == 4  # 1 day present + 3 from adjustment
 
 
 def test_monthly_vs_alltime(db_session):

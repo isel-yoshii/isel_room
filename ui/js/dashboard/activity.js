@@ -4,7 +4,7 @@
     'MANUAL_CHECKIN', 'MANUAL_CHECKOUT',
     'AUTO_CHECKOUT', 'FORCE_CHECKOUT',
     'REGISTER', 'DELETE',
-    'PROMOTE', 'POINTS_ADJUST',
+    'PROMOTE',
   ];
   const ACTION_LABEL = {
     REGISTER: 'Registered', DELETE: 'Deleted',
@@ -18,7 +18,7 @@
     'all':          [],
     'attendance':   ['CHECKIN', 'CHECKOUT'],
     'manual-auto':  ['MANUAL_CHECKIN', 'MANUAL_CHECKOUT', 'AUTO_CHECKOUT', 'FORCE_CHECKOUT'],
-    'admin':        ['REGISTER', 'DELETE', 'PROMOTE', 'POINTS_ADJUST'],
+    'admin':        ['REGISTER', 'DELETE', 'PROMOTE'],
   };
 
   const _selectedActions = new Set();

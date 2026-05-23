@@ -1,16 +1,14 @@
-"""Points service — leaderboards and manual adjustments.
+"""Points service — leaderboards.
 
 A user earns 1 point per calendar day on which they had at least one
-completed session (both check_in and check_out present), plus the sum
-of all point_adjustments.delta for that user (within month for monthly,
-all-time for total).
+check-in. Score is purely days-present — no manual overrides.
 """
 from __future__ import annotations
 import calendar
 from datetime import datetime
 from sqlalchemy import select, func
 from isel.db import SessionLocal
-from isel.db.models import User, Session as LabSession, PointAdjustment, AuditLog
+from isel.db.models import User, Session as LabSession
 
 
 def monthly_leaderboard(year: int, month: int) -> list[dict]:
@@ -35,19 +33,12 @@ def monthly_leaderboard(year: int, month: int) -> list[dict]:
             .group_by(User.user_id)
         ).all()
 
-        bonus_rows = session.execute(
-            select(PointAdjustment.user_id, func.sum(PointAdjustment.delta))
-            .where(PointAdjustment.timestamp >= start, PointAdjustment.timestamp <= end)
-            .group_by(PointAdjustment.user_id)
-        ).all()
-        bonus_by_user = {uid: int(total or 0) for uid, total in bonus_rows}
-
         result = [
             {
                 'id': r.user_id,
                 'name': r.name,
                 'type': r.user_type,
-                'points': r.points + bonus_by_user.get(r.user_id, 0),
+                'points': r.points,
             }
             for r in rows
         ]
@@ -71,53 +62,16 @@ def all_time_leaderboard() -> list[dict]:
             .group_by(User.user_id)
         ).all()
 
-        bonus_rows = session.execute(
-            select(PointAdjustment.user_id, func.sum(PointAdjustment.delta))
-            .group_by(PointAdjustment.user_id)
-        ).all()
-        bonus_by_user = {uid: int(total or 0) for uid, total in bonus_rows}
-
         result = [
             {
                 'id': r.user_id,
                 'name': r.name,
                 'type': r.user_type,
-                'points': r.points + bonus_by_user.get(r.user_id, 0),
+                'points': r.points,
             }
             for r in rows
         ]
         result.sort(key=lambda x: x['points'], reverse=True)
         return result
-    finally:
-        session.close()
-
-
-def adjust_points(user_id: int, delta: int, note: str = '', performed_by: str = 'admin') -> bool:
-    session = SessionLocal()
-    try:
-        now = datetime.now()
-        user = session.get(User, user_id)
-        if user is None:
-            return False
-        adj = PointAdjustment(
-            user_id=user_id,
-            delta=int(delta),
-            note=note,
-            performed_by=performed_by,
-            timestamp=now,
-        )
-        session.add(adj)
-        session.add(AuditLog(
-            action_type='POINTS_ADJUST',
-            target_user_id=user_id,
-            target_name=user.name,
-            performed_by=performed_by,
-            timestamp=now,
-        ))
-        session.commit()
-        return True
-    except Exception:
-        session.rollback()
-        return False
     finally:
         session.close()
