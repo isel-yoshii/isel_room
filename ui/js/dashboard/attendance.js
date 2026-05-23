@@ -1,6 +1,11 @@
 (function () {
-  let _pointsYear  = new Date().getFullYear();
-  let _pointsMonth = new Date().getMonth() + 1;
+  function currentAcademicYear(d = new Date()) {
+    return d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;  // 0=Jan, 3=Apr
+  }
+
+  let _pointsYear   = new Date().getFullYear();
+  let _pointsMonth  = new Date().getMonth() + 1;
+  let _pointsAyYear = currentAcademicYear();
 
   const _cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const RANK_COLORS = [_cssVar('--color-rank-gold'), _cssVar('--color-rank-silver'), _cssVar('--color-rank-bronze')];
@@ -19,6 +24,12 @@
     }
   };
 
+  function updatePointsYearLabel() {
+    document.getElementById('points-year-label').textContent = `${_pointsAyYear}年度`;
+    const nextBtn = document.getElementById('points-year-next');
+    if (nextBtn) nextBtn.disabled = _pointsAyYear >= currentAcademicYear();
+  }
+
   window.changePointsMonth = function changePointsMonth(delta) {
     _pointsMonth += delta;
     if (_pointsMonth > 12) { _pointsMonth = 1;  _pointsYear++; }
@@ -26,17 +37,28 @@
     loadAttendance();
   };
 
+  window.changePointsYear = function changePointsYear(delta) {
+    _pointsAyYear += delta;
+    loadAttendance();
+  };
+
   window.loadAttendance = async function loadAttendance() {
     if (typeof loadGrid === 'function') loadGrid();
     updatePointsMonthLabel();
-    const content = document.getElementById('points-content');
-    content.innerHTML = '<div class="log-empty">Loading…</div>';
+    updatePointsYearLabel();
+
+    const monthEl = document.getElementById('points-content');
+    const yearEl  = document.getElementById('points-year-content');
+    monthEl.innerHTML = '<div class="log-empty">Loading…</div>';
+    yearEl.innerHTML  = '<div class="log-empty">Loading…</div>';
+
     try {
-      const [monthly, total] = await Promise.all([
+      const [monthly, yearly] = await Promise.all([
         api.get(`/api/stats/points?year=${_pointsYear}&month=${_pointsMonth}`),
-        api.get('/api/stats/points/total'),
+        api.get(`/api/stats/points/year?year=${_pointsAyYear}`),
       ]);
-      renderAttendance(monthly, total);
+      renderMonthly(monthly);
+      renderYearly(yearly);
     } catch (err) {
       console.error('loadAttendance error:', err);
     }
@@ -70,13 +92,15 @@
       </div>`;
   }
 
-  function renderAttendance(monthly, total) {
-    const content = document.getElementById('points-content');
-    content.innerHTML = `
-      <div class="section-label" style="margin-bottom:8px">This Month</div>
-      ${renderAttendanceTable(monthly, 'No Activity Recorded This Month')}
-      <div class="section-label" style="margin-top:24px;margin-bottom:8px">All-Time</div>
-      ${renderAttendanceTable(total, 'No Activity Recorded Yet')}`;
+  function renderMonthly(monthly) {
+    document.getElementById('points-content').innerHTML =
+      renderAttendanceTable(monthly, 'No Activity Recorded This Month');
+  }
+
+  function renderYearly(yearly) {
+    document.getElementById('ay-section-label').textContent = `${yearly.year}年度 Leaderboard`;
+    document.getElementById('points-year-content').innerHTML =
+      renderAttendanceTable(yearly.leaderboard, `No Activity Recorded For ${yearly.year}年度`);
   }
 
   window.Dashboard = window.Dashboard || {};

@@ -80,6 +80,10 @@ def points_stats():
     return jsonify(points_svc.monthly_leaderboard(year, month))
 
 
-@bp.get('/api/stats/points/total')
-def points_stats_total():
-    return jsonify(points_svc.all_time_leaderboard())
+@bp.get('/api/stats/points/year')
+def points_stats_year():
+    ay = int(request.args.get('year', points_svc.current_academic_year()))
+    return jsonify({
+        'year': ay,
+        'leaderboard': points_svc.academic_year_leaderboard(ay),
+    })

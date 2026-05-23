@@ -48,30 +48,54 @@ def test_days_present_counted_per_calendar_day(db_session):
 
 def test_sessions_on_different_days_each_count(db_session):
     user = _make_user(db_session)
-    now  = datetime.now()
-
-    s1 = _completed_session(user.user_id, day_offset=0)
-    s2 = _completed_session(user.user_id, day_offset=1)
-    db_session.add_all([s1, s2])
+    ay = points.current_academic_year()
+    # Two April-of-current-AY sessions on consecutive days (always in current AY).
+    d1 = datetime(ay, 4, 10, 10, 0)
+    d2 = datetime(ay, 4, 11, 10, 0)
+    db_session.add_all([
+        LabSession(user_id=user.user_id, checked_in_at=d1,
+                   checked_out_at=d1 + timedelta(hours=2), check_in_method='face'),
+        LabSession(user_id=user.user_id, checked_in_at=d2,
+                   checked_out_at=d2 + timedelta(hours=2), check_in_method='face'),
+    ])
     db_session.commit()
 
-    board = points.all_time_leaderboard()
+    board = points.academic_year_leaderboard(ay)
     assert board[0]['points'] == 2
 
 
-def test_monthly_vs_alltime(db_session):
+def test_monthly_vs_academic_year(db_session):
     user = _make_user(db_session)
-    now  = datetime.now()
-
-    # Session this month.
-    db_session.add(_completed_session(user.user_id, day_offset=0))
-    # Session last month (> 31 days ago).
-    old = _completed_session(user.user_id, day_offset=40)
-    db_session.add(old)
+    ay = points.current_academic_year()
+    d_apr = datetime(ay, 4, 10, 10, 0)
+    d_jun = datetime(ay, 6, 10, 10, 0)
+    db_session.add_all([
+        LabSession(user_id=user.user_id, checked_in_at=d_apr,
+                   checked_out_at=d_apr + timedelta(hours=2), check_in_method='face'),
+        LabSession(user_id=user.user_id, checked_in_at=d_jun,
+                   checked_out_at=d_jun + timedelta(hours=2), check_in_method='face'),
+    ])
     db_session.commit()
 
-    monthly = points.monthly_leaderboard(now.year, now.month)
-    alltime = points.all_time_leaderboard()
+    apr_only = points.monthly_leaderboard(ay, 4)
+    year     = points.academic_year_leaderboard(ay)
 
-    assert monthly[0]['points'] == 1
-    assert alltime[0]['points'] == 2
+    assert apr_only[0]['points'] == 1
+    assert year[0]['points'] == 2
+
+
+def test_academic_year_boundary(db_session):
+    user = _make_user(db_session)
+    # Mar 31 belongs to previous AY; Apr 1 to the new AY.
+    d_mar = datetime(2025, 3, 31, 10, 0)
+    d_apr = datetime(2025, 4, 1,  10, 0)
+    db_session.add_all([
+        LabSession(user_id=user.user_id, checked_in_at=d_mar,
+                   checked_out_at=d_mar + timedelta(hours=2), check_in_method='face'),
+        LabSession(user_id=user.user_id, checked_in_at=d_apr,
+                   checked_out_at=d_apr + timedelta(hours=2), check_in_method='face'),
+    ])
+    db_session.commit()
+
+    assert points.academic_year_leaderboard(2024)[0]['points'] == 1  # Mar 31 → AY 2024
+    assert points.academic_year_leaderboard(2025)[0]['points'] == 1  # Apr 1  → AY 2025
