@@ -11,6 +11,7 @@ def create_app(config_name: str = 'dev') -> Flask:
     cfg = get_config(config_name)
     app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
     app.config.from_object(cfg)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 MB request cap
 
     @app.errorhandler(ImageDecodeError)
