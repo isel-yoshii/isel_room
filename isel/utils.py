@@ -1,7 +1,19 @@
 from __future__ import annotations
 import base64
+from functools import wraps
 import numpy as np
 import cv2
+from flask import session, jsonify
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('admin'):
+            return jsonify({'success': False, 'message': 'Admin access required'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
 
 _MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB — plenty for a webcam JPEG
 

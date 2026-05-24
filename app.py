@@ -4,7 +4,7 @@ load_dotenv()
 
 from flask import Flask, render_template, jsonify
 from config import get_config
-from isel.utils.image import ImageDecodeError
+from isel.utils import ImageDecodeError
 
 
 def create_app(config_name: str = 'dev') -> Flask:

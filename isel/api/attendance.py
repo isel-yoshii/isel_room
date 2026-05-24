@@ -3,8 +3,7 @@ import time
 from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, session as flask_session
 import isel.services.attendance as attendance_svc
-from isel.utils.image import decode_image
-from isel.utils import admin_required
+from isel.utils import admin_required, decode_image
 
 bp = Blueprint('attendance', __name__)
 

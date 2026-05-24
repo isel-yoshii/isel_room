@@ -3,8 +3,7 @@ from flask import Blueprint, request, jsonify, current_app
 import isel.services.users as users_svc
 import isel.services.audit as audit_svc
 from isel.services.users import VARIANT_KEYS
-from isel.utils import admin_required
-from isel.utils.image import decode_image
+from isel.utils import admin_required, decode_image
 
 bp = Blueprint('users', __name__)
 
