@@ -552,7 +552,8 @@
   align-items: flex-end;
   flex-wrap: wrap;
 }
-.audit-filters-row-chips { align-items: center; }
+.audit-filters-row-chips { align-items: center; flex-wrap: wrap; }
+.chip-group-break { width: 100%; height: 0; }
 
 .filter-field {
   display: flex;
