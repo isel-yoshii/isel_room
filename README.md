@@ -2,7 +2,7 @@
 
 > Face-recognition lab presence tracking for the Intelligent Software Engineering Lab (KIT).
 
-Members check in and out by looking at a camera at the lab door. Everyone can see a live dashboard, a weekly attendance grid, monthly and academic-year leaderboards, and a full audit trail. A Slack integration keeps the lab Slack channel up to date with who is in.
+Members check in and out by looking at a camera at the lab door. Everyone can see a live dashboard, a weekly attendance grid, adn monthly/academic-year leaderboards, and Admin can review a full audit trail. A Slack integration keeps the lab Slack channel up to date with who is in.
 
 ---
 
@@ -26,18 +26,21 @@ Members check in and out by looking at a camera at the lab door. Everyone can se
 
 ## Screenshots
 
-_Add screenshots once the lab kiosk is in production. Suggested:_
+- **Check-in screen.** 
+![Check-in screen](./ui/img/check_in_screen.png)
 
-- **Check-in screen.** Full-screen kiosk with the live camera feed, the scan state, and the bottom presence strip.
-- **Dashboard overview.** Stat cards, the 7-day check-in trend, and the monthly activity chart.
-- **Attendance tab.** Weekly grid plus the monthly and academic-year leaderboards.
+
+- **Dashboard overview.** 
+![Dashboard Overview](./ui/img/overview.png)
+
+- **Attendance tab.**
+![Attendance Tab](./ui/img/attendance.png)
 
 ---
 
 ## Features
 
 - **Face check-in and check-out** with a 3-variant capture system (normal, glasses, mask). Glasses on vs glasses off does not trip up the match.
-- **Live presence strip** at the bottom of the kiosk. Green dot means currently in. Grey means out.
 - **Weekly attendance grid** in the GitHub-style heat-map. Shows who came in on which day.
 - **Leaderboards.** One point per day present. Browse by month or by academic year (`2026年度`). The all-time count resets every April 1.
 - **Member management.** Add, edit, delete, re-register faces. A Promotion Wizard walks the admin through grade transitions each April.
@@ -66,7 +69,7 @@ _Add screenshots once the lab kiosk is in production. Suggested:_
 
 ## Quick Start
 
-Tested on macOS, Linux, and WSL. Windows native should work but is untested.
+Tested on macOS and Linux (Ubuntu). Windows native should work but is untested.
 
 ### Prerequisites
 
@@ -81,7 +84,6 @@ git clone https://github.com/your-org/isel_room.git
 cd isel_room
 python -m venv .venv
 source .venv/bin/activate           # macOS/Linux
-# .venv\Scripts\activate            # Windows
 pip install -r requirements.txt
 ```
 
@@ -105,7 +107,7 @@ Leave the rest at defaults for now.
 ### Seed the database
 
 ```bash
-python seed_db.py
+python tests/test_seed_db.py
 ```
 
 This drops and recreates the DB with 11 mock members and about 60 days of fake attendance history. Re-run it any time during development to reset.
@@ -176,25 +178,13 @@ All configuration is via environment variables, loaded from `.env`:
 
 ---
 
-## Slack Setup
+## Slack
 
 The integration does two things:
 
-- **Daily status board.** One Block Kit message per day in the channel you choose (`SLACK_CHANNEL`, default `#a-lab-status`), edited in place via `chat.update` as people come and go. No chat firehose.
+- **Daily status board.** One Block Kit message per day in the channel we choose (`SLACK_CHANNEL`, default `#a-lab-status`), edited in place via `chat.update` as people come and go. No chat firehose.
 - **`/who` and `/points` slash commands.** Anyone in the workspace can run `/who` for an ephemeral present-list, or `/points` for the top 5 of this month's leaderboard (medals on the top three). Replies are ephemeral, so they don't clutter the channel.
 
-Setup, once per Slack workspace:
-
-1. Create a Slack app at <https://api.slack.com/apps>.
-2. **OAuth & Permissions** → add bot scope `chat:write` (status board) and `commands` (slash command).
-3. **Socket Mode** → enable it. Generate an App-Level Token with the `connections:write` scope. Copy it (`xapp-...`).
-4. **Slash Commands** → create `/who` and `/points`. With Socket Mode on, no request URL is needed.
-5. **Install to Workspace** → copy the bot token (`xoxb-...`).
-6. Invite the bot to your status channel: `/invite @YourBotName`.
-7. Put both tokens in `.env` as `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`. Optionally set `SLACK_CHANNEL` if you don't want `#a-lab-status`.
-8. Restart the app. You should see `Slack: bot client initialised` and `Slack: Socket Mode listener started` in the console.
-
----
 
 ## Project Layout
 
@@ -203,7 +193,7 @@ isel_room/
 ├── app.py                  # Flask app factory
 ├── wsgi.py                 # Production entry point
 ├── config.py               # Dev / Prod / Test configs
-├── seed_db.py              # Reset DB with mock data
+├── prod_seed_db.py              # Reset DB with mock data
 ├── isel/
 │   ├── api/                # Flask blueprints (auth, attendance, users, stats, admin)
 │   ├── services/           # Business logic (attendance, users, points, stats, audit)
@@ -254,13 +244,11 @@ docs(guide): document 3-variant face slot system
 
 Subject in lowercase, no trailing period. Body optional, wrapped at 72.
 
-Other conventions (no `Co-Authored-By` lines, comment policy, naming, file-length guidance) live in [ISEL_ROOM_GUIDE.md §12](ISEL_ROOM_GUIDE.md#12-conventions--house-style).
-
 ---
 
 ## License
 
-_Internal use, KIT Intelligent Software Engineering Lab. Add a formal LICENSE file before publishing externally._
+_Internal use, KIT Intelligent Software Engineering Lab._
 
 ---
 
