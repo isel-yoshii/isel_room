@@ -1,32 +1,4 @@
 (function () {
-  const STUDENT_TYPES  = new Set(['B4', 'M1', 'M2', 'Intern']);
-  const AV_COLORS      = ['av-teal', 'av-blue', 'av-amber', 'av-pink', 'av-purple'];
-
-  window.isTeacher   = t => t === '先生';
-  window.isStudent   = t => STUDENT_TYPES.has(t);
-  window.isGraduated = t => t === '卒業';
-
-  window.roleBadgeClass = function roleBadgeClass(type) {
-    if (isTeacher(type))   return 'badge-admin';
-    if (isGraduated(type)) return 'badge-grad';
-    return 'badge-student';
-  };
-
-  window.formatLastSeen = function formatLastSeen(iso) {
-    if (!iso) return '';
-    const diff  = Date.now() - new Date(iso).getTime();
-    const mins  = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days  = Math.floor(diff / 86400000);
-    if (mins  < 60)  return `${mins}m ago`;
-    if (hours < 24)  return `${hours}h ago`;
-    if (days  === 1) return 'yesterday';
-    return `${days} days ago`;
-  };
-
-  window.avColor  = i => AV_COLORS[i % AV_COLORS.length];
-  window.initials = name => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-
   let _lineChart = null;
 
   window.loadCharts = async function loadCharts() {
