@@ -12,9 +12,21 @@ class FaceEngine:
         self.reg_threshold = reg_threshold
 
     def extract_embedding(self, frame, enforce: bool = True):
-        """Extract ArcFace embedding from an OpenCV frame. Returns None if no face found."""
+        """Extract ArcFace embedding from an OpenCV frame. Returns None if no face found.
+
+        We use detector_backend='retinaface' instead of DeepFace's default ('opencv').
+        Retinaface is the gold standard for face localisation: significantly better at
+        finding faces under varied lighting, head pose, and occlusion. First call after
+        app start triggers a one-time ~50 MB model download.
+        """
         try:
-            results = DeepFace.represent(frame, model_name='ArcFace', enforce_detection=enforce)
+            results = DeepFace.represent(
+                frame,
+                model_name='ArcFace',
+                detector_backend='retinaface',
+                enforce_detection=enforce,
+                align=True,
+            )
             if results:
                 return results[0]['embedding']
         except Exception:
@@ -47,6 +59,45 @@ class FaceEngine:
                         min_dist = dist
                         matched_id = u_id
                         matched_name = info['name']
+
+        if matched_id is None:
+            return None, None, None
+        return matched_id, matched_name, min_dist
+
+    def find_best_match(self, embeddings: list, threshold: float) -> tuple:
+        """Compare each embedding against the registered set and return the closest match.
+
+        Used by the kiosk to capture multiple frames per scan and pick the best one.
+        Catches blink / motion-blur misses that a single-frame scan would drop.
+        Returns (user_id, name, distance) of the best match across all frames,
+        or (None, None, None) if no frame matches.
+
+        Fetches the registered embeddings once and reuses them across all input
+        frames (vs. calling find_match in a loop, which re-fetches each time).
+        """
+        if not embeddings:
+            return None, None, None
+
+        registered = self.get_embeddings()
+        min_dist = threshold
+        matched_id = None
+        matched_name = None
+
+        for target_emb in embeddings:
+            if target_emb is None:
+                continue
+            target_vec = np.array(target_emb, dtype=float).flatten()
+            for u_id, info in registered.items():
+                for _variant_key, frames in info.get('variants', {}).items():
+                    for stored in frames:
+                        if stored is None:
+                            continue
+                        stored_vec = np.array(stored, dtype=float).flatten()
+                        dist = distance.cosine(target_vec, stored_vec)
+                        if dist < min_dist:
+                            min_dist = dist
+                            matched_id = u_id
+                            matched_name = info['name']
 
         if matched_id is None:
             return None, None, None

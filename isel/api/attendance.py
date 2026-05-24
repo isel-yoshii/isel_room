@@ -13,12 +13,24 @@ def auth():
     engine = current_app.config['FACE_ENGINE']
     low_conf_threshold = current_app.config['LOW_CONFIDENCE_THRESHOLD']
 
-    frame = decode_image(request.json['image'])
-    emb = engine.extract_embedding(frame, enforce=False)
-    if emb is None:
+    data = request.json or {}
+    # Accept either {image: b64} (legacy single-frame) or {images: [b64, ...]}
+    # (multi-frame burst). The kiosk uses the burst form so a blink / motion
+    # blur on one frame doesn't tank the whole scan.
+    raw_images = data.get('images') or ([data['image']] if data.get('image') else [])
+
+    embeddings = []
+    for b64 in raw_images:
+        frame = decode_image(b64)
+        emb = engine.extract_embedding(frame, enforce=False)
+        if emb is not None:
+            embeddings.append(emb)
+
+    if not embeddings:
+        flask_session.pop('pending_toggle', None)
         return jsonify({'matched': False, 'message': '顔を検出できませんでした'})
 
-    uid, uname, dist = engine.find_match(emb, engine.auth_threshold)
+    uid, uname, dist = engine.find_best_match(embeddings, engine.auth_threshold)
     if uid:
         flask_session['pending_toggle'] = {'user_id': int(uid), 'expires': time.time() + 30}
         return jsonify({

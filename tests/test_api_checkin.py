@@ -19,13 +19,14 @@ def _mock_engine(matched=True, user_id=1, name='Test User', status=False, dist=0
     engine.auth_threshold = 0.5
     if matched:
         engine.extract_embedding.return_value = [0.1] * 10
-        engine.find_match.return_value = (user_id, name, dist)
+        engine.find_best_match.return_value = (user_id, name, dist)
     else:
         engine.extract_embedding.return_value = None
     return engine
 
 
-def test_auth_matched(client, app, db_session):
+def test_auth_matched_single_image(client, app, db_session):
+    """Legacy single-frame shape {image: ...} still works."""
     uid = _add_user(db_session, status=False)
     app.config['FACE_ENGINE'] = _mock_engine(matched=True, user_id=uid, name='Test User')
 
@@ -36,6 +37,22 @@ def test_auth_matched(client, app, db_session):
     assert data['user_id'] == uid
     assert data['name'] == 'Test User'
     assert data['status'] is False
+
+
+def test_auth_matched_multi_frame_burst(client, app, db_session):
+    """New burst shape {images: [...]} picks the best match across frames."""
+    uid = _add_user(db_session, status=False)
+    app.config['FACE_ENGINE'] = _mock_engine(matched=True, user_id=uid, name='Test User')
+
+    resp = client.post('/api/auth', json={'images': [
+        'data:image/jpeg;base64,/9j/AA==',
+        'data:image/jpeg;base64,/9j/AB==',
+        'data:image/jpeg;base64,/9j/AC==',
+    ]})
+
+    data = resp.get_json()
+    assert data['matched'] is True
+    assert data['user_id'] == uid
 
 
 def test_auth_no_face_detected(client, app, db_session):

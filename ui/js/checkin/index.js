@@ -21,8 +21,8 @@
     if (pendingConfirm) return;
     setState('scanning');
     try {
-      const image    = captureFrame('checkin-video');
-      const authData = await api.post('/api/auth', { image });
+      const images   = await captureBurst('checkin-video');
+      const authData = await api.post('/api/auth', { images });
 
       if (authData.matched) {
         if (authData.low_confidence) {
