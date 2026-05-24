@@ -267,9 +267,3 @@ body {
   100% { content: ''; }
 }
 
-/* Brief white-out of the video element when a frame is captured.
-   Removed after ~150 ms by ui/js/core/camera.js _flashVideo. */
-video.cam-flash {
-  filter: brightness(2.5) contrast(0.6);
-  transition: filter 0s;
-}

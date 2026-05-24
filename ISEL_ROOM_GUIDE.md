@@ -513,13 +513,13 @@ Frontend lives in [ui/js/dashboard/modals.js](ui/js/dashboard/modals.js):
 - `onRegStepCapture()` / `onRegStepSkip()`. Step navigation.
 - `_submitRegistration()`. Packages all collected base64 frames and POSTs.
 
-`captureBurst(videoId, count=3, gapMs=350)` lives in [ui/js/core/camera.js](ui/js/core/camera.js) next to `captureFrame`. Both the registration wizard and the kiosk scan use it. On each frame it briefly applies a `cam-flash` class to the video element so the user gets a concrete "a photo was just taken" cue.
+`captureBurst(videoId, count=3, gapMs=350)` lives in [ui/js/core/camera.js](ui/js/core/camera.js) next to `captureFrame`. Both the registration wizard and the kiosk scan use it. On the kiosk, each captured frame triggers a brief pulse on the face-box corner brackets so the user has a concrete "a photo was just taken" cue (see Wait-time UX below).
 
 **Wait-time UX.** The full burst plus 3 ArcFace embedding extractions takes a few seconds on CPU. To keep that wait from feeling stuck:
 
 - The kiosk scanning state in [ui/js/checkin/state-machine.js](ui/js/checkin/state-machine.js) cycles its sub-text every 400 ms through realistic phases (`Capturing frame 1 of 3 → Detecting → Matching → Almost done`). The interval is started in `setState('scanning')` and torn down by every other `setState(...)` call.
 - The registration modal shows `Processing` followed by animated dots and a rotating spinner. Both come from CSS only (`.processing-dots` and `.spinner` in [ui/css/base.css](ui/css/base.css)), so the JS just sets one `innerHTML` and the browser handles the animation.
-- `_flashVideo` in [ui/js/core/camera.js](ui/js/core/camera.js) bleaches the live video element for ~150 ms per captured frame.
+- `_flashCorners` in [ui/js/core/camera.js](ui/js/core/camera.js) pulses the four face-box corner brackets on the kiosk (scale + opacity) for ~220 ms per captured frame. The registration modal has no face-box and intentionally gets no pulse; its existing "Capturing Normal…" text covers that case.
 
 None of these change actual latency. They only change how the wait feels.
 
