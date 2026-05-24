@@ -2,8 +2,7 @@
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import select, func
-from sqlalchemy.exc import SQLAlchemyError
-from isel.db import SessionLocal
+from isel.db import session_scope
 from isel.db.models import User, Session as LabSession, AuditLog
 
 
@@ -42,55 +41,34 @@ def register_user(name: str, user_type: str, variants) -> int:
     always stored as a dict of variants.
     """
     variant_dict = _as_variant_dict(variants)
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         user = User(name=name, user_type=user_type, embedding=variant_dict)
         session.add(user)
-        session.commit()
-        session.refresh(user)
+        session.flush()
         return user.user_id
-    except SQLAlchemyError:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 
 def delete_user(user_id: int) -> None:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         user = session.get(User, user_id)
         if user:
             session.delete(user)
-            session.commit()
-    except SQLAlchemyError:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 
 def user_name_exists(name: str) -> bool:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         stmt = select(User).where(User.name == name)
         return session.execute(stmt).scalars().first() is not None
-    finally:
-        session.close()
 
 
 def get_user_name(user_id: int) -> str | None:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         user = session.get(User, user_id)
         return user.name if user else None
-    finally:
-        session.close()
 
 
 def get_all_users_info() -> list[dict]:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         users = list(session.execute(select(User)).scalars().all())
         last_seen_rows = session.execute(
             select(LabSession.user_id, func.max(LabSession.checked_out_at))
@@ -109,38 +87,29 @@ def get_all_users_info() -> list[dict]:
             }
             for u in users
         ]
-    finally:
-        session.close()
 
 
 def get_all_embeddings() -> dict[int, dict]:
     """Return {user_id: {name, variants}}; variants is {variant_key: [vec, ...]}."""
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         users = list(session.execute(select(User)).scalars().all())
         return {
             u.user_id: {'name': u.name, 'variants': _as_variant_dict(u.embedding)}
             for u in users
         }
-    finally:
-        session.close()
 
 
 def update_user(user_id: int, name: str, user_type: str) -> dict:
-    session = SessionLocal()
     try:
-        user = session.get(User, user_id)
-        if not user:
-            return {'success': False, 'message': 'User not found'}
-        user.name = name
-        user.user_type = user_type
-        session.commit()
-        return {'success': True}
+        with session_scope() as session:
+            user = session.get(User, user_id)
+            if not user:
+                return {'success': False, 'message': 'User not found'}
+            user.name = name
+            user.user_type = user_type
+            return {'success': True}
     except Exception as e:
-        session.rollback()
         return {'success': False, 'message': str(e)}
-    finally:
-        session.close()
 
 
 def set_face_variant(user_id: int, variant_key: str, frames: list[list[float]]) -> dict:
@@ -152,21 +121,17 @@ def set_face_variant(user_id: int, variant_key: str, frames: list[list[float]]) 
         return {'success': False, 'message': f'Invalid variant: {variant_key}'}
     if not frames:
         return {'success': False, 'message': 'No frames provided'}
-    session = SessionLocal()
     try:
-        user = session.get(User, user_id)
-        if not user:
-            return {'success': False, 'message': 'User not found'}
-        current = _as_variant_dict(user.embedding)
-        current[variant_key] = list(frames)[:MAX_FRAMES_PER_VARIANT]
-        user.embedding = current
-        session.commit()
-        return {'success': True, 'variants': [k for k in VARIANT_KEYS if k in current]}
+        with session_scope() as session:
+            user = session.get(User, user_id)
+            if not user:
+                return {'success': False, 'message': 'User not found'}
+            current = _as_variant_dict(user.embedding)
+            current[variant_key] = list(frames)[:MAX_FRAMES_PER_VARIANT]
+            user.embedding = current
+            return {'success': True, 'variants': [k for k in VARIANT_KEYS if k in current]}
     except Exception as e:
-        session.rollback()
         return {'success': False, 'message': str(e)}
-    finally:
-        session.close()
 
 
 def promote_students(promotions: list[dict]) -> dict[str, int]:
@@ -177,9 +142,8 @@ def promote_students(promotions: list[dict]) -> dict[str, int]:
     """
     if not promotions:
         return {}
-    session = SessionLocal()
     counts: dict[str, int] = {}
-    try:
+    with session_scope() as session:
         now = datetime.now()
         for entry in promotions:
             user = session.get(User, entry['user_id'])
@@ -199,10 +163,4 @@ def promote_students(promotions: list[dict]) -> dict[str, int]:
                 performed_by='admin',
                 timestamp=now,
             ))
-        session.commit()
         return counts
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()

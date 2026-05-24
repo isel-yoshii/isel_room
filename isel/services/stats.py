@@ -4,14 +4,13 @@ import calendar
 from collections import defaultdict
 from datetime import datetime, timedelta, time as dt_time, date
 from sqlalchemy import select, func
-from isel.db import SessionLocal
+from isel.db import session_scope
 from isel.db.models import User, Session as LabSession
 
 
 def daily_log(date_str: str | None = None) -> list[dict]:
     """Return activity log for a calendar day, sorted newest-first."""
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         now = datetime.now()
         logical_date = (
             datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -49,13 +48,10 @@ def daily_log(date_str: str | None = None) -> list[dict]:
         events.sort(key=lambda e: e['_sort'], reverse=True)
         return [{'name': e['name'], 'event_type': e['event_type'], 'timestamp': e['timestamp']}
                 for e in events]
-    finally:
-        session.close()
 
 
 def monthly_user_stats(year: int, month: int) -> list[dict]:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         start = datetime(year, month, 1)
         last_day = calendar.monthrange(year, month)[1]
         end = datetime(year, month, last_day, 23, 59, 59)
@@ -87,13 +83,10 @@ def monthly_user_stats(year: int, month: int) -> list[dict]:
         ]
         result.sort(key=lambda x: x['total_minutes'], reverse=True)
         return result
-    finally:
-        session.close()
 
 
 def weekly_checkin_counts() -> list[dict]:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         result = []
         for i in range(6, -1, -1):
             day = (datetime.now() - timedelta(days=i)).date()
@@ -105,27 +98,21 @@ def weekly_checkin_counts() -> list[dict]:
             ).scalar()
             result.append({'date': day.strftime('%m/%d'), 'count': count or 0})
         return result
-    finally:
-        session.close()
 
 
 def today_unique_checkins() -> int:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         today_start = datetime.combine(date.today(), dt_time(0, 0))
         count = session.execute(
             select(func.count(func.distinct(LabSession.user_id)))
             .where(LabSession.checked_in_at >= today_start)
         ).scalar()
         return count or 0
-    finally:
-        session.close()
 
 
 def active_days_this_month() -> int:
     """Count distinct calendar days this month on which at least one session started."""
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         now   = datetime.now()
         start = datetime(now.year, now.month, 1)
         end   = datetime(now.year, now.month, calendar.monthrange(now.year, now.month)[1], 23, 59, 59)
@@ -134,13 +121,10 @@ def active_days_this_month() -> int:
             .where(LabSession.checked_in_at >= start, LabSession.checked_in_at <= end)
         ).scalar()
         return count or 0
-    finally:
-        session.close()
 
 
 def get_user_profile(user_id: int) -> dict | None:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         user = session.get(User, user_id)
         if not user:
             return None
@@ -194,13 +178,10 @@ def get_user_profile(user_id: int) -> dict | None:
             'monthly_stats': {'sessions': len(monthly_rows), 'total_minutes': total_minutes},
             'recent_sessions': recent_sessions,
         }
-    finally:
-        session.close()
 
 
 def export_monthly_csv(year: int, month: int) -> list[dict]:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         start = datetime(year, month, 1)
         last_day = calendar.monthrange(year, month)[1]
         end = datetime(year, month, last_day, 23, 59, 59)
@@ -226,14 +207,11 @@ def export_monthly_csv(year: int, month: int) -> list[dict]:
                 'check_in_method': lab_sess.check_in_method or '',
             })
         return result
-    finally:
-        session.close()
 
 
 def weekly_grid(start_date: date, user_ids: list[int] | None = None) -> list[dict]:
     """Per-user × per-day attendance grid for the 7-day window starting at start_date."""
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         user_stmt = select(User)
         if user_ids:
             user_stmt = user_stmt.where(User.user_id.in_(user_ids))
@@ -283,14 +261,11 @@ def weekly_grid(start_date: date, user_ids: list[int] | None = None) -> list[dic
                 'days': days,
             })
         return result
-    finally:
-        session.close()
 
 
 def anomalies(days: int = 7) -> list[dict]:
     """Per-user anomaly counters over the last `days` days."""
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         now = datetime.now()
         window_start = datetime.combine((now - timedelta(days=days - 1)).date(), dt_time(0, 0))
         users = list(session.execute(select(User)).scalars().all())
@@ -324,5 +299,3 @@ def anomalies(days: int = 7) -> list[dict]:
                 'long_sessions': per_user_long.get(u.user_id, 0),
             })
         return result
-    finally:
-        session.close()

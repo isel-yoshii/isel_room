@@ -2,15 +2,14 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 from sqlalchemy import select
-from isel.db import SessionLocal
+from isel.db import session_scope
 from isel.db.models import User, Session as LabSession, AuditLog
 
 _STALE_SESSION_HOURS = 24
 
 
 def toggle_entry(user_id: int, check_in_method: str = 'face') -> dict:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         user = session.get(User, user_id)
         now = datetime.now()
 
@@ -29,8 +28,6 @@ def toggle_entry(user_id: int, check_in_method: str = 'face') -> dict:
             )
             session.add(new_sess)
 
-        session.commit()
-
         action_map = {
             ('IN',  'face'):   'CHECKIN',
             ('IN',  'manual'): 'MANUAL_CHECKIN',
@@ -45,66 +42,52 @@ def toggle_entry(user_id: int, check_in_method: str = 'face') -> dict:
             performed_by='check-in',
             timestamp=now,
         ))
-        session.commit()
 
-        user = session.get(User, user_id)
         return {
             'user_id': user_id,
             'name': user.name,
             'event_type': event,
             'timestamp': now.isoformat(),
         }
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 
 def auto_checkout_all() -> None:
-    session = SessionLocal()
     try:
-        stmt = select(User).where(User.status.is_(True))
-        present_users = list(session.execute(stmt).scalars().all())
-        now = datetime.now()
-        for user in present_users:
-            user.status = False
-            _close_open_session(session, user.user_id, now, method='auto_checkout')
-            session.add(AuditLog(
-                action_type='AUTO_CHECKOUT',
-                target_user_id=user.user_id,
-                target_name=user.name,
-                performed_by='system',
-                timestamp=now,
-            ))
-        session.commit()
-        if present_users:
-            print(f'[{now.strftime("%H:%M:%S")}] {len(present_users)}名の自動退室処理を完了しました。')
+        with session_scope() as session:
+            stmt = select(User).where(User.status.is_(True))
+            present_users = list(session.execute(stmt).scalars().all())
+            now = datetime.now()
+            for user in present_users:
+                user.status = False
+                _close_open_session(session, user.user_id, now, method='auto_checkout')
+                session.add(AuditLog(
+                    action_type='AUTO_CHECKOUT',
+                    target_user_id=user.user_id,
+                    target_name=user.name,
+                    performed_by='system',
+                    timestamp=now,
+                ))
+            count = len(present_users)
+        if count:
+            print(f'[{datetime.now().strftime("%H:%M:%S")}] {count}名の自動退室処理を完了しました。')
         try:
             from isel.integrations.slack import update_status_board
             update_status_board()
         except Exception as e:
             print(f'Slack board refresh after auto-checkout failed: {e}')
     except Exception as e:
-        session.rollback()
         print(f'自動退室処理でエラー: {e}')
-    finally:
-        session.close()
 
 
 def get_present_users() -> list[str]:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         stmt = select(User).where(User.status.is_(True))
         users = session.execute(stmt).scalars().all()
         return [u.name for u in users]
-    finally:
-        session.close()
 
 
 def get_present_users_detailed() -> list[dict]:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         stmt = select(User).where(User.status.is_(True))
         users = session.execute(stmt).scalars().all()
         result = []
@@ -121,34 +104,25 @@ def get_present_users_detailed() -> list[dict]:
                 duration = f'{mins // 60}h {mins % 60:02d}m'
             result.append({'id': u.user_id, 'name': u.name, 'type': u.user_type, 'duration': duration})
         return result
-    finally:
-        session.close()
 
 
 def get_user_status(user_id: int) -> bool:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         user = session.get(User, user_id)
         return bool(user.status) if user else False
-    finally:
-        session.close()
 
 
 def update_session(session_id: int, checked_in_at: datetime, checked_out_at: datetime | None) -> dict:
-    session = SessionLocal()
     try:
-        lab_sess = session.get(LabSession, session_id)
-        if not lab_sess:
-            return {'success': False, 'message': 'Session not found'}
-        lab_sess.checked_in_at = checked_in_at
-        lab_sess.checked_out_at = checked_out_at
-        session.commit()
-        return {'success': True}
+        with session_scope() as session:
+            lab_sess = session.get(LabSession, session_id)
+            if not lab_sess:
+                return {'success': False, 'message': 'Session not found'}
+            lab_sess.checked_in_at = checked_in_at
+            lab_sess.checked_out_at = checked_out_at
+            return {'success': True}
     except Exception as e:
-        session.rollback()
         return {'success': False, 'message': str(e)}
-    finally:
-        session.close()
 
 
 def _close_open_session(

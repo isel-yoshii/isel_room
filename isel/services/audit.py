@@ -2,7 +2,7 @@
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import select, or_
-from isel.db import SessionLocal
+from isel.db import session_scope
 from isel.db.models import AuditLog
 
 
@@ -12,22 +12,14 @@ def record(
     target_name: str,
     performed_by: str = 'admin',
 ) -> None:
-    session = SessionLocal()
-    try:
-        log = AuditLog(
+    with session_scope() as session:
+        session.add(AuditLog(
             action_type=action_type,
             target_user_id=target_user_id,
             target_name=target_name,
             performed_by=performed_by,
             timestamp=datetime.now(),
-        )
-        session.add(log)
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+        ))
 
 
 def recent_entries(
@@ -39,8 +31,7 @@ def recent_entries(
     end: datetime | None = None,
     q: str | None = None,
 ) -> list[dict]:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         stmt = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(limit)
         if user_id is not None:
             stmt = stmt.where(AuditLog.target_user_id == user_id)
@@ -66,5 +57,3 @@ def recent_entries(
             }
             for r in rows
         ]
-    finally:
-        session.close()

@@ -10,7 +10,7 @@ from __future__ import annotations
 import calendar
 from datetime import date, datetime
 from sqlalchemy import select, func
-from isel.db import SessionLocal
+from isel.db import session_scope
 from isel.db.models import User, Session as LabSession
 
 
@@ -24,8 +24,7 @@ def current_academic_year(today: date | None = None) -> int:
 
 
 def monthly_leaderboard(year: int, month: int) -> list[dict]:
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         start = datetime(year, month, 1)
         last_day = calendar.monthrange(year, month)[1]
         end = datetime(year, month, last_day, 23, 59, 59)
@@ -56,8 +55,6 @@ def monthly_leaderboard(year: int, month: int) -> list[dict]:
         ]
         result.sort(key=lambda x: x['points'], reverse=True)
         return result
-    finally:
-        session.close()
 
 
 def academic_year_leaderboard(ay_year: int) -> list[dict]:
@@ -65,8 +62,7 @@ def academic_year_leaderboard(ay_year: int) -> list[dict]:
 
     Window is [Apr 1 ay_year, Apr 1 ay_year+1) exclusive on the upper bound.
     """
-    session = SessionLocal()
-    try:
+    with session_scope() as session:
         start = datetime(ay_year, 4, 1)
         end   = datetime(ay_year + 1, 4, 1)
         rows = session.execute(
@@ -95,5 +91,3 @@ def academic_year_leaderboard(ay_year: int) -> list[dict]:
         ]
         result.sort(key=lambda x: x['points'], reverse=True)
         return result
-    finally:
-        session.close()
