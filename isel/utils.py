@@ -6,11 +6,27 @@ import cv2
 from flask import session, jsonify
 
 
+def ok(message: str | None = None, **extra):
+    """Standard success JSON: 200 + {success: True, message?, ...extra}."""
+    payload = {'success': True}
+    if message is not None:
+        payload['message'] = message
+    payload.update(extra)
+    return jsonify(payload)
+
+
+def fail(message: str, status: int = 400, **extra):
+    """Standard error JSON: (status, {success: False, message, ...extra})."""
+    payload = {'success': False, 'message': message}
+    payload.update(extra)
+    return jsonify(payload), status
+
+
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get('admin'):
-            return jsonify({'success': False, 'message': 'Admin access required'}), 403
+            return fail('Admin access required', 403)
         return f(*args, **kwargs)
     return decorated
 

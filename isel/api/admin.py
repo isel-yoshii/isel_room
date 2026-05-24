@@ -7,7 +7,7 @@ import isel.services.attendance as attendance_svc
 import isel.services.users as users_svc
 import isel.services.points as points_svc
 import isel.services.audit as audit_svc
-from isel.utils import admin_required
+from isel.utils import admin_required, ok, fail
 
 bp = Blueprint('admin', __name__)
 
@@ -61,9 +61,9 @@ def promote_students():
     promotions = data.get('promotions', [])
     try:
         counts = users_svc.promote_students(promotions)
-        return jsonify({'success': True, 'promoted': counts})
+        return ok(promoted=counts)
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return fail(str(e), 500)
 
 
 @bp.get('/api/stats/points')
