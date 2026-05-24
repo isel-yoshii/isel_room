@@ -1,8 +1,8 @@
 # ISEL 在室管理システム
 
-> Face-recognition-based lab presence tracking for the Intelligent Software Engineering Lab (KIT).
+> Face-recognition lab presence tracking for the Intelligent Software Engineering Lab (KIT).
 
-Members check in and out by looking at a camera at the lab door. The sensei gets a live dashboard, weekly attendance grid, monthly and academic-year leaderboards, and a full audit trail. Optional Slack integration keeps the lab Slack channel always up to date with who's in.
+Members check in and out by looking at a camera at the lab door. The sensei sees a live dashboard, a weekly attendance grid, monthly and academic-year leaderboards, and a full audit trail. An optional Slack integration keeps the lab Slack channel up to date with who is in.
 
 ---
 
@@ -28,23 +28,23 @@ Members check in and out by looking at a camera at the lab door. The sensei gets
 
 _Add screenshots once the lab kiosk is in production. Suggested:_
 
-- **Check-in screen** — full-screen kiosk with live camera feed, scan state, and the bottom presence strip.
-- **Dashboard overview** — stat cards, 7-day check-in trend, monthly activity chart.
-- **Attendance tab** — weekly grid + monthly leaderboard + academic-year leaderboard.
+- **Check-in screen.** Full-screen kiosk with the live camera feed, the scan state, and the bottom presence strip.
+- **Dashboard overview.** Stat cards, the 7-day check-in trend, and the monthly activity chart.
+- **Attendance tab.** Weekly grid plus the monthly and academic-year leaderboards.
 
 ---
 
 ## Features
 
-- **Face check-in / check-out** with a 3-variant capture system (normal / glasses / mask) so glasses-on vs glasses-off doesn't trip up recognition.
-- **Live presence strip** at the bottom of the kiosk — green dot = currently in, grey = out.
-- **Weekly attendance grid** (GitHub-style heat-map) showing who came in which days.
-- **Leaderboards** — points are 1-per-day-present, browseable by month or by academic year (`2026年度`). All-time resets every April 1.
-- **Member management** — add, edit, delete, re-register faces, and a Promotion Wizard to walk through grade transitions each April.
-- **Audit log** — every admin and attendance event recorded, filterable by member / action / date / free-text, exportable as CSV.
-- **Slack daily status board** — a single message in your lab channel, edited in place as people come and go (no chat firehose).
-- **Auto-checkout cron** — nightly job force-closes any forgotten sessions.
-- **Manual fallback** — when face recognition fails, anyone can pick their name from a list.
+- **Face check-in and check-out** with a 3-variant capture system (normal, glasses, mask). Glasses on vs glasses off does not trip up the match.
+- **Live presence strip** at the bottom of the kiosk. Green dot means currently in. Grey means out.
+- **Weekly attendance grid** in the GitHub-style heat-map. Shows who came in on which day.
+- **Leaderboards.** One point per day present. Browse by month or by academic year (`2026年度`). The all-time count resets every April 1.
+- **Member management.** Add, edit, delete, re-register faces. A Promotion Wizard walks the admin through grade transitions each April.
+- **Audit log.** Every admin and attendance event is recorded. Filter by member, action, date, or free text. Export to CSV.
+- **Slack daily status board.** One message in your lab channel, edited in place as people come and go. No chat firehose.
+- **Auto-checkout cron.** A nightly job force-closes any forgotten sessions.
+- **Manual fallback.** When face recognition fails, anyone can pick their name from a list.
 
 ---
 
@@ -54,7 +54,7 @@ _Add screenshots once the lab kiosk is in production. Suggested:_
 |---|---|
 | Language | Python 3.10+ |
 | Web framework | Flask 3 |
-| ORM / DB | SQLAlchemy 2.0, SQLite (dev) / MySQL (prod) |
+| ORM / DB | SQLAlchemy 2.0, SQLite (dev), MySQL (prod) |
 | Face recognition | DeepFace + ArcFace (512-dim embeddings, cosine distance) |
 | Image processing | OpenCV 4, NumPy, SciPy |
 | Frontend | Vanilla JavaScript (no build step, no framework) |
@@ -71,8 +71,8 @@ Tested on macOS, Linux, and WSL. Windows native should work but is untested.
 ### Prerequisites
 
 - Python 3.10 or newer
-- A webcam (for kiosk use — the dashboard works fine without one)
-- (Optional) Slack workspace + bot token
+- A webcam for kiosk use. The dashboard works without one.
+- Optional: a Slack workspace and bot token.
 
 ### Install
 
@@ -85,7 +85,7 @@ source .venv/bin/activate           # macOS/Linux
 pip install -r requirements.txt
 ```
 
-> The first `pip install` is slow (~3 minutes) because DeepFace pulls in TensorFlow. This is one-time.
+> The first `pip install` is slow (~3 minutes) because DeepFace pulls in TensorFlow. This is a one-time cost.
 
 ### Configure
 
@@ -108,7 +108,7 @@ Leave the rest at defaults for now.
 python seed_db.py
 ```
 
-This drops and recreates the DB with 11 mock members and ~60 days of fake attendance history. Re-run any time during development to reset.
+This drops and recreates the DB with 11 mock members and about 60 days of fake attendance history. Re-run it any time during development to reset.
 
 ### Run
 
@@ -118,7 +118,7 @@ flask --app app run --host 0.0.0.0 --port 5001
 
 Open <http://localhost:5001> in a browser. The Check-in screen loads by default. Press `D` to switch to the Dashboard.
 
-> **Production:** use `wsgi.py` with gunicorn. The auto-checkout job is a CLI command (`flask auto-checkout`) — schedule it via cron, not as part of the web process.
+> **Production:** use `wsgi.py` with gunicorn. The auto-checkout job is a CLI command (`flask auto-checkout`). Schedule it via cron, not as part of the web process.
 
 ---
 
@@ -130,61 +130,61 @@ Open <http://localhost:5001> in a browser. The Check-in screen loads by default.
 2. Press `Enter` (or click **Scan Face**).
 3. Confirm the match with `Enter`. The screen says "Welcome, <name>!" or "See you, <name>!".
 
-If your face isn't matched, press `Space` to pick your name from a list.
+If your face is not matched, press `Space` to pick your name from a list.
 
-### As the sensei / admin (on the dashboard)
+### As the sensei or admin (on the dashboard)
 
 | Key | Tab |
 |---|---|
-| `1` | Overview — stat cards, charts, recent activity |
-| `2` | Attendance — weekly grid + leaderboards |
-| `3` | Members — add / edit / delete / re-register (PIN required) |
-| `4` | Activity Log — full audit log with filters (PIN required) |
+| `1` | Overview. Stat cards, charts, recent activity. |
+| `2` | Attendance. Weekly grid and leaderboards. |
+| `3` | Members. Add, edit, delete, re-register (PIN required). |
+| `4` | Activity Log. Full audit log with filters (PIN required). |
 
-**Add a new member:** Members tab → Add Member → enter name + role → 3-step face capture wizard (Normal required, Glasses and Mask optional). The wizard bursts 3 frames per step for robustness.
+**Add a new member:** Members tab → Add Member → enter name and role → 3-step face capture wizard. Normal is required. Glasses and Mask are optional. The wizard bursts 3 frames per step for robustness.
 
-**Promote students at year-end:** Members tab → Promote Students → walk through each student in the wizard and pick their new role (M1 → M2, M2 → 卒業 or PhD, etc.). All changes are applied atomically and logged.
+**Promote students at year-end:** Members tab → Promote Students → walk through each student in the wizard and pick their new role (M1 → M2, M2 → 卒業 or PhD, and so on). All changes are applied atomically and logged.
 
 ### Nightly auto-checkout (cron)
 
-Add to your crontab to force-close forgotten sessions every night at 22:00:
+Add this to your crontab to force-close forgotten sessions every night at 22:00:
 
 ```cron
 0 22 * * *  cd /path/to/isel_room && FLASK_APP="app:create_app" flask auto-checkout
 ```
 
-If you miss a tick, no big deal — any session open over 24 hours is closed automatically on the user's next check-in.
+If you miss a tick, no big deal. Any session open for more than 24 hours is closed automatically on the user's next check-in.
 
 ---
 
 ## Configuration
 
-All configuration is via environment variables (load via `.env`):
+All configuration is via environment variables, loaded from `.env`:
 
 | Variable | Default | Required? | Purpose |
 |---|---|---|---|
 | `FLASK_SECRET_KEY` | `dev-secret-change-me` | **Yes in prod** | Flask session signing key |
 | `ADMIN_PIN` | _(empty)_ | **Yes** | PIN for the admin dashboard |
 | `DATABASE_URL` | `sqlite:///isel_room.db` | No | SQLAlchemy connection string |
-| `LOW_CONFIDENCE_THRESHOLD` | `0.40` | No | UI badge cutoff for "low-confidence" matches (cosmetic only) |
-| `DAY_RESET_HOUR` | `22` | No | Documents your lab's closing hour (the cron is the actual reset trigger) |
-| `SLACK_BOT_TOKEN` | _(empty)_ | No | Set to enable Slack integration |
+| `LOW_CONFIDENCE_THRESHOLD` | `0.40` | No | UI badge cutoff for low-confidence matches (cosmetic only) |
+| `DAY_RESET_HOUR` | `22` | No | Documents your lab's closing hour. The cron is the actual reset trigger. |
+| `SLACK_BOT_TOKEN` | _(empty)_ | No | Set this to enable Slack integration |
 
-`ProdConfig` (used by `wsgi.py`) refuses to start without `FLASK_SECRET_KEY` and `ADMIN_PIN` — this is intentional.
+`ProdConfig` (used by `wsgi.py`) refuses to start without `FLASK_SECRET_KEY` and `ADMIN_PIN`. This is intentional.
 
 ---
 
 ## Slack Setup (Optional)
 
-Posts and edits **one** message per day in your lab channel — not a chat firehose.
+Posts and edits **one** message per day in your lab channel. No chat firehose.
 
 1. Create a Slack app at <https://api.slack.com/apps>.
-2. Add bot scope: `chat:write`.
-3. Install to your workspace, copy the bot token (`xoxb-...`).
+2. Add the bot scope `chat:write`.
+3. Install it to your workspace and copy the bot token (`xoxb-...`).
 4. Invite the bot to your channel: `/invite @YourBotName`.
 5. Set `SLACK_BOT_TOKEN` in `.env` and restart the app.
 
-The default channel is `#a-lab-status` — change `_DEFAULT_CHANNEL` in [isel/integrations/slack.py](isel/integrations/slack.py) if needed.
+The default channel is `#a-lab-status`. To change it, edit `_DEFAULT_CHANNEL` in [isel/integrations/slack.py](isel/integrations/slack.py).
 
 ---
 
@@ -199,10 +199,10 @@ isel_room/
 ├── isel/
 │   ├── api/                # Flask blueprints (auth, attendance, users, stats, admin)
 │   ├── services/           # Business logic (attendance, users, points, stats, audit)
-│   ├── db/                 # SQLAlchemy models + session
+│   ├── db/                 # SQLAlchemy models + session_scope context manager
 │   ├── face_engine.py      # DeepFace ArcFace wrapper
 │   ├── integrations/       # Slack status board
-│   └── utils.py            # @admin_required decorator + image decoder
+│   └── utils.py            # @admin_required, decode_image, ok()/fail() helpers
 ├── tests/                  # pytest suite
 └── ui/
     ├── index.html          # Single-page shell
@@ -210,7 +210,7 @@ isel_room/
     └── js/                 # core, checkin, dashboard
 ```
 
-See [DEVELOPER_GUIDE.md §3](DEVELOPER_GUIDE.md#3-repository-layout) for the annotated tree.
+See [ISEL_ROOM_GUIDE.md §3](ISEL_ROOM_GUIDE.md#3-repository-layout) for the annotated tree.
 
 ---
 
@@ -220,7 +220,7 @@ See [DEVELOPER_GUIDE.md §3](DEVELOPER_GUIDE.md#3-repository-layout) for the ann
 python -m pytest
 ```
 
-Runs the full suite (~21 tests) against an in-memory SQLite. No external services required.
+Runs the full suite (~19 tests) against an in-memory SQLite. No external services required.
 
 ---
 
@@ -228,7 +228,7 @@ Runs the full suite (~21 tests) against an in-memory SQLite. No external service
 
 For everything beyond getting it running:
 
-- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** — comprehensive architecture, every layer explained, face pipeline deep-dive, frontend module map, state machines, testing patterns, common workflows (recipes), and troubleshooting. Read this on your first day.
+- **[ISEL_ROOM_GUIDE.md](ISEL_ROOM_GUIDE.md).** Comprehensive architecture. Every layer explained. Face pipeline deep-dive. Frontend module map. State machines. Testing patterns. Common workflows (recipes). Troubleshooting. Read this on your first day.
 
 ---
 
@@ -246,13 +246,13 @@ docs(guide): document 3-variant face slot system
 
 Subject in lowercase, no trailing period. Body optional, wrapped at 72.
 
-Other conventions (no Co-Authored-By lines, comment policy, naming, file-length guidance) are in [DEVELOPER_GUIDE.md §12](DEVELOPER_GUIDE.md#12-conventions--house-style).
+Other conventions (no `Co-Authored-By` lines, comment policy, naming, file-length guidance) live in [ISEL_ROOM_GUIDE.md §12](ISEL_ROOM_GUIDE.md#12-conventions--house-style).
 
 ---
 
 ## License
 
-_Internal use — KIT Intelligent Software Engineering Lab. Add a formal LICENSE file before publishing externally._
+_Internal use, KIT Intelligent Software Engineering Lab. Add a formal LICENSE file before publishing externally._
 
 ---
 
