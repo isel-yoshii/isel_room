@@ -208,7 +208,10 @@ def create_app(config_name: str = 'dev') -> Flask:
     from isel.face_engine import FaceEngine
     from isel.services.users import get_all_embeddings
     app.config['FACE_ENGINE'] = FaceEngine(get_all_embeddings)
-    # ^^^ Heavy. Loads DeepFace + TensorFlow into memory (~500 MB, ~10 s).
+    # ^^^ Heavy. Loads DeepFace + TensorFlow into memory (~500 MB).
+    #     ArcFace recogniser loads at startup (~10 s).
+    #     RetinaFace detector loads lazily on the first /api/auth call (~5 s,
+    #     ~50 MB one-time download). Total cold start ~15 s.
     #     Done ONCE per process. Never create FaceEngine per request.
 
     from isel.api import register_blueprints
@@ -356,7 +359,7 @@ The `attendance` blueprint owns every attendance-flow route: `/api/auth`, `/api/
 | POST | `/api/admin/login` | (none) | auth | PIN check with HMAC compare + 5-fails-per-IP / 60-s lockout |
 | POST | `/api/admin/logout` | admin | auth | Clear session |
 | GET | `/api/admin/status` | (none) | auth | `{authenticated: bool}` |
-| POST | `/api/auth` | (none) | attendance | Match a face. Returns `{matched, user_id, name, status, low_confidence}`. Stashes a 30-s `pending_toggle` token in session. |
+| POST | `/api/auth` | (none) | attendance | Match a face. Body: `{images: [b64, ...]}` (multi-frame burst, preferred) or `{image: b64}` (legacy single frame). Returns `{matched, user_id, name, status, low_confidence}`. Stashes a 30-s `pending_toggle` token in session. |
 | POST | `/api/toggle` | (none) | attendance | Flip presence. Validates the `pending_toggle` token (skipped for `check_in_method='manual'`). Triggers Slack update. |
 | POST | `/api/register` | admin | users | Create new user with up to 3 variants. Rejects duplicates by face. |
 | GET | `/api/users` | (none) | users | All users with `{id, name, type, status, has_face, face_variants, last_seen}` |
@@ -395,15 +398,21 @@ The `attendance` blueprint owns every attendance-flow route: `/api/auth`, `/api/
 
 This is the part new developers are most nervous about. It is actually simpler than it looks because **all the ML lives in one file** ([isel/face_engine.py](isel/face_engine.py), 54 lines).
 
-### 5.1 Why ArcFace
+### 5.1 Why ArcFace + RetinaFace
 
-DeepFace is a Python wrapper around several face-recognition models. We use **ArcFace** because:
+DeepFace is a Python wrapper around several face-recognition models. Two choices to know about.
+
+**Recognition model: ArcFace.** Reasons:
 
 1. It returns a 512-dim embedding (lots of discrimination capacity).
 2. Cosine distance between two embeddings of the same person is reliably below 0.5 under our lighting.
 3. It is fast. About 200 ms per frame on CPU.
 
 We do not fine-tune. Out-of-the-box pretrained weights work well enough for a roster of about 15 people.
+
+**Detector backend: RetinaFace** (passed to `DeepFace.represent` as `detector_backend='retinaface'`). The default is `opencv`, which is the weakest option and frequently misses faces under non-ideal lighting. Retinaface is the gold standard for face localisation. First call after app start triggers a one-time ~50 MB model download (cached after). Total cold start with both models is roughly 15 s.
+
+If retinaface ever causes problems in production, the next best fallback is `mtcnn` (also bundled with DeepFace, faster, slightly weaker on extreme poses).
 
 ### 5.2 The 3-variant slot system
 
@@ -442,7 +451,7 @@ Older rows have different shapes. The normalizer handles all of them:
 
 ### 5.3 The matching algorithm
 
-`FaceEngine.find_match(probe_vec, threshold)` in [isel/face_engine.py:24-53](isel/face_engine.py#L24-L53):
+`FaceEngine.find_match(probe_vec, threshold)` in [isel/face_engine.py](isel/face_engine.py):
 
 ```
 1. For every user (via get_all_embeddings()):
@@ -458,7 +467,9 @@ Older rows have different shapes. The normalizer handles all of them:
 
 It is a brute-force scan. With 15 users × 9 variants × ~200 ns per cosine, that is **under 30 μs total per match**. We do not need an ANN index until we have thousands of faces.
 
-**Extending the algorithm.** If you want to add per-variant averaging or use a different distance metric, change it inside `find_match` only. Callers (just `isel/api/attendance.py` and `isel/api/users.py`) treat it as an opaque oracle that returns `(user_id, name, distance)`.
+**Multi-frame matching: `find_best_match(embeddings, threshold)`.** The kiosk captures 3 frames per scan (via `captureBurst`) and POSTs them all to `/api/auth`. The server runs `find_best_match`, which fetches the registered embedding set once and scans all probe frames against it in a single pass, returning the closest match. This catches the case where one frame in the burst is a blink or motion blur. Cost is small (3× the inner loops, still under 100 μs total).
+
+**Extending the algorithm.** If you want to add per-variant averaging or use a different distance metric, change it inside `find_match` and `find_best_match`. Callers (just `isel/api/attendance.py` and `isel/api/users.py`) treat the engine as an opaque oracle that returns `(user_id, name, distance)`.
 
 ### 5.4 Thresholds
 
@@ -510,7 +521,8 @@ Frontend lives in [ui/js/dashboard/modals.js](ui/js/dashboard/modals.js):
 - `_renderRegStep()`. Draws the current step into the modal.
 - `onRegStepCapture()` / `onRegStepSkip()`. Step navigation.
 - `_submitRegistration()`. Packages all collected base64 frames and POSTs.
-- `captureBurst(videoId, count=3, gapMs=350)`. Snaps N frames spaced N ms apart.
+
+`captureBurst(videoId, count=3, gapMs=350)` lives in [ui/js/core/camera.js](ui/js/core/camera.js) next to `captureFrame`. Both the registration wizard and the kiosk scan use it.
 
 **Per-slot retake** for existing users uses the same modal but targets one slot only (`/api/user/<id>/face` with `{variant, images}`).
 
@@ -536,7 +548,7 @@ Frontend lives in [ui/js/dashboard/modals.js](ui/js/dashboard/modals.js):
 | [ui/css/checkin.css](ui/css/checkin.css) | Kiosk screen styles. |
 | [ui/css/dashboard.css](ui/css/dashboard.css) | Dashboard styles. Largest file (~900 lines). |
 | [ui/js/core/utils.js](ui/js/core/utils.js) | Escape helpers (`esc`, `escAttr`); `fmtMins`; fetch wrapper `api.get` / `api.post` / `api.put` / `api.delete`; top-bar clock; shared member-display helpers (`avColor`, `initials`, `isStudent`, `isTeacher`, `isGraduated`, `roleBadgeClass`, `formatLastSeen`); modal helpers `openModal(id)` / `closeModal(id)` / `anyModalOpen()`; list-rendering helper `renderList(el, items, template, empty?)`. |
-| [ui/js/core/camera.js](ui/js/core/camera.js) | `startCamera(videoId)` / `stopCamera()` / `captureFrame(video) → base64`. |
+| [ui/js/core/camera.js](ui/js/core/camera.js) | `startCamera(videoId)` / `stopCamera()` / `captureFrame(video) → base64` / `captureBurst(video, count=3, gapMs=350) → [base64, ...]`. |
 | [ui/js/core/nav.js](ui/js/core/nav.js) | `switchScreen()` plus global `C` / `D` keyboard shortcuts. Calls `anyModalOpen()` to suppress shortcuts when a modal is open. |
 | [ui/js/core/cohort-multiselect.js](ui/js/core/cohort-multiselect.js) | Multi-select with preset buttons (All / 先生 / M2 / M1 / B4 / Intern / 学生). Smart popover positioning (flips when overflowing viewport). |
 | [ui/js/checkin/index.js](ui/js/checkin/index.js) | Bootstraps the kiosk screen + keyboard handlers + `loadMemberStrip` (bottom presence strip). |
@@ -876,7 +888,7 @@ A short list. The codebase itself is the canonical example.
 | Limitation | Workaround | Future fix |
 |---|---|---|
 | SQLite single-writer | Fine for 1 lab × ~15 users × decade of sessions | Switch to MySQL via `DATABASE_URL` if scale grows |
-| DeepFace + TensorFlow loads ~500 MB at startup (~10 s cold start) | Keep the app process running; use `wsgi.py` + gunicorn in prod | Could swap to insightface (smaller) but ArcFace via DeepFace is well-tested for us |
+| DeepFace + TensorFlow loads ~500 MB at startup (~15 s cold start with the retinaface detector) | Keep the app process running; use `wsgi.py` + gunicorn in prod | Could swap to insightface (smaller) but ArcFace via DeepFace is well-tested for us |
 | No multi-tenant support | Run one app instance per lab | Add `lab_id` column on every table. Non-trivial. |
 | `ADMIN_PIN` is plaintext in `.env` | Acceptable for kiosk on a trusted network | Hash + per-user admin accounts |
 | One Slack channel only | Edit `_DEFAULT_CHANNEL` per deployment | Per-channel config |
