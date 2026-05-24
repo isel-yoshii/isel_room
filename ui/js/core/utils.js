@@ -27,4 +27,26 @@
     const rem = m % 60;
     return h > 0 ? `${h}h ${rem}m` : `${rem}m`;
   };
+
+  // Tiny JSON fetch wrapper. POST/PUT/DELETE share one body builder.
+  const _jsonBody = body => ({
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  });
+  window.api = {
+    get:  url         => fetch(url).then(r => r.json()),
+    post: (url, body) => fetch(url, _jsonBody(body)).then(r => r.json()),
+  };
+
+  // Topbar clock — date + time, refreshed every second.
+  function tick() {
+    const now  = new Date();
+    const date = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const el = document.getElementById('clock');
+    if (el) el.textContent = `${date} · ${time}`;
+  }
+  setInterval(tick, 1000);
+  tick();
 })();
