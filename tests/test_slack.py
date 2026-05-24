@@ -5,7 +5,7 @@ over a list of dicts and is the only piece of slack.py worth unit-testing.
 """
 from __future__ import annotations
 
-from isel.integrations.slack import _present_blocks
+from isel.integrations.slack import _present_blocks, _points_blocks
 
 
 def test_present_blocks_empty_list():
@@ -45,3 +45,50 @@ def test_present_blocks_handles_missing_type():
     """A user dict without a 'type' key falls back to '?'."""
     blocks = _present_blocks([{'name': 'Mystery'}])
     assert '• Mystery (?)' in blocks[1]['text']['text']
+
+
+# ─── /points renderer ───
+
+def test_points_blocks_empty_leaderboard():
+    """An empty list still renders the header + a friendly empty-state line."""
+    blocks = _points_blocks([], 2026, 5)
+    assert [b['type'] for b in blocks] == ['header', 'section', 'context']
+    assert 'May 2026' in blocks[0]['text']['text']
+    assert 'Top' not in blocks[0]['text']['text']     # no "Top 0"
+    assert 'No activity' in blocks[1]['text']['text']
+
+
+def test_points_blocks_top_three_get_medals():
+    rows = [
+        {'name': 'Naimi', 'type': 'M1', 'points': 18},
+        {'name': 'Inoue', 'type': 'M2', 'points': 16},
+        {'name': 'Yoshii', 'type': 'M1', 'points': 14},
+    ]
+    blocks = _points_blocks(rows, 2026, 5)
+    assert '🏆 Top 3 — May 2026' in blocks[0]['text']['text']
+    body = blocks[1]['text']['text']
+    assert '🥇 Naimi (M1) — 18 days' in body
+    assert '🥈 Inoue (M2) — 16 days' in body
+    assert '🥉 Yoshii (M1) — 14 days' in body
+
+
+def test_points_blocks_after_third_uses_numeric_rank():
+    rows = [
+        {'name': f'User{i}', 'type': 'M1', 'points': 10 - i}
+        for i in range(5)
+    ]
+    blocks = _points_blocks(rows, 2026, 5)
+    body = blocks[1]['text']['text']
+    assert '🥇 User0' in body
+    assert '🥈 User1' in body
+    assert '🥉 User2' in body
+    assert '4. User3' in body
+    assert '5. User4' in body
+
+
+def test_points_blocks_single_day_uses_singular_suffix():
+    """A user with exactly 1 point reads 'day' not 'days'."""
+    blocks = _points_blocks([{'name': 'Lone', 'type': 'B4', 'points': 1}], 2026, 5)
+    body = blocks[1]['text']['text']
+    assert '— 1 day' in body
+    assert '— 1 days' not in body

@@ -635,7 +635,7 @@ Environment variables: see the table in [README.md → Configuration](README.md#
 Slack is a hard requirement in production. The integration has two surfaces:
 
 1. **Daily status board.** One Block Kit message per day in the channel set by `SLACK_CHANNEL` (default `#a-lab-status`), edited in place via `chat.update` whenever presence changes.
-2. **`/who-is-in` slash command.** Anyone in the workspace can run it for an ephemeral reply with the current present-list. Delivered via Socket Mode, so no public HTTP endpoint is needed.
+2. **`/who` and `/points` slash commands.** `/who` returns the current present-list. `/points` returns the top 5 of this month's leaderboard with 🥇🥈🥉 medals for the top three. Both reply ephemerally (only visible to the runner). Delivered via Socket Mode, so no public HTTP endpoint is needed.
 
 The full file is [isel/integrations/slack.py](isel/integrations/slack.py), about 130 lines.
 
@@ -671,14 +671,14 @@ In dev, `flask --app app run` forks a Werkzeug reloader parent that re-execs a c
 
 - [isel/api/attendance.py](isel/api/attendance.py) after every successful `/api/toggle`.
 - [isel/services/attendance.py](isel/services/attendance.py) at the end of `auto_checkout_all()`.
-- The `/who-is-in` handler in [isel/integrations/slack.py](isel/integrations/slack.py) when a Slack user runs the command.
+- The `/who` and `/points` handlers in [isel/integrations/slack.py](isel/integrations/slack.py) when a Slack user runs the command. `/who` reuses `get_present_users_detailed`; `/points` reuses `monthly_leaderboard(year, month)` from [isel/services/points.py](isel/services/points.py).
 
 ### Setup, once per Slack workspace
 
 1. Create a Slack app at api.slack.com/apps.
 2. **OAuth & Permissions** → add bot scopes `chat:write` (status board) and `commands` (slash command).
 3. **Socket Mode** → enable it. Generate an App-Level Token with the `connections:write` scope. Copy it (`xapp-...`).
-4. **Slash Commands** → create `/who-is-in`. With Socket Mode on, no request URL is needed; Slack delivers the command over the WebSocket.
+4. **Slash Commands** → create `/who` and `/points`. With Socket Mode on, no request URL is needed; Slack delivers each command over the WebSocket.
 5. **Install to Workspace** → copy the bot token (`xoxb-...`).
 6. Invite the bot to your status channel: `/invite @YourBot`.
 7. Put both tokens in `.env` as `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`. Optionally set `SLACK_CHANNEL`.

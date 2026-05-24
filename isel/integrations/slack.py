@@ -1,4 +1,4 @@
-"""Slack integration: daily status board + /who-is-in slash command via Socket Mode.
+"""Slack integration: daily status board + /who and /points slash commands via Socket Mode.
 
 Two surfaces:
 
@@ -6,8 +6,9 @@ Two surfaces:
    as people come and go (chat.update). Called from /api/toggle and
    auto_checkout_all. Block Kit formatted.
 
-2. /who-is-in slash command: ephemeral reply with the current present-list.
-   Delivered via Socket Mode (no public HTTP endpoint needed).
+2. Slash commands, delivered via Socket Mode (no public HTTP endpoint needed):
+   - /who    -> ephemeral reply with the current present-list.
+   - /points -> ephemeral reply with the top 5 of the current monthly leaderboard.
 
 All setup happens in init(), called once from app.py during create_app.
 Nothing runs at module import; safe to import without Slack tokens.
@@ -63,14 +64,26 @@ def init(bot_token: str, app_token: str, channel: str) -> None:
 
 
 def _register_handlers(app: App) -> None:
-    @app.command('/who-is-in')
-    def _who_is_in(ack, respond):
+    @app.command('/who')
+    def _who(ack, respond):
         ack()
         from isel.services.attendance import get_present_users_detailed
         present = get_present_users_detailed()
         respond(
             blocks=_present_blocks(present),
             text=_fallback_text(present),
+            response_type='ephemeral',
+        )
+
+    @app.command('/points')
+    def _points(ack, respond):
+        ack()
+        from isel.services.points import monthly_leaderboard
+        now = datetime.now()
+        rows = monthly_leaderboard(now.year, now.month)[:5]
+        respond(
+            blocks=_points_blocks(rows, now.year, now.month),
+            text=f'Top {len(rows)} this month' if rows else 'No activity this month',
             response_type='ephemeral',
         )
 
@@ -100,6 +113,43 @@ def _fallback_text(present: list[dict]) -> str:
     """Short plain-text fallback used for push notifications and accessibility."""
     n = len(present)
     return f'🟢 {n} in the lab' if n else '⚫ Lab is empty'
+
+
+def _points_blocks(rows: list[dict], year: int, month: int) -> list[dict]:
+    """Block Kit JSON for the /points slash command (top-N monthly leaderboard).
+
+    `rows` should already be capped to the desired count (e.g. top 5). The
+    header reads "Top N — Month Year". Top three get 🥇🥈🥉 medals; the rest
+    are numbered. Empty list renders a friendly "no activity yet" message.
+    """
+    month_name = datetime(year, month, 1).strftime('%B')
+    n = len(rows)
+    header_text = f'🏆 Top {n} — {month_name} {year}' if n else f'🏆 {month_name} {year}'
+
+    blocks: list[dict] = [
+        {'type': 'header', 'text': {'type': 'plain_text', 'text': header_text, 'emoji': True}},
+    ]
+
+    if rows:
+        medals = ['🥇', '🥈', '🥉']
+        lines = []
+        for i, u in enumerate(rows):
+            rank = medals[i] if i < 3 else f'{i + 1}.'
+            days = u['points']
+            suffix = 'day' if days == 1 else 'days'
+            lines.append(f'{rank} {u["name"]} ({u.get("type") or "?"}) — {days} {suffix}')
+        blocks.append({'type': 'section', 'text': {'type': 'mrkdwn', 'text': '\n'.join(lines)}})
+    else:
+        blocks.append({
+            'type': 'section',
+            'text': {'type': 'mrkdwn', 'text': '_No activity recorded this month yet._'},
+        })
+
+    blocks.append({
+        'type': 'context',
+        'elements': [{'type': 'mrkdwn', 'text': f'_As of {datetime.now().strftime("%H:%M")}_'}],
+    })
+    return blocks
 
 
 # ── Daily status board (write path) ──────────────────────────
