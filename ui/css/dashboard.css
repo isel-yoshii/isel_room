@@ -299,6 +299,30 @@
 .stats-nav-btn:hover:not(:disabled) { color: var(--color-text-primary); }
 .stats-nav-btn:disabled { opacity: 0.25; cursor: default; }
 
+/* Dropdowns sit next to the arrows as an alternative way to jump
+   directly to a month or year on the Attendance leaderboards. */
+.stats-nav-select {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 6px;
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.stats-nav-select:hover { border-color: var(--color-text-secondary); }
+
+/* Used during in-place re-fetch (e.g. clicking a leaderboard arrow):
+   the previous content stays in the DOM at the same height, dimmed,
+   so the page doesn't shrink and the user's scroll stays put. */
+.is-loading {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out;
+}
+
 .stats-month-label {
   font-size: 15px; font-weight: 700;
   font-family: 'Syne', sans-serif;

@@ -6,9 +6,75 @@
   let _pointsYear   = new Date().getFullYear();
   let _pointsMonth  = new Date().getMonth() + 1;
   let _pointsAyYear = currentAcademicYear();
+  let _dropdownsPopulated = false;
+
+  const _MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
 
   const _cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const RANK_COLORS = [_cssVar('--color-rank-gold'), _cssVar('--color-rank-silver'), _cssVar('--color-rank-bronze')];
+
+  // ── Dropdown population (once) + sync helpers ──
+
+  function _populateDropdownsOnce() {
+    if (_dropdownsPopulated) return;
+    _dropdownsPopulated = true;
+
+    const nowYear = new Date().getFullYear();
+    const ay      = currentAcademicYear();
+
+    // Calendar-year dropdown (Monthly leaderboard). Last 4 years up to current.
+    const yearSel = document.getElementById('points-year-select');
+    if (yearSel) {
+      yearSel.innerHTML = '';
+      for (let y = nowYear - 3; y <= nowYear; y++) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = String(y);
+        yearSel.appendChild(opt);
+      }
+    }
+
+    // Month dropdown (Monthly leaderboard). Jan..Dec.
+    const monthSel = document.getElementById('points-month-select');
+    if (monthSel) {
+      monthSel.innerHTML = '';
+      _MONTH_NAMES.forEach((name, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i + 1);
+        opt.textContent = name;
+        monthSel.appendChild(opt);
+      });
+    }
+
+    // Academic-year dropdown (Yearly leaderboard). Last 4 AYs up to current.
+    const aySel = document.getElementById('points-ay-select');
+    if (aySel) {
+      aySel.innerHTML = '';
+      for (let y = ay - 3; y <= ay; y++) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = `${y}年度`;
+        aySel.appendChild(opt);
+      }
+    }
+  }
+
+  function _syncMonthlyDropdowns() {
+    const yearSel  = document.getElementById('points-year-select');
+    const monthSel = document.getElementById('points-month-select');
+    if (yearSel)  yearSel.value  = String(_pointsYear);
+    if (monthSel) monthSel.value = String(_pointsMonth);
+  }
+
+  function _syncYearlyDropdown() {
+    const aySel = document.getElementById('points-ay-select');
+    if (aySel) aySel.value = String(_pointsAyYear);
+  }
+
+  // ── Label updates ──
 
   window.updatePointsMonthLabel = function updatePointsMonthLabel() {
     const label = new Date(_pointsYear, _pointsMonth - 1, 1)
@@ -30,39 +96,81 @@
     if (nextBtn) nextBtn.disabled = _pointsAyYear >= currentAcademicYear();
   }
 
+  // ── Per-section fetch + render ──
+  // Re-fetches keep the previous table visible (dimmed via .is-loading) so
+  // the content height doesn't change and the user's scroll position stays
+  // exactly where it was. The "Loading…" placeholder is only used on the
+  // very first render of the tab, where the container is genuinely empty.
+
+  async function loadMonthly() {
+    updatePointsMonthLabel();
+    _syncMonthlyDropdowns();
+    const el = document.getElementById('points-content');
+    el.classList.add('is-loading');
+    try {
+      const data = await api.get(`/api/stats/points?year=${_pointsYear}&month=${_pointsMonth}`);
+      el.innerHTML = renderAttendanceTable(data, 'No Activity Recorded This Month');
+    } catch (err) {
+      console.error('loadMonthly error:', err);
+    } finally {
+      el.classList.remove('is-loading');
+    }
+  }
+
+  async function loadYearly() {
+    updatePointsYearLabel();
+    _syncYearlyDropdown();
+    const el = document.getElementById('points-year-content');
+    el.classList.add('is-loading');
+    try {
+      const data = await api.get(`/api/stats/points/year?year=${_pointsAyYear}`);
+      document.getElementById('ay-section-label').textContent = `${data.year}年度 Leaderboard`;
+      el.innerHTML = renderAttendanceTable(data.leaderboard, `No Activity Recorded For ${data.year}年度`);
+    } catch (err) {
+      console.error('loadYearly error:', err);
+    } finally {
+      el.classList.remove('is-loading');
+    }
+  }
+
+  // ── Navigation handlers ──
+
   window.changePointsMonth = function changePointsMonth(delta) {
     _pointsMonth += delta;
     if (_pointsMonth > 12) { _pointsMonth = 1;  _pointsYear++; }
     if (_pointsMonth < 1)  { _pointsMonth = 12; _pointsYear--; }
-    loadAttendance();
+    loadMonthly();
   };
 
   window.changePointsYear = function changePointsYear(delta) {
     _pointsAyYear += delta;
-    loadAttendance();
+    loadYearly();
   };
+
+  window.onPointsYearChange = function onPointsYearChange(value) {
+    _pointsYear = parseInt(value, 10);
+    loadMonthly();
+  };
+
+  window.onPointsMonthChange = function onPointsMonthChange(value) {
+    _pointsMonth = parseInt(value, 10);
+    loadMonthly();
+  };
+
+  window.onPointsAyChange = function onPointsAyChange(value) {
+    _pointsAyYear = parseInt(value, 10);
+    loadYearly();
+  };
+
+  // ── Entry point: initial load when entering the tab ──
 
   window.loadAttendance = async function loadAttendance() {
+    _populateDropdownsOnce();
     if (typeof loadGrid === 'function') loadGrid();
-    updatePointsMonthLabel();
-    updatePointsYearLabel();
-
-    const monthEl = document.getElementById('points-content');
-    const yearEl  = document.getElementById('points-year-content');
-    monthEl.innerHTML = '<div class="log-empty">Loading…</div>';
-    yearEl.innerHTML  = '<div class="log-empty">Loading…</div>';
-
-    try {
-      const [monthly, yearly] = await Promise.all([
-        api.get(`/api/stats/points?year=${_pointsYear}&month=${_pointsMonth}`),
-        api.get(`/api/stats/points/year?year=${_pointsAyYear}`),
-      ]);
-      renderMonthly(monthly);
-      renderYearly(yearly);
-    } catch (err) {
-      console.error('loadAttendance error:', err);
-    }
+    await Promise.all([loadMonthly(), loadYearly()]);
   };
+
+  // ── Render helper (shared between monthly + yearly) ──
 
   function renderAttendanceTable(data, emptyMsg) {
     if (!data.length) return `<div class="log-empty">${emptyMsg}</div>`;
@@ -90,17 +198,6 @@
           </div>`;
         }).join('')}
       </div>`;
-  }
-
-  function renderMonthly(monthly) {
-    document.getElementById('points-content').innerHTML =
-      renderAttendanceTable(monthly, 'No Activity Recorded This Month');
-  }
-
-  function renderYearly(yearly) {
-    document.getElementById('ay-section-label').textContent = `${yearly.year}年度 Leaderboard`;
-    document.getElementById('points-year-content').innerHTML =
-      renderAttendanceTable(yearly.leaderboard, `No Activity Recorded For ${yearly.year}年度`);
   }
 
   window.Dashboard = window.Dashboard || {};

@@ -284,6 +284,8 @@
             <button class="stats-nav-btn" onclick="changePointsMonth(-1)">←</button>
             <span id="points-month-label" class="stats-month-label">–</span>
             <button class="stats-nav-btn" id="points-nav-next" onclick="changePointsMonth(1)">→</button>
+            <select id="points-year-select" class="stats-nav-select" onchange="onPointsYearChange(this.value)"></select>
+            <select id="points-month-select" class="stats-nav-select" onchange="onPointsMonthChange(this.value)"></select>
           </div>
           <div id="points-content"><div class="log-empty">Loading…</div></div>
 
@@ -292,6 +294,7 @@
             <button class="stats-nav-btn" onclick="changePointsYear(-1)">←</button>
             <span id="points-year-label" class="stats-month-label">–</span>
             <button class="stats-nav-btn" id="points-year-next" onclick="changePointsYear(1)">→</button>
+            <select id="points-ay-select" class="stats-nav-select" onchange="onPointsAyChange(this.value)"></select>
           </div>
           <div id="points-year-content"><div class="log-empty">Loading…</div></div>
         </div><!-- /db-attendance -->
