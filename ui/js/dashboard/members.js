@@ -87,7 +87,7 @@
   };
 
   window.runPromotion = async function runPromotion() {
-    document.getElementById('promote-modal').classList.remove('hidden');
+    openModal('promote-modal');
     document.getElementById('promote-msg').textContent = '';
     const body = document.getElementById('promote-body');
     body.innerHTML = '<div class="log-empty">Loading…</div>';
@@ -129,7 +129,7 @@
   };
 
   window.closePromoteModal = function closePromoteModal() {
-    document.getElementById('promote-modal').classList.add('hidden');
+    closeModal('promote-modal');
   };
 
   window.closePromoteModalOnBg = function closePromoteModalOnBg(event) {

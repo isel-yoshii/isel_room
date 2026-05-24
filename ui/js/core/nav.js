@@ -28,14 +28,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
-    const anyModalOpen = [
-      'reg-modal', 'picker-modal', 'pin-modal', 'profile-modal',
-      'face-rereg-modal', 'context-modal', 'promote-modal',
-    ].some(id => {
-      const el = document.getElementById(id);
-      return el && !el.classList.contains('hidden');
-    });
-    if (anyModalOpen) return;
+    if (anyModalOpen()) return;
 
     if (e.key === 'c' || e.key === 'C') switchScreen('check-in');
     if (e.key === 'd' || e.key === 'D') switchScreen('dashboard');

@@ -37,7 +37,7 @@
       const search = document.getElementById('picker-search');
       search.value = '';
       renderPickerList(_pickerFiltered);
-      document.getElementById('picker-modal').classList.remove('hidden');
+      openModal('picker-modal');
       setTimeout(() => search.focus(), 50);
 
       search.oninput = () => {
@@ -69,7 +69,7 @@
   };
 
   window.closeManualPicker = function closeManualPicker() {
-    document.getElementById('picker-modal').classList.add('hidden');
+    closeModal('picker-modal');
     const search = document.getElementById('picker-search');
     search.oninput   = null;
     search.onkeydown = null;

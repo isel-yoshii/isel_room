@@ -219,7 +219,7 @@
       `Context — ${name} @ ${isoTs.slice(11, 16)} on ${isoTs.slice(0, 10)}`;
     const body = document.getElementById('context-body');
     body.innerHTML = '<div class="log-empty">Loading…</div>';
-    document.getElementById('context-modal').classList.remove('hidden');
+    openModal('context-modal');
     const btn = document.getElementById('context-profile-btn');
     if (btn) btn.onclick = () => { closeContextModal(); openProfileModal(userId); };
 
@@ -255,7 +255,7 @@
   };
 
   window.closeContextModal = function closeContextModal() {
-    document.getElementById('context-modal').classList.add('hidden');
+    closeModal('context-modal');
   };
 
   window.closeContextModalOnBg = function closeContextModalOnBg(event) {

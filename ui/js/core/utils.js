@@ -52,6 +52,23 @@
   setInterval(tick, 1000);
   tick();
 
+  // ── Modal helpers ──
+  // Open / close = add/remove the `hidden` class. Stream cleanup stays at the
+  // call site because each modal owns its own camera stream variable.
+  window.openModal  = id => document.getElementById(id)?.classList.remove('hidden');
+  window.closeModal = id => document.getElementById(id)?.classList.add('hidden');
+
+  // Centralised list of modal ids so the "any modal open?" guard used by global
+  // keyboard handlers can't fall out of sync between files.
+  const _MODAL_IDS = [
+    'reg-modal', 'picker-modal', 'pin-modal', 'profile-modal',
+    'face-rereg-modal', 'context-modal', 'promote-modal',
+  ];
+  window.anyModalOpen = () => _MODAL_IDS.some(id => {
+    const el = document.getElementById(id);
+    return el && !el.classList.contains('hidden');
+  });
+
   // ── Shared member-display helpers ──
   // Lived in dashboard/overview.js historically, but every dashboard tab
   // (members, activity, attendance, attendance-grid) needs them. Moving

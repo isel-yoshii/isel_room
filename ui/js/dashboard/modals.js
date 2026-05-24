@@ -26,12 +26,12 @@
     const msg = document.getElementById('pin-msg');
     msg.textContent = '';
     msg.className   = 'modal-msg';
-    document.getElementById('pin-modal').classList.remove('hidden');
+    openModal('pin-modal');
     setTimeout(() => document.getElementById('pin-input').focus(), 50);
   };
 
   window.closePinModal = function closePinModal() {
-    document.getElementById('pin-modal').classList.add('hidden');
+    closeModal('pin-modal');
     _pinCallback = null;
   };
 
@@ -107,8 +107,7 @@
   }
 
   window.openRegModal = function openRegModal() {
-    const modal = document.getElementById('reg-modal');
-    modal.classList.remove('hidden');
+    openModal('reg-modal');
 
     document.getElementById('reg-name').value = '';
     const msg = document.getElementById('reg-msg');
@@ -131,7 +130,7 @@
   };
 
   window.closeRegModal = function closeRegModal() {
-    document.getElementById('reg-modal').classList.add('hidden');
+    closeModal('reg-modal');
     if (_regStream) {
       _regStream.getTracks().forEach(t => t.stop());
       _regStream = null;
@@ -236,11 +235,11 @@
         msg.className   = 'modal-msg err';
       });
 
-    document.getElementById('face-rereg-modal').classList.remove('hidden');
+    openModal('face-rereg-modal');
   };
 
   window.closeFaceReregModal = function closeFaceReregModal() {
-    document.getElementById('face-rereg-modal').classList.add('hidden');
+    closeModal('face-rereg-modal');
     if (_faceReregStream) {
       _faceReregStream.getTracks().forEach(t => t.stop());
       _faceReregStream = null;
@@ -341,14 +340,14 @@
           </div>`;
       }
 
-      document.getElementById('profile-modal').classList.remove('hidden');
+      openModal('profile-modal');
     } catch (err) {
       console.error('openProfileModal error:', err);
     }
   };
 
   window.closeProfileModal = function closeProfileModal() {
-    document.getElementById('profile-modal').classList.add('hidden');
+    closeModal('profile-modal');
   };
 
   window.closeProfileModalOnBg = function closeProfileModalOnBg(event) {
