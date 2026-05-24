@@ -35,8 +35,40 @@
   };
 
   let _currentState = 'idle';
+  let _scanningCyclerId = null;
 
   window.getCheckinState = () => _currentState;
+
+  // Progressive sub-text during the ~2 s scanning window so the user has
+  // something changing to track instead of one frozen "Hold Still" string.
+  // The interval is purely visual; the actual response arrives whenever the
+  // server is done and the next setState() call clears the cycler.
+  const _SCAN_PHASES = [
+    'Capturing frame 1 of 3…',
+    'Capturing frame 2 of 3…',
+    'Capturing frame 3 of 3…',
+    'Detecting your face…',
+    'Matching against lab members…',
+    'Almost done…',
+  ];
+
+  function _stopScanningCycler() {
+    if (_scanningCyclerId) {
+      clearInterval(_scanningCyclerId);
+      _scanningCyclerId = null;
+    }
+  }
+
+  function _startScanningCycler() {
+    _stopScanningCycler();
+    const sub = document.getElementById('state-sub');
+    let i = 0;
+    sub.textContent = _SCAN_PHASES[i];
+    _scanningCyclerId = setInterval(() => {
+      i = Math.min(i + 1, _SCAN_PHASES.length - 1);
+      sub.textContent = _SCAN_PHASES[i];
+    }, 400);
+  }
 
   window.setHints = function setHints(pairs) {
     renderList('check-in-hints', pairs, ([key, label]) =>
@@ -48,6 +80,7 @@
     const s = CHECKIN_STATES[key];
     if (!s) return;
     _currentState = key;
+    _stopScanningCycler();
 
     const tag = document.getElementById('state-tag');
     tag.className = 'state-tag ' + s.tagClass;
@@ -65,10 +98,13 @@
     btn.disabled    = s.btnDisabled;
 
     setHints(s.hints ?? []);
+
+    if (key === 'scanning') _startScanningCycler();
   };
 
   window.setStateConfirmation = function setStateConfirmation(name, predictedEvent) {
     _currentState = 'confirmation';
+    _stopScanningCycler();
     const isIn = predictedEvent === 'IN';
 
     const tag = document.getElementById('state-tag');
@@ -92,6 +128,7 @@
 
   window.setStateResult = function setStateResult(name, eventType) {
     _currentState = 'success';
+    _stopScanningCycler();
     const isIn  = eventType === 'IN';
     const inits = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     const time  = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });

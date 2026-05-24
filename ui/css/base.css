@@ -228,3 +228,48 @@ body {
   color: var(--color-text-primary);
   background: var(--color-background-secondary);
 }
+
+/* ─── Wait-time feedback animations ───
+   Used during face capture / processing to reassure the user that
+   work is happening. See ui/js/checkin/state-machine.js (scanning
+   sub-text cycler), ui/js/dashboard/modals.js (registration
+   "Processing"), and ui/js/core/camera.js (captureBurst flash). */
+
+/* Rotating border circle next to "Processing". */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border-tertiary, #ccc);
+  border-top-color: var(--color-text-secondary, #888);
+  border-radius: 50%;
+  vertical-align: -2px;
+  margin-left: 4px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Trailing dots after "Processing" that cycle 0 → 1 → 2 → 3 dots. */
+.processing-dots::after {
+  content: '';
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: processing-dots 1.2s steps(4, end) infinite;
+}
+@keyframes processing-dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
+/* Brief white-out of the video element when a frame is captured.
+   Removed after ~150 ms by ui/js/core/camera.js _flashVideo. */
+video.cam-flash {
+  filter: brightness(2.5) contrast(0.6);
+  transition: filter 0s;
+}

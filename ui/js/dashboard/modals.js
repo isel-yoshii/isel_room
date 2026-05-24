@@ -169,7 +169,7 @@
     const userType = document.getElementById('reg-type').value;
     const msg      = document.getElementById('reg-msg');
     const btn      = document.getElementById('btn-register');
-    msg.textContent = 'Processing…';
+    msg.innerHTML   = 'Processing<span class="processing-dots"></span> <span class="spinner"></span>';
     msg.className   = 'modal-msg';
     try {
       const data = await api.post('/api/register', {
@@ -243,7 +243,7 @@
     msg.textContent = `Capturing ${variant}…`;
     msg.className   = 'modal-msg';
     const images = await captureBurst('face-rereg-video');
-    msg.textContent = 'Processing…';
+    msg.innerHTML = 'Processing<span class="processing-dots"></span> <span class="spinner"></span>';
 
     try {
       const r = await api.post(`/api/user/${_faceReregUserId}/face`, { variant, images });
