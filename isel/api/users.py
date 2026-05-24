@@ -35,11 +35,7 @@ def register():
         return fail(f'「{name}」は既に登録されています')
 
     engine = current_app.config['FACE_ENGINE']
-    variants_b64 = data.get('variants')
-    if variants_b64 is None:
-        # Backward-compat: prior `images` / `image` payloads → treat as 'normal'.
-        legacy = data.get('images') or ([data['image']] if data.get('image') else [])
-        variants_b64 = {'normal': legacy} if legacy else {}
+    variants_b64 = data.get('variants') or {}
 
     variants_emb: dict[str, list[list[float]]] = {}
     for key, b64_list in variants_b64.items():
@@ -102,7 +98,7 @@ def set_user_face_variant(user_id: int):
     variant = data.get('variant')
     if variant not in VARIANT_KEYS:
         return fail('Invalid variant')
-    frames_b64 = data.get('images') or ([data['image']] if data.get('image') else [])
+    frames_b64 = data.get('images') or []
     frames_emb = []
     for b64 in frames_b64[:3]:
         frame = decode_image(b64)

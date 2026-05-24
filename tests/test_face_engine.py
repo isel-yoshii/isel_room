@@ -1,4 +1,4 @@
-"""Tests for the multi-variant FaceEngine.find_match behaviour."""
+"""Tests for FaceEngine.find_match and find_best_match."""
 from __future__ import annotations
 
 from isel.db.models import User
@@ -8,40 +8,26 @@ import isel.services.users as users_svc
 
 def test_find_match_picks_closest_across_multi_variants(db_session):
     """A live vector close to the user's second variant still matches."""
-    variant_a = [1.0, 0.0, 0.0]
-    variant_b = [0.0, 1.0, 0.0]  # imagine 'glasses on'
     user = User(
         name='Multi', user_type='M1', status=False,
-        embedding=[variant_a, variant_b],
+        embedding={
+            'normal':  [[1.0, 0.0, 0.0]],
+            'glasses': [[0.0, 1.0, 0.0]],
+        },
     )
     db_session.add(user)
     db_session.commit()
 
     engine = FaceEngine(users_svc.get_all_embeddings, auth_threshold=0.55)
-    live_vec = [0.05, 0.99, 0.0]  # near variant_b
+    live_vec = [0.05, 0.99, 0.0]  # near the glasses variant
     uid, name, dist = engine.find_match(live_vec, 0.55)
     assert uid == user.user_id
     assert name == 'Multi'
     assert dist < 0.1
 
 
-def test_find_match_handles_legacy_single_vector(db_session):
-    """A user registered before multi-embedding (single flat vector) still matches."""
-    legacy_vec = [1.0, 0.0, 0.0]
-    user = User(
-        name='Legacy', user_type='B4', status=False,
-        embedding=legacy_vec,  # legacy single-vector shape
-    )
-    db_session.add(user)
-    db_session.commit()
-
-    engine = FaceEngine(users_svc.get_all_embeddings, auth_threshold=0.55)
-    uid, _, _ = engine.find_match([0.99, 0.01, 0.0], 0.55)
-    assert uid == user.user_id
-
-
 def test_find_match_with_variant_dict(db_session):
-    """Match works when stored embedding is a {variant: [vec, ...]} dict (new shape)."""
+    """Match works when stored embedding is a {variant: [vec, ...]} dict."""
     user = User(
         name='Variants', user_type='M1', status=False,
         embedding={
@@ -63,7 +49,7 @@ def test_find_match_returns_none_when_no_variant_below_threshold(db_session):
         name='Far',
         user_type='M2',
         status=False,
-        embedding=[[1.0, 0.0, 0.0]],
+        embedding={'normal': [[1.0, 0.0, 0.0]]},
     )
     db_session.add(user)
     db_session.commit()
@@ -76,7 +62,10 @@ def test_find_match_returns_none_when_no_variant_below_threshold(db_session):
 
 def test_find_best_match_picks_closest_across_frames(db_session):
     """Given multiple input embeddings, return the user matched by the closest one."""
-    user = User(name='Bursty', user_type='M1', status=False, embedding=[[1.0, 0.0, 0.0]])
+    user = User(
+        name='Bursty', user_type='M1', status=False,
+        embedding={'normal': [[1.0, 0.0, 0.0]]},
+    )
     db_session.add(user)
     db_session.commit()
 
@@ -100,7 +89,10 @@ def test_find_best_match_empty_list_returns_none():
 
 def test_find_best_match_single_frame_matches_find_match(db_session):
     """Calling find_best_match with one embedding gives the same result as find_match."""
-    user = User(name='Single', user_type='M1', status=False, embedding=[[1.0, 0.0, 0.0]])
+    user = User(
+        name='Single', user_type='M1', status=False,
+        embedding={'normal': [[1.0, 0.0, 0.0]]},
+    )
     db_session.add(user)
     db_session.commit()
 
@@ -113,7 +105,10 @@ def test_find_best_match_single_frame_matches_find_match(db_session):
 
 def test_find_best_match_skips_none_embeddings(db_session):
     """None entries in the frames list (e.g. detection failed on that frame) are skipped."""
-    user = User(name='Skip', user_type='M1', status=False, embedding=[[1.0, 0.0, 0.0]])
+    user = User(
+        name='Skip', user_type='M1', status=False,
+        embedding={'normal': [[1.0, 0.0, 0.0]]},
+    )
     db_session.add(user)
     db_session.commit()
 

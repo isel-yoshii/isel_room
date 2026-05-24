@@ -10,37 +10,24 @@ VARIANT_KEYS = ('normal', 'glasses', 'mask')
 MAX_FRAMES_PER_VARIANT = 3
 
 
-def _as_variant_dict(stored) -> dict[str, list[list[float]]]:
-    """Normalise any historical embedding shape to {variant: [vec, ...]}.
+def _normalize_variants(stored: dict | None) -> dict[str, list[list[float]]]:
+    """Single guard for the {variant_key: [vec, ...]} embedding shape.
 
-    Cases:
-      None / empty            -> {}
-      Flat list of floats     -> {'normal': [stored]}        (legacy single vector)
-      List of flat lists      -> {'normal': stored[:3]}      (prior-commit flat list)
-      Dict already            -> filter to VARIANT_KEYS, capped at 3 frames per slot
+    Drops keys that are not in VARIANT_KEYS, drops empty slots, and caps
+    each slot at MAX_FRAMES_PER_VARIANT. Returns {} for None or empty input.
     """
     if not stored:
         return {}
-    if isinstance(stored, list):
-        if stored and isinstance(stored[0], (int, float)):
-            return {'normal': [stored]}
-        return {'normal': stored[:MAX_FRAMES_PER_VARIANT]}
-    if isinstance(stored, dict):
-        return {
-            k: list(v)[:MAX_FRAMES_PER_VARIANT]
-            for k, v in stored.items()
-            if k in VARIANT_KEYS and v
-        }
-    return {}
+    return {
+        k: list(v)[:MAX_FRAMES_PER_VARIANT]
+        for k, v in stored.items()
+        if k in VARIANT_KEYS and v
+    }
 
 
-def register_user(name: str, user_type: str, variants) -> int:
-    """Create a new user and return the generated user_id.
-
-    `variants` may be a {variant_key: [vec, ...]} dict or a legacy list/single vector;
-    always stored as a dict of variants.
-    """
-    variant_dict = _as_variant_dict(variants)
+def register_user(name: str, user_type: str, variants: dict) -> int:
+    """Create a new user and return the generated user_id."""
+    variant_dict = _normalize_variants(variants)
     with session_scope() as session:
         user = User(name=name, user_type=user_type, embedding=variant_dict)
         session.add(user)
@@ -82,7 +69,7 @@ def get_all_users_info() -> list[dict]:
                 'type': u.user_type,
                 'status': u.status,
                 'has_face': bool(u.embedding),
-                'face_variants': [k for k in VARIANT_KEYS if k in _as_variant_dict(u.embedding)],
+                'face_variants': [k for k in VARIANT_KEYS if k in _normalize_variants(u.embedding)],
                 'last_seen': last_seen_map[u.user_id].isoformat() if u.user_id in last_seen_map else None,
             }
             for u in users
@@ -94,7 +81,7 @@ def get_all_embeddings() -> dict[int, dict]:
     with session_scope() as session:
         users = list(session.execute(select(User)).scalars().all())
         return {
-            u.user_id: {'name': u.name, 'variants': _as_variant_dict(u.embedding)}
+            u.user_id: {'name': u.name, 'variants': _normalize_variants(u.embedding)}
             for u in users
         }
 
@@ -126,7 +113,7 @@ def set_face_variant(user_id: int, variant_key: str, frames: list[list[float]]) 
             user = session.get(User, user_id)
             if not user:
                 return {'success': False, 'message': 'User not found'}
-            current = _as_variant_dict(user.embedding)
+            current = _normalize_variants(user.embedding)
             current[variant_key] = list(frames)[:MAX_FRAMES_PER_VARIANT]
             user.embedding = current
             return {'success': True, 'variants': [k for k in VARIANT_KEYS if k in current]}

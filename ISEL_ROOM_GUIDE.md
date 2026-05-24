@@ -284,9 +284,9 @@ MAX_FRAMES_PER_VARIANT = 3
 
 Key functions:
 
-- **`_as_variant_dict(stored)`.** Backward-compat normalizer. Reads `User.embedding` (which may be `None`, a flat list of floats (legacy single vector), a list of lists (older format), or a proper dict) and always returns `{variant_key: [vec, vec, vec]}`. **You should always go through this when reading embeddings.** Direct dict access will break on legacy rows. Note: `seed_db.py` deliberately writes legacy-shaped data (flat single vector) to exercise this path.
+- **`_normalize_variants(stored)`.** The single guard for the `{variant_key: [vec, ...]}` shape. Drops keys not in `VARIANT_KEYS`, drops empty slots, caps each slot at `MAX_FRAMES_PER_VARIANT`. Returns `{}` for `None` or empty input. Read paths (`get_all_users_info`, `get_all_embeddings`) and the write path (`set_face_variant`) all go through it so the shape stays consistent on the way in and out.
 
-- **`register_user(name, user_type, variants) → int`.** Creates a `User` row. `variants` can be a dict, a flat list, or a single vector. All are normalised through `_as_variant_dict`. Returns the new `user_id`.
+- **`register_user(name, user_type, variants) → int`.** Creates a `User` row. `variants` must be a `{variant_key: [vec, ...]}` dict. Normalised through `_normalize_variants` before insert. Returns the new `user_id`.
 
 - **`set_face_variant(user_id, variant_key, frames) → dict`.** Replaces one slot (e.g. just `glasses`) without touching the others. Caps at 3 frames. Returns `{success, variants: [...]}` listing which slots are now populated.
 
@@ -359,7 +359,7 @@ The `attendance` blueprint owns every attendance-flow route: `/api/auth`, `/api/
 | POST | `/api/admin/login` | (none) | auth | PIN check with HMAC compare + 5-fails-per-IP / 60-s lockout |
 | POST | `/api/admin/logout` | admin | auth | Clear session |
 | GET | `/api/admin/status` | (none) | auth | `{authenticated: bool}` |
-| POST | `/api/auth` | (none) | attendance | Match a face. Body: `{images: [b64, ...]}` (multi-frame burst, preferred) or `{image: b64}` (legacy single frame). Returns `{matched, user_id, name, status, low_confidence}`. Stashes a 30-s `pending_toggle` token in session. |
+| POST | `/api/auth` | (none) | attendance | Match a face. Body: `{images: [b64, ...]}` (3-frame burst from the kiosk). Returns `{matched, user_id, name, status, low_confidence}`. Stashes a 30-s `pending_toggle` token in session. |
 | POST | `/api/toggle` | (none) | attendance | Flip presence. Validates the `pending_toggle` token (skipped for `check_in_method='manual'`). Triggers Slack update. |
 | POST | `/api/register` | admin | users | Create new user with up to 3 variants. Rejects duplicates by face. |
 | GET | `/api/users` | (none) | users | All users with `{id, name, type, status, has_face, face_variants, last_seen}` |
@@ -436,18 +436,9 @@ Each slot holds up to 3 embeddings (burst capture, 3 frames in ~1 second). Total
 }
 ```
 
-#### Backward compatibility via `_as_variant_dict()`
+#### One shape, one guard
 
-Older rows have different shapes. The normalizer handles all of them:
-
-| Input shape | Output |
-|---|---|
-| `None` or `[]` or `{}` | `{}` |
-| `[0.012, -0.443, ...]` (flat list of floats, legacy single vector) | `{'normal': [<that list>]}` |
-| `[[0.01, ...], [0.02, ...]]` (legacy list of vectors) | `{'normal': [first 3 vectors]}` |
-| `{'normal': [...], 'glasses': [...]}` (current) | Filtered to valid keys, capped at 3 frames each |
-
-**Always read embeddings through `_as_variant_dict`.** Never index `user.embedding['normal']` directly. You will crash on a legacy row.
+Embeddings are always stored and read as the dict shape above. `_normalize_variants` in [isel/services/users.py](isel/services/users.py) is the single guard. It drops invalid keys, drops empty slots, and caps each slot at `MAX_FRAMES_PER_VARIANT`. Both writes (`set_face_variant`, `register_user`) and reads (`get_all_embeddings`, `get_all_users_info`) call it. Direct indexing like `user.embedding['normal']` is fine in your own code as long as you go through that helper at the boundary.
 
 ### 5.3 The matching algorithm
 

@@ -111,9 +111,20 @@ def main():
     today = now.date()
 
     # ── 1. Create users ──────────────────────────────────
+    # Embeddings mirror the current shape produced by registration:
+    # {'normal': [v, v, v], 'glasses': [v?], 'mask': [v?]}.
+    # `normal` always populated (3 frames). `glasses` ~50% of users.
+    # `mask` ~30%. Users with has_face=False get None.
     users = []
     for name, utype, has_face, _ in MEMBERS:
-        embedding = random_unit_vector() if has_face else None
+        if has_face:
+            embedding = {
+                'normal':  [random_unit_vector() for _ in range(3)],
+                'glasses': [random_unit_vector()] if random.random() < 0.5 else [],
+                'mask':    [random_unit_vector()] if random.random() < 0.3 else [],
+            }
+        else:
+            embedding = None
         user = User(name=name, user_type=utype, embedding=embedding, status=False)
         db.add(user)
     db.flush()
