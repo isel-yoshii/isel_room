@@ -28,15 +28,17 @@
     return h > 0 ? `${h}h ${rem}m` : `${rem}m`;
   };
 
-  // Tiny JSON fetch wrapper. POST/PUT/DELETE share one body builder.
-  const _jsonBody = body => ({
-    method:  'POST',
+  // Tiny JSON fetch wrapper. All four verbs are JSON in / JSON out.
+  const _jsonReq = (method, body) => ({
+    method,
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
+    body:    body === undefined ? undefined : JSON.stringify(body),
   });
   window.api = {
-    get:  url         => fetch(url).then(r => r.json()),
-    post: (url, body) => fetch(url, _jsonBody(body)).then(r => r.json()),
+    get:    url         => fetch(url).then(r => r.json()),
+    post:   (url, body) => fetch(url, _jsonReq('POST',   body)).then(r => r.json()),
+    put:    (url, body) => fetch(url, _jsonReq('PUT',    body)).then(r => r.json()),
+    delete: url         => fetch(url, _jsonReq('DELETE')).then(r => r.json()),
   };
 
   // Topbar clock — date + time, refreshed every second.

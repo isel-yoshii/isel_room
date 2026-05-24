@@ -61,11 +61,7 @@
     const userType = document.getElementById(`edit-type-${userId}`)?.value;
     if (!name || !userType) return;
     try {
-      const r = await fetch(`/api/user/${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, user_type: userType }),
-      }).then(r => r.json());
+      const r = await api.put(`/api/user/${userId}`, { name, user_type: userType });
       if (r.success) { loadMembers(); loadOverview(); }
       else alert(`Failed: ${r.message}`);
     } catch (e) { console.error(e); }
@@ -74,7 +70,7 @@
   window.deleteUser = async function deleteUser(userId, userName) {
     if (!confirm(`Are you sure you want to delete "${userName}"?\nThis action cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/user/${userId}`, { method: 'DELETE' }).then(r => r.json());
+      const res = await api.delete(`/api/user/${userId}`);
       if (res.success) { loadMembers(); loadOverview(); }
       else alert(`Failed to delete: ${res.message}`);
     } catch (e) {

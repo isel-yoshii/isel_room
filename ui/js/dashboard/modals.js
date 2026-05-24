@@ -264,11 +264,7 @@
     msg.textContent = 'Processing…';
 
     try {
-      const r = await fetch(`/api/user/${_faceReregUserId}/face`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variant, images }),
-      }).then(r => r.json());
+      const r = await api.post(`/api/user/${_faceReregUserId}/face`, { variant, images });
 
       if (r.success) {
         msg.textContent = r.variants
@@ -382,14 +378,10 @@
     const outVal = document.getElementById(`sess-out-${sessionId}`)?.value;
     if (!inVal) return;
     try {
-      const r = await fetch(`/api/session/${sessionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          checked_in_at:  inVal  ? inVal  + ':00' : null,
-          checked_out_at: outVal ? outVal + ':00' : null,
-        }),
-      }).then(r => r.json());
+      const r = await api.put(`/api/session/${sessionId}`, {
+        checked_in_at:  inVal  ? inVal  + ':00' : null,
+        checked_out_at: outVal ? outVal + ':00' : null,
+      });
       if (r.success && _currentProfileUserId) openProfileModal(_currentProfileUserId);
       else alert(`Failed: ${r.message}`);
     } catch (e) { console.error(e); }
