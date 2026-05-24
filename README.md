@@ -197,12 +197,12 @@ isel_room/
 ├── config.py               # Dev / Prod / Test configs
 ├── seed_db.py              # Reset DB with mock data
 ├── isel/
-│   ├── api/                # Flask blueprints (HTTP layer)
+│   ├── api/                # Flask blueprints (auth, attendance, users, stats, admin)
 │   ├── services/           # Business logic (attendance, users, points, stats, audit)
 │   ├── db/                 # SQLAlchemy models + session
 │   ├── face_engine.py      # DeepFace ArcFace wrapper
 │   ├── integrations/       # Slack status board
-│   └── utils/              # Decorators + image helpers
+│   └── utils.py            # @admin_required decorator + image decoder
 ├── tests/                  # pytest suite
 └── ui/
     ├── index.html          # Single-page shell

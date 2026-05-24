@@ -139,66 +139,15 @@ Both live in the same single-page app (`ui/index.html`). They're toggled via `sw
 
 ## 3. Repository Layout
 
-```
-isel_room/
-├── app.py                  # Flask app factory (create_app)
-├── wsgi.py                 # Production entry point (create_app('prod'))
-├── config.py               # Config classes: Dev / Prod / Test
-├── seed_db.py              # Drop + recreate DB with mock data
-├── requirements.txt
-├── .env.example            # Template — copy to .env, fill in
-├── slack_state.json        # (Runtime, gitignored) cached Slack msg timestamp
-├── isel_room.db            # (Runtime, gitignored) SQLite database
-│
-├── isel/
-│   ├── api/                # Flask blueprints — one file per resource
-│   │   ├── __init__.py     # register_blueprints(app)
-│   │   ├── auth.py         # POST /api/admin/login, /logout · GET /status
-│   │   ├── checkin.py      # POST /api/auth, /api/toggle
-│   │   ├── users.py        # GET/POST/PUT/DELETE /api/users + /face
-│   │   ├── sessions.py     # PUT /api/session/<id>
-│   │   ├── presence.py     # GET /api/present, /api/present-detailed
-│   │   ├── stats.py        # /api/log, /api/stats/*, /api/export/csv
-│   │   └── admin.py        # /api/audit/*, /api/admin/promote-students,
-│   │                       # /api/stats/points*
-│   ├── services/           # Business logic — pure Python
-│   │   ├── attendance.py   # toggle_entry, auto_checkout_all
-│   │   ├── users.py        # register, delete, face variants, promote
-│   │   ├── points.py       # monthly + academic-year leaderboards
-│   │   ├── stats.py        # weekly grid, monthly per-user, CSV export
-│   │   └── audit.py        # record() + recent_entries() with filters
-│   ├── db/                 # SQLAlchemy layer
-│   │   ├── __init__.py     # engine, SessionLocal, init_db()
-│   │   └── models.py       # User, Session, AuditLog
-│   ├── face_engine.py      # DeepFace ArcFace wrapper (one class)
-│   ├── integrations/
-│   │   └── slack.py        # update_status_board() — single daily message
-│   └── utils/
-│       ├── __init__.py     # @admin_required decorator
-│       └── image.py        # decode_image(), ImageDecodeError
-│
-├── tests/                  # pytest suite (~21 tests)
-│   ├── conftest.py         # in-memory SQLite + shared fixtures
-│   ├── test_attendance.py
-│   ├── test_points.py
-│   ├── test_users.py
-│   ├── test_face_engine.py
-│   └── test_api_checkin.py
-│
-└── ui/                     # Static frontend (no build step)
-    ├── index.html          # Single-page shell — both screens live here
-    ├── img/logo.png
-    ├── css/
-    │   ├── tokens.css      # CSS variables only (colors, spacing)
-    │   ├── base.css        # Reset, topbar, modals, shared buttons
-    │   ├── checkin.css     # Kiosk screen styles
-    │   └── dashboard.css   # Dashboard styles (~900 lines, the biggest)
-    └── js/
-        ├── core/           # Generic helpers (api, camera, clock, nav, utils)
-        ├── checkin/        # Kiosk-screen state machine + manual picker
-        └── dashboard/      # Tabs: overview, attendance(+grid), members,
-                            # activity, modals
-```
+See the tree in [README.md → Project Layout](README.md#project-layout). The rest of this guide assumes that overview.
+
+A few facts worth pinning down up front:
+
+- Five API blueprints: `auth`, `attendance` (auth + toggle + presence + session edits), `users`, `stats`, `admin`. See [§4.5](#45-api-blueprints) for the full endpoint table.
+- Five service modules: `attendance`, `users`, `points`, `stats`, `audit`. See [§4.4](#44-services--per-file-deep-dive).
+- Three DB tables: `users`, `sessions`, `audit_logs`. See [§4.3](#43-database-models).
+- `isel/utils.py` is a single flat module (`admin_required` decorator + `decode_image`/`ImageDecodeError`).
+- Frontend has no build step; everything is vanilla JS loaded via `<script>` tags at the bottom of [ui/index.html](ui/index.html).
 
 ### Where to add new code
 
@@ -228,7 +177,7 @@ isel/db/models.py ──►  SQLAlchemy ORM models.
 
 **Iron rule:** API code never imports from `isel.db.models` and never runs queries directly. It always goes through a service function. This keeps the API thin and means we can swap Flask for FastAPI tomorrow with one folder's worth of changes.
 
-The only exceptions are `isel/api/checkin.py` (uses `current_app.config['FACE_ENGINE']`) and `isel/api/users.py` (imports `VARIANT_KEYS` constant) — both legitimate because they need the constants, not the data.
+The only exceptions are `isel/api/attendance.py` (uses `current_app.config['FACE_ENGINE']`) and `isel/api/users.py` (imports `VARIANT_KEYS` constant) — both legitimate because they need the constants, not the data.
 
 ### 4.2 App factory & startup
 
@@ -384,13 +333,15 @@ Two functions only:
 
 ### 4.5 API blueprints
 
-[isel/api/__init__.py](isel/api/__init__.py) registers seven blueprints in `register_blueprints(app)`:
+[isel/api/__init__.py](isel/api/__init__.py) registers five blueprints in `register_blueprints(app)`:
 
 ```python
-from isel.api import auth, checkin, users, sessions, presence, stats, admin
-for mod in (auth, checkin, users, sessions, presence, stats, admin):
+from isel.api import auth, attendance, users, stats, admin
+for mod in (auth, attendance, users, stats, admin):
     app.register_blueprint(mod.bp)
 ```
+
+The `attendance` blueprint owns every attendance-flow route — `/api/auth`, `/api/toggle`, `/api/present`, `/api/present-detailed`, and `/api/session/<id>`.
 
 #### Complete endpoint reference
 
@@ -399,17 +350,17 @@ for mod in (auth, checkin, users, sessions, presence, stats, admin):
 | POST | `/api/admin/login` | — | auth | PIN check with HMAC compare + 5-fails-per-IP / 60-s lockout |
 | POST | `/api/admin/logout` | admin | auth | Clear session |
 | GET | `/api/admin/status` | — | auth | `{authenticated: bool}` |
-| POST | `/api/auth` | — | checkin | Match a face. Returns `{matched, user_id, name, status, low_confidence}`. Stashes 30-s `pending_toggle` token in session. |
-| POST | `/api/toggle` | — | checkin | Flip presence. Validates the `pending_toggle` token (skipped for `check_in_method='manual'`). Triggers Slack update. |
+| POST | `/api/auth` | — | attendance | Match a face. Returns `{matched, user_id, name, status, low_confidence}`. Stashes 30-s `pending_toggle` token in session. |
+| POST | `/api/toggle` | — | attendance | Flip presence. Validates the `pending_toggle` token (skipped for `check_in_method='manual'`). Triggers Slack update. |
 | POST | `/api/register` | admin | users | Create new user with up to 3 variants. Rejects duplicates by face. |
 | GET | `/api/users` | — | users | All users with `{id, name, type, status, has_face, face_variants, last_seen}` |
 | GET | `/api/user/<id>/profile` | — | users | Profile + monthly stats + 10 recent sessions |
 | PUT | `/api/user/<id>` | admin | users | Update name + user_type |
 | DELETE | `/api/user/<id>` | admin | users | Delete user (sessions kept; audit log preserved via `target_name` snapshot) |
 | POST | `/api/user/<id>/face` | admin | users | Replace one variant slot `{variant, images: [b64, ...]}` |
-| PUT | `/api/session/<id>` | admin | sessions | Edit session timestamps |
-| GET | `/api/present` | — | presence | List of present names |
-| GET | `/api/present-detailed` | — | presence | List with id/type/duration |
+| PUT | `/api/session/<id>` | admin | attendance | Edit session timestamps |
+| GET | `/api/present` | — | attendance | List of present names |
+| GET | `/api/present-detailed` | — | attendance | List with id/type/duration |
 | GET | `/api/log/today` | — | stats | Today's IN/OUT events |
 | GET | `/api/log?date=YYYY-MM-DD` | — | stats | Events for a specific date |
 | GET | `/api/stats/today` | — | stats | `{unique_checkins, active_days_month}` |
@@ -426,9 +377,9 @@ for mod in (auth, checkin, users, sessions, presence, stats, admin):
 
 #### Common patterns
 
-- **Auth gate.** Admin routes use the `@admin_required` decorator from [isel/utils/__init__.py](isel/utils/__init__.py) — returns 403 if `session.get('admin')` is falsy.
+- **Auth gate.** Admin routes use the `@admin_required` decorator from [isel/utils.py](isel/utils.py) — returns 403 if `session.get('admin')` is falsy.
 - **Error shape.** Services return `{'success': False, 'message': '...'}` on validation failure; routes pass that through with the right HTTP status (usually 400 or 500).
-- **Global error handler.** `ImageDecodeError` raised by [isel/utils/image.py](isel/utils/image.py) is caught in `app.py` and turned into a 400 JSON response — so route code doesn't have to wrap every `decode_image()` call.
+- **Global error handler.** `ImageDecodeError` raised by [isel/utils.py](isel/utils.py) is caught in `app.py` and turned into a 400 JSON response — so route code doesn't have to wrap every `decode_image()` call.
 - **Image size limits.** `MAX_CONTENT_LENGTH = 8 MB` at the Flask layer (rejected at request parse time), plus `_MAX_IMAGE_BYTES = 5 MB` per image in `decode_image()`.
 - **Session-stashed pending toggle.** `/api/auth` puts `{user_id, expires}` in the Flask session under `pending_toggle`. `/api/toggle` requires it match (for face flow) before flipping state — prevents a malicious client from POSTing a toggle for someone else's user_id.
 
@@ -500,7 +451,7 @@ Older rows have different shapes. The normalizer handles all of them:
 
 It's a brute-force scan. With 15 users × 9 variants × ~200 ns per cosine = **<30 μs total per match**. We don't need an ANN index until we have thousands of faces.
 
-**Extending the algorithm:** if you want to add per-variant averaging or use a different distance metric, change it inside `find_match` only. Callers (just `isel/api/checkin.py` and `isel/api/users.py`) treat it as an opaque oracle that returns `(user_id, name, distance)`.
+**Extending the algorithm:** if you want to add per-variant averaging or use a different distance metric, change it inside `find_match` only. Callers (just `isel/api/attendance.py` and `isel/api/users.py`) treat it as an opaque oracle that returns `(user_id, name, distance)`.
 
 ### 5.4 Thresholds
 
@@ -577,16 +528,13 @@ Frontend lives in [ui/js/dashboard/modals.js](ui/js/dashboard/modals.js):
 | [ui/css/base.css](ui/css/base.css) | Reset, topbar, modals, shared buttons. |
 | [ui/css/checkin.css](ui/css/checkin.css) | Kiosk screen styles. |
 | [ui/css/dashboard.css](ui/css/dashboard.css) | Dashboard styles. Largest file (~900 lines). |
-| [ui/js/core/api.js](ui/js/core/api.js) | Tiny fetch wrapper — `api.get(url)`, `api.post(url, body)`. |
+| [ui/js/core/utils.js](ui/js/core/utils.js) | Escape helpers, `fmtMins`, `api.get` / `api.post` fetch wrapper, top-bar clock, shared member-display helpers (`avColor`, `initials`, `isStudent`, `isTeacher`, `isGraduated`, `roleBadgeClass`, `formatLastSeen`). |
 | [ui/js/core/camera.js](ui/js/core/camera.js) | `startCamera(videoId)` / `stopCamera()` / `captureFrame(video) → base64`. |
-| [ui/js/core/clock.js](ui/js/core/clock.js) | Top-bar clock. |
 | [ui/js/core/nav.js](ui/js/core/nav.js) | `switchScreen()` + global `C`/`D` keyboard shortcuts. Modal-open guard. |
 | [ui/js/core/cohort-multiselect.js](ui/js/core/cohort-multiselect.js) | Multi-select with preset buttons (All / 先生 / M2 / M1 / B4 / Intern / 学生). Smart popover positioning (flips when overflowing viewport). |
-| [ui/js/core/utils.js](ui/js/core/utils.js) | `initials()`, `avColor()`, formatters. |
-| [ui/js/checkin/index.js](ui/js/checkin/index.js) | Bootstraps the kiosk screen + keyboard handlers. |
+| [ui/js/checkin/index.js](ui/js/checkin/index.js) | Bootstraps the kiosk screen + keyboard handlers + `loadMemberStrip` (bottom presence strip). |
 | [ui/js/checkin/state-machine.js](ui/js/checkin/state-machine.js) | `idle` / `scanning` / `confirmation` / `fail` / `success` rendering. |
 | [ui/js/checkin/manual-picker.js](ui/js/checkin/manual-picker.js) | Modal for picking a member manually when face match fails. |
-| [ui/js/checkin/presence-strip.js](ui/js/checkin/presence-strip.js) | Bottom strip showing present (green) + absent (grey) members. |
 | [ui/js/dashboard/index.js](ui/js/dashboard/index.js) | Tab dispatcher (`switchDashTab`) + 30 s polling + `1`/`2`/`3`/`4` shortcuts. |
 | [ui/js/dashboard/overview.js](ui/js/dashboard/overview.js) | Stat cards + 7-day trend chart + activity log section. |
 | [ui/js/dashboard/attendance.js](ui/js/dashboard/attendance.js) | Monthly + academic-year leaderboards. |
@@ -647,6 +595,8 @@ All modals are direct children of `<body>`, hidden by default with class `hidden
 
 ## 7. Configuration & Environments
 
+Environment variables: see the table in [README.md → Configuration](README.md#configuration). `.env` is loaded by `python-dotenv` at the top of [app.py](app.py).
+
 [config.py](config.py) defines four classes:
 
 | Class | When | Notes |
@@ -656,18 +606,7 @@ All modals are direct children of `<body>`, hidden by default with class `hidden
 | `ProdConfig` | `create_app('prod')` (via `wsgi.py`) | `DEBUG=False`, cookies secure. **Raises `RuntimeError` if `FLASK_SECRET_KEY` or `ADMIN_PIN` is missing.** |
 | `TestConfig` | `create_app('test')` (tests) | In-memory SQLite, fixed test PIN/secret |
 
-### Environment variables
-
-| Name | Default | Required? | What it does |
-|---|---|---|---|
-| `FLASK_SECRET_KEY` | `dev-secret-change-me` | **Yes in prod** | Flask session signing key. Generate with `python -c "import secrets; print(secrets.token_hex(32))"`. |
-| `ADMIN_PIN` | (empty) | **Yes** | PIN for admin dashboard. Any length string. Stored plaintext — this is fine for an on-premise lab kiosk. |
-| `DATABASE_URL` | `sqlite:///isel_room.db` | No | SQLAlchemy connection string. Use MySQL URL in production at scale. |
-| `LOW_CONFIDENCE_THRESHOLD` | `0.40` | No | UI badge threshold (see [5.4](#54-thresholds)). **Does not affect match decisions.** |
-| `DAY_RESET_HOUR` | `22` | No | Currently informational only — the cron job runs whenever you schedule it, this is just documentation of "when the lab logically closes." |
-| `SLACK_BOT_TOKEN` | (empty) | No | Set to enable Slack status board. Omit to disable cleanly. |
-
-`.env` is loaded by `python-dotenv` at the top of [app.py](app.py). Copy `.env.example` to `.env` and fill in.
+`TestConfig` is the one place env vars don't apply — it hard-codes `sqlite:///:memory:`, a fixed PIN, and a fixed secret so tests are reproducible across machines.
 
 ---
 
@@ -710,7 +649,7 @@ _Updated 14:32_
 
 ### Who calls it
 
-- [isel/api/checkin.py](isel/api/checkin.py) — after every successful `/api/toggle`.
+- [isel/api/attendance.py](isel/api/attendance.py) — after every successful `/api/toggle`.
 - [isel/services/attendance.py](isel/services/attendance.py) — at the end of `auto_checkout_all()`.
 
 ### Setup
@@ -809,7 +748,7 @@ python -m pytest -k "promote"     # tests matching keyword
 
 **Goal:** "I want `GET /api/users/<id>/sessions` to return a user's last 50 sessions."
 
-1. **Pick a blueprint.** Sessions live in `isel/api/sessions.py`, but this endpoint is keyed by user — put it in `isel/api/users.py`.
+1. **Pick a blueprint.** Session edits live in `isel/api/attendance.py`, but this endpoint is keyed by user — put it in `isel/api/users.py`.
 2. **Add a service function.** In `isel/services/stats.py` (or whichever fits), write:
    ```python
    def get_user_sessions(user_id: int, limit: int = 50) -> list[dict]: ...
@@ -894,58 +833,17 @@ If you want a clean DB with no mock data, delete `isel_room.db` and let `init_db
 
 ## 12. Conventions & House Style
 
-### Commits
+A short list — the codebase itself is the canonical example.
 
-We use [Conventional Commits](https://www.conventionalcommits.org/). Format:
-
-```
-<type>(<scope>): <subject>
-
-<optional body explaining the why>
-```
-
-Types we use: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`. Examples from this repo's history:
-
-```
-feat(points): academic-year leaderboard resets every Apr 1
-fix(ui): rotate avatar colours in kiosk manual picker
-refactor(ui): switch structural surfaces to warm-cream neutral palette
-chore(seed): update members to actual lab roster
-```
-
-**Subject in lowercase, no trailing period.** Past tense or imperative — pick one and stick with it (this repo leans imperative).
-
-### Attribution
-
-**Never include `Co-Authored-By` lines.** Never credit AI assistants in commit messages or PR descriptions. The work is yours. If you used Claude / Copilot / etc. to write code, that's a tool, like an IDE.
-
-In the Claude Code config (`.claude/settings.json` or equivalent), the attribution setting should be:
-```json
-"attribution": { "commit": "", "pr": "" }
-```
-
-### Code style
-
-- **Default to no comments.** Code should be self-documenting through good naming. Add a comment only when the *why* is non-obvious: a hidden constraint (`# tokens must be HMAC-compared to prevent timing attacks`), a workaround (`# DeepFace 0.0.79 leaks file handles when enforce=True`), or surprising behavior. Don't comment what the code does — it's right there.
-- **No dead code.** Don't leave `# old code commented out` blocks. `git log` is the archive. If you need to remove something, delete it; if you need it back, `git checkout`.
-- **No premature abstractions.** Three similar lines of code are better than a forced helper function. Wait until you have 3 *real* call sites before extracting.
-- **No backwards-compat shims for code you control.** If you rename a function, update every caller — don't leave a wrapper that calls the new name.
-- **Trust internal code.** Validate at system boundaries (user input, external APIs). Don't `if user is None: ...` after a `session.get(User, user_id)` if the caller has already guaranteed the user exists.
-
-### Naming
-
-- Python: `snake_case` functions, `PascalCase` classes, `UPPER_SNAKE` constants.
-- JS: `camelCase` functions and variables; functions exposed to inline handlers via `window.foo = function foo() {...}` (named both for stack traces).
-- CSS: `kebab-case` class names.
-- Files: `snake_case.py`, `kebab-case.js`, `kebab-case.css`.
-
-### Japanese in the UI
-
-Japanese terms (`先生`, `学生`, `年度`) are intentional in UI strings, audit rows, and Slack messages. The codebase itself (variable names, function names, identifiers) is all English. This split is deliberate: ASCII identifiers keep tooling happy, Japanese labels keep the UI feeling native to its users.
-
-### File length
-
-When a file passes ~400 lines, consider whether it's doing two things. `ui/js/dashboard/modals.js` is at ~400 and on the edge — if you add another modal, split.
+- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/). Types we use: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`. Subject in lowercase, no trailing period, imperative voice. Body optional, wrapped at 72.
+- **No AI attribution.** Never add `Co-Authored-By` lines or credit AI assistants. In Claude Code config: `"attribution": { "commit": "", "pr": "" }`.
+- **No useless comments.** Default to none. Only write a comment when the *why* is non-obvious (a hidden constraint, a workaround, surprising behavior). Never explain *what* the code does.
+- **No dead code.** Delete instead of commenting out. `git log` is the archive.
+- **No premature abstractions.** Wait until you have ≥3 real call sites before extracting a helper.
+- **Trust internal code.** Validate only at system boundaries (user input, external APIs).
+- **Naming:** Python `snake_case` (`PascalCase` classes, `UPPER_SNAKE` constants); JS `camelCase` with `window.foo = function foo() {...}` for inline-handler-exposed functions; CSS `kebab-case`; files `snake_case.py` / `kebab-case.js` / `kebab-case.css`.
+- **Japanese in the UI is deliberate.** Identifiers in code are English; UI strings, audit rows, and Slack messages use `先生` / `学生` / `年度` etc.
+- **File length:** when a file passes ~400 lines, ask whether it's doing two things. `ui/js/dashboard/modals.js` is on the edge.
 
 ---
 
