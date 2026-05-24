@@ -4,20 +4,14 @@
   let _pickerIndex    = 0;
 
   function renderPickerList(users) {
-    const list = document.getElementById('picker-list');
-    if (!users.length) {
-      list.innerHTML = '<div class="picker-empty">No Members Found</div>';
-      return;
-    }
-    list.innerHTML = users.map((u, i) => {
-      return `
+    renderList('picker-list', users, (u, i) => `
         <div class="picker-row ${i === _pickerIndex ? 'active' : ''}"
              onclick="selectPickerUser(${u.id})">
           <div class="picker-av ${avColor(i)}">${esc(initials(u.name))}</div>
           <div class="picker-name">${esc(u.name)}</div>
           <div class="status-pill ${u.status ? 'pill-in' : 'pill-out'}">${u.status ? 'In Lab' : 'Out'}</div>
-        </div>`;
-    }).join('');
+        </div>`,
+      '<div class="picker-empty">No Members Found</div>');
   }
 
   function updatePickerHighlight(rows) {

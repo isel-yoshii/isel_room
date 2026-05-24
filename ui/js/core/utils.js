@@ -52,6 +52,19 @@
   setInterval(tick, 1000);
   tick();
 
+  // ── List rendering helper ──
+  // Renders `items` into `el` via `template(item, i)`, joining with no separator.
+  // Empty list → `empty` HTML (default: clear the element). `el` may be a DOM
+  // node or an id string. Collapses the
+  //   if (!arr.length) { el.innerHTML = empty; return; }
+  //   el.innerHTML = arr.map(...).join('');
+  // pattern that was repeated 8x across the dashboard and check-in screens.
+  window.renderList = (el, items, template, empty = '') => {
+    const node = typeof el === 'string' ? document.getElementById(el) : el;
+    if (!node) return;
+    node.innerHTML = items.length ? items.map(template).join('') : empty;
+  };
+
   // ── Modal helpers ──
   // Open / close = add/remove the `hidden` class. Stream cleanup stays at the
   // call site because each modal owns its own camera stream variable.

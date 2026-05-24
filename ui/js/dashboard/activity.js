@@ -148,10 +148,9 @@
         onChange: (ids) => { _selectedUserIds = ids; loadAuditLog(); },
       });
     }
-    const chipBar = document.getElementById('filter-actions');
-    chipBar.innerHTML = ACTION_TYPES.map(a =>
+    renderList('filter-actions', ACTION_TYPES, a =>
       `<span class="chip" data-action="${a}" onclick="toggleActionChip('${a}')">${ACTION_LABEL[a] ?? a}</span>`
-    ).join('');
+    );
     updatePresetHighlight();
   }
 
@@ -232,11 +231,7 @@
         `/api/audit/log?user_id=${userId}&start=${toIso(start)}&end=${toIso(end)}&limit=200`
       );
 
-      if (!rows.length) {
-        body.innerHTML = '<div class="log-empty">No surrounding events</div>';
-        return;
-      }
-      body.innerHTML = rows.map(r => {
+      renderList(body, rows, r => {
         const isIn = IN_ACTIONS.has(r.action);
         const label = ACTION_LABEL[r.action] ?? r.action;
         const time = r.timestamp.slice(11);
@@ -247,7 +242,7 @@
             <div class="log-ts">${esc(time)}</div>
             <div class="status-pill ${isIn ? 'pill-in' : 'pill-out'}">${esc(label)}</div>
           </div>`;
-      }).join('');
+      }, '<div class="log-empty">No surrounding events</div>');
     } catch (err) {
       console.error('openContextModal error:', err);
       body.innerHTML = '<div class="log-empty">Failed to load context</div>';

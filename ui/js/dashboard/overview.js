@@ -65,26 +65,21 @@ window.loadOverview = async function loadOverview() {
       const presentNames = new Set(present.map(u => u.name));
       const durationMap  = Object.fromEntries(present.map(u => [u.name, u.duration]));
 
-      const grid = document.getElementById('member-grid');
-      if (!users.length) {
-        grid.innerHTML = '<div class="grid-empty">No Members Registered Yet</div>';
-      } else {
-        const sorted = [...users].sort((a, b) =>
-          (presentNames.has(b.name) ? 1 : 0) - (presentNames.has(a.name) ? 1 : 0)
-        );
-        grid.innerHTML = sorted.map((u, i) => {
-          const here      = presentNames.has(u.name);
-          const dur       = durationMap[u.name] ?? '–';
-          const timeLabel = here ? dur : (formatLastSeen(u.last_seen) || '–');
-          return `
-            <div class="member-card ${here ? 'present' : 'absent'}" onclick="openProfileModal(${u.id})" style="cursor:pointer">
-              <div class="avatar ${avColor(i)}">${initials(u.name)}</div>
-              <div class="member-name">${u.name}</div>
-              <div class="member-time">${timeLabel}</div>
-              <div class="status-pill ${here ? 'pill-in' : 'pill-out'}">${here ? 'In Lab' : 'Out'}</div>
-            </div>`;
-        }).join('');
-      }
+      const sorted = [...users].sort((a, b) =>
+        (presentNames.has(b.name) ? 1 : 0) - (presentNames.has(a.name) ? 1 : 0)
+      );
+      renderList('member-grid', sorted, (u, i) => {
+        const here      = presentNames.has(u.name);
+        const dur       = durationMap[u.name] ?? '–';
+        const timeLabel = here ? dur : (formatLastSeen(u.last_seen) || '–');
+        return `
+          <div class="member-card ${here ? 'present' : 'absent'}" onclick="openProfileModal(${u.id})" style="cursor:pointer">
+            <div class="avatar ${avColor(i)}">${initials(u.name)}</div>
+            <div class="member-name">${u.name}</div>
+            <div class="member-time">${timeLabel}</div>
+            <div class="status-pill ${here ? 'pill-in' : 'pill-out'}">${here ? 'In Lab' : 'Out'}</div>
+          </div>`;
+      }, '<div class="grid-empty">No Members Registered Yet</div>');
 
       loadCharts();
     } catch (err) {
@@ -127,12 +122,7 @@ window.loadOverview = async function loadOverview() {
   };
 
   function renderLogRows(log) {
-    const logBody = document.getElementById('log-body');
-    if (!log.length) {
-      logBody.innerHTML = '<div class="log-empty">No Activity Recorded</div>';
-      return;
-    }
-    logBody.innerHTML = log.map(l => `
+    renderList('log-body', log, l => `
       <div class="log-row">
         <div class="log-icon ${l.event_type === 'IN' ? 'log-in' : 'log-out'}">
           ${l.event_type === 'IN' ? '↑' : '↓'}
@@ -142,7 +132,8 @@ window.loadOverview = async function loadOverview() {
         <div class="status-pill ${l.event_type === 'IN' ? 'pill-in' : 'pill-out'}">
           ${l.event_type === 'IN' ? 'Check-In' : 'Check-Out'}
         </div>
-      </div>`).join('');
+      </div>`,
+      '<div class="log-empty">No Activity Recorded</div>');
   }
 
   window.Dashboard = window.Dashboard || {};

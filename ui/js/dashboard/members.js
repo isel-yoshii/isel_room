@@ -2,14 +2,7 @@
   window.loadMembers = async function loadMembers() {
     try {
       const users = await api.get('/api/users');
-      const grid  = document.getElementById('admin-grid');
-
-      if (!users.length) {
-        grid.innerHTML = '<div class="log-empty">No Members Registered Yet</div>';
-        return;
-      }
-
-      grid.innerHTML = users.map((u, i) => {
+      renderList('admin-grid', users, (u, i) => {
         const grad = isGraduated(u.type);
         const safeName = esc(u.name);
         const argName  = escAttr(u.name);
@@ -33,7 +26,7 @@
             <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${argName}')" title="Add Face Variant">⊙</button>
             <button class="del-btn" onclick="deleteUser(${u.id}, '${argName}')">Delete</button>
           </div>`;
-      }).join('');
+      }, '<div class="log-empty">No Members Registered Yet</div>');
     } catch (err) {
       console.error('loadMembers error:', err);
     }
