@@ -632,56 +632,61 @@ Environment variables: see the table in [README.md → Configuration](README.md#
 
 ## 8. Slack Integration
 
-**Important.** We deliberately do **not** have a Slack chat listener. There is no Socket Mode, no message handlers, no `SLACK_APP_TOKEN`. Just one HTTP-only bot token that posts and edits one message per day.
+Slack is a hard requirement in production. The integration has two surfaces:
 
-### What it does
+1. **Daily status board.** One Block Kit message per day in the channel set by `SLACK_CHANNEL` (default `#a-lab-status`), edited in place via `chat.update` whenever presence changes.
+2. **`/who-is-in` slash command.** Anyone in the workspace can run it for an ephemeral reply with the current present-list. Delivered via Socket Mode, so no public HTTP endpoint is needed.
 
-- Maintains a single "status board" message in `#a-lab-status`, refreshed in place via `chat.update` whenever presence changes.
-- Plain text format (no Block Kit):
+The full file is [isel/integrations/slack.py](isel/integrations/slack.py), about 130 lines.
+
+### Status board format (Block Kit)
 
 ```
-🟢 *3 in the lab*
-• Inoue (M2)
-• Naimi (M1)
-• Yamamoto (B4)
-
-_Updated 14:32_
+[header]   🟢 3 in the lab
+[section]  • Inoue (M2)
+           • Naimi (M1)
+           • Yamamoto (B4)
+[context]  _Updated 14:32_
 ```
 
-When empty:
-```
-⚫ *Lab is empty*
-
-_Updated 14:32_
-```
+When empty: a header (`⚫ Lab is empty`) + the context footer; no section block. A short plain-text fallback (`🟢 3 in the lab`) goes alongside `blocks` so push notifications and screen readers still get something sensible.
 
 ### How it works
 
-[isel/integrations/slack.py](isel/integrations/slack.py), the whole file is ~80 lines.
-
-- `slack_state.json` (at repo root, gitignored) caches `{ts, date, channel}`, the timestamp of today's message so we can edit it.
-- On each call to `update_status_board()`:
-  1. Render the new text from `get_present_users_detailed()`.
-  2. If `state['date'] == today`, call `chat.update(channel, ts, text)`.
-  3. If that returns `message_not_found` (someone deleted it), fall through to step 4.
-  4. Otherwise (new day, or no state), `chat.postMessage(channel, text)` and save the returned `ts` to `slack_state.json`.
+- `slack_state.json` (at repo root, gitignored) caches `{ts, date, channel}` so the next call knows which message to edit.
+- On each `update_status_board()`:
+  1. Render Block Kit from `get_present_users_detailed()`.
+  2. If `state['date'] == today` and channel matches, `chat.update(channel, ts, text, blocks)`.
+  3. If Slack replies `message_not_found` (someone deleted it), fall through and post fresh.
+  4. Otherwise (new day, or no state) `chat.postMessage(channel, text, blocks)` and save the returned `ts`.
 - Any error is caught and logged. **Failures never block check-ins.**
+
+### Socket Mode and the Werkzeug guard
+
+`init()` starts the `SocketModeHandler` on a daemon thread (`name='slack-socket-mode'`). The thread dies cleanly with the main process. The slash command handler runs inside that thread; SQLAlchemy sessions are per-thread (the engine is created with `check_same_thread: False`), so there's no contention with the HTTP threads.
+
+In dev, `flask --app app run` forks a Werkzeug reloader parent that re-execs a child on file change. Without a guard, Socket Mode would connect twice (once per process), wasting a Slack connection and confusing the handlers. [app.py](app.py) only calls `init()` when `WERKZEUG_RUN_MAIN == 'true'` (the child) or when `DEBUG == False` (prod, no Werkzeug). Same trap that pushed `auto-checkout` from a daemon thread to a cron job in [§9](#9-background-jobs); here a thread is unavoidable but the guard prevents the doubling.
 
 ### Who calls it
 
 - [isel/api/attendance.py](isel/api/attendance.py) after every successful `/api/toggle`.
 - [isel/services/attendance.py](isel/services/attendance.py) at the end of `auto_checkout_all()`.
+- The `/who-is-in` handler in [isel/integrations/slack.py](isel/integrations/slack.py) when a Slack user runs the command.
 
-### Setup
+### Setup, once per Slack workspace
 
 1. Create a Slack app at api.slack.com/apps.
-2. Add bot scopes: `chat:write`.
-3. Install to your workspace, copy the bot token (`xoxb-...`).
-4. Invite the bot to `#a-lab-status` (`/invite @YourBot`).
-5. Put the token in `.env` as `SLACK_BOT_TOKEN`.
-6. Restart the app. You should see `Slack: Bot Client Initialized` in the console.
+2. **OAuth & Permissions** → add bot scopes `chat:write` (status board) and `commands` (slash command).
+3. **Socket Mode** → enable it. Generate an App-Level Token with the `connections:write` scope. Copy it (`xapp-...`).
+4. **Slash Commands** → create `/who-is-in`. With Socket Mode on, no request URL is needed; Slack delivers the command over the WebSocket.
+5. **Install to Workspace** → copy the bot token (`xoxb-...`).
+6. Invite the bot to your status channel: `/invite @YourBot`.
+7. Put both tokens in `.env` as `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`. Optionally set `SLACK_CHANNEL`.
+8. Restart the app. Console should show `Slack: bot client initialised` and `Slack: Socket Mode listener started`.
 
-To use a different channel, change `_DEFAULT_CHANNEL` in [isel/integrations/slack.py](isel/integrations/slack.py) (or pass `channel=` to `update_status_board()` from the caller).
+### Dev without Slack
+
+If you don't want to set up a Slack workspace just to hack on the kiosk, leave both tokens empty in dev. `init()` will log `Slack: SLACK_BOT_TOKEN missing; integration disabled` and `update_status_board()` becomes a no-op. The rest of the app runs normally. In **prod**, missing tokens make `ProdConfig.__init__` raise on startup.
 
 ---
 
@@ -871,7 +876,6 @@ If you want a clean DB with no mock data, delete `isel_room.db` and let `init_db
 A short list. The codebase itself is the canonical example.
 
 - **Commits.** [Conventional Commits](https://www.conventionalcommits.org/). Types we use: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`. Subject in lowercase, no trailing period, imperative voice. Body optional, wrapped at 72.
-- **No AI attribution.** Never add `Co-Authored-By` lines or credit AI assistants. In Claude Code config: `"attribution": { "commit": "", "pr": "" }`.
 - **No useless comments.** Default to none. Only write a comment when the *why* is non-obvious (a hidden constraint, a workaround, surprising behavior). Never explain *what* the code does.
 - **No dead code.** Delete instead of commenting out. `git log` is the archive.
 - **No premature abstractions.** Wait until you have 3 or more real call sites before extracting a helper.
@@ -890,18 +894,14 @@ A short list. The codebase itself is the canonical example.
 | DeepFace + TensorFlow loads ~500 MB at startup (~15 s cold start with the retinaface detector) | Keep the app process running; use `wsgi.py` + gunicorn in prod | Could swap to insightface (smaller) but ArcFace via DeepFace is well-tested for us |
 | No multi-tenant support | Run one app instance per lab | Add `lab_id` column on every table. Non-trivial. |
 | `ADMIN_PIN` is plaintext in `.env` | Acceptable for kiosk on a trusted network | Hash + per-user admin accounts |
-| One Slack channel only | Edit `_DEFAULT_CHANNEL` per deployment | Per-channel config |
 | No password rotation alerting | Manual `.env` update | Maybe a CLI `flask rotate-pin` |
 | Mobile dashboard unstyled | Use a tablet or laptop | Responsive CSS rewrite (~2 days work) |
 | No CSV import for bulk member registration | Use `seed_db.py` template + edit | Build it if it is ever asked for |
 | No browser compatibility tested below Chrome / Firefox / Safari current | (none) | Polyfill / test if needed |
 
-### Candidate next features (from sensei wish list)
+### Candidate next features
 
-- 2FA for admin login (TOTP).
-- Photo capture along with each check-in (separate `images/checkins/` directory, served back in admin view). Privacy implications need discussion.
-- Discord integration alongside Slack.
-- Mobile-friendly read-only dashboard.
+- Add Point Systems (Add/Remove Points based on contribution, etc.)
 
 ---
 

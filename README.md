@@ -2,7 +2,7 @@
 
 > Face-recognition lab presence tracking for the Intelligent Software Engineering Lab (KIT).
 
-Members check in and out by looking at a camera at the lab door. The sensei sees a live dashboard, a weekly attendance grid, monthly and academic-year leaderboards, and a full audit trail. An optional Slack integration keeps the lab Slack channel up to date with who is in.
+Members check in and out by looking at a camera at the lab door. Everyone can see a live dashboard, a weekly attendance grid, monthly and academic-year leaderboards, and a full audit trail. A Slack integration keeps the lab Slack channel up to date with who is in.
 
 ---
 
@@ -14,7 +14,7 @@ Members check in and out by looking at a camera at the lab door. The sensei sees
 - [Quick Start](#quick-start)
 - [Basic Usage](#basic-usage)
 - [Configuration](#configuration)
-- [Slack Setup (Optional)](#slack-setup-optional)
+- [Slack Setup](#slack-setup)
 - [Project Layout](#project-layout)
 - [Testing](#testing)
 - [Documentation](#documentation)
@@ -42,7 +42,7 @@ _Add screenshots once the lab kiosk is in production. Suggested:_
 - **Leaderboards.** One point per day present. Browse by month or by academic year (`2026年度`). The all-time count resets every April 1.
 - **Member management.** Add, edit, delete, re-register faces. A Promotion Wizard walks the admin through grade transitions each April.
 - **Audit log.** Every admin and attendance event is recorded. Filter by member, action, date, or free text. Export to CSV.
-- **Slack daily status board.** One message in your lab channel, edited in place as people come and go. No chat firehose.
+- **Slack daily status board + `/who-is-in` slash command.** One Block Kit message per day in your lab channel, edited in place as people come and go (no chat firehose). Anyone in the workspace can run `/who-is-in` for an ephemeral reply with the current present-list.
 - **Auto-checkout cron.** A nightly job force-closes any forgotten sessions.
 - **Manual fallback.** When face recognition fails, anyone can pick their name from a list.
 
@@ -60,7 +60,7 @@ _Add screenshots once the lab kiosk is in production. Suggested:_
 | Frontend | Vanilla JavaScript (no build step, no framework) |
 | Charts | Chart.js 4 |
 | Fonts | Syne, Nunito, IBM Plex Mono |
-| Slack | slack-bolt (post-only, no Socket Mode) |
+| Slack | slack-bolt (Socket Mode, Block Kit messages, `/who-is-in` slash command) |
 
 ---
 
@@ -72,7 +72,7 @@ Tested on macOS, Linux, and WSL. Windows native should work but is untested.
 
 - Python 3.10 or newer
 - A webcam for kiosk use. The dashboard works without one.
-- Optional: a Slack workspace and bot token.
+- A Slack workspace where you can install an app and get both a bot token (`xoxb-...`) and an app-level token (`xapp-...`).
 
 ### Install
 
@@ -165,26 +165,34 @@ All configuration is via environment variables, loaded from `.env`:
 |---|---|---|---|
 | `FLASK_SECRET_KEY` | `dev-secret-change-me` | **Yes in prod** | Flask session signing key |
 | `ADMIN_PIN` | _(empty)_ | **Yes** | PIN for the admin dashboard |
+| `SLACK_BOT_TOKEN` | _(empty)_ | **Yes in prod** | Bot token (`xoxb-...`) for posting + editing the status board |
+| `SLACK_APP_TOKEN` | _(empty)_ | **Yes in prod** | App-level token (`xapp-...`) for Socket Mode (slash commands) |
+| `SLACK_CHANNEL` | `#a-lab-status` | No | Channel where the daily status board is posted |
 | `DATABASE_URL` | `sqlite:///isel_room.db` | No | SQLAlchemy connection string |
 | `LOW_CONFIDENCE_THRESHOLD` | `0.40` | No | UI badge cutoff for low-confidence matches (cosmetic only) |
 | `DAY_RESET_HOUR` | `22` | No | Documents your lab's closing hour. The cron is the actual reset trigger. |
-| `SLACK_BOT_TOKEN` | _(empty)_ | No | Set this to enable Slack integration |
 
-`ProdConfig` (used by `wsgi.py`) refuses to start without `FLASK_SECRET_KEY` and `ADMIN_PIN`. This is intentional.
+`ProdConfig` (used by `wsgi.py`) refuses to start if any of `FLASK_SECRET_KEY`, `ADMIN_PIN`, `SLACK_BOT_TOKEN`, or `SLACK_APP_TOKEN` is missing. In dev the Slack tokens are still optional; the integration disables itself with a warning and the rest of the app runs normally.
 
 ---
 
-## Slack Setup (Optional)
+## Slack Setup
 
-Posts and edits **one** message per day in your lab channel. No chat firehose.
+The integration does two things:
+
+- **Daily status board.** One Block Kit message per day in the channel you choose (`SLACK_CHANNEL`, default `#a-lab-status`), edited in place via `chat.update` as people come and go. No chat firehose.
+- **`/who-is-in` slash command.** Anyone in the workspace can run it for an ephemeral reply (only visible to them) with the current present-list.
+
+Setup, once per Slack workspace:
 
 1. Create a Slack app at <https://api.slack.com/apps>.
-2. Add the bot scope `chat:write`.
-3. Install it to your workspace and copy the bot token (`xoxb-...`).
-4. Invite the bot to your channel: `/invite @YourBotName`.
-5. Set `SLACK_BOT_TOKEN` in `.env` and restart the app.
-
-The default channel is `#a-lab-status`. To change it, edit `_DEFAULT_CHANNEL` in [isel/integrations/slack.py](isel/integrations/slack.py).
+2. **OAuth & Permissions** → add bot scope `chat:write` (status board) and `commands` (slash command).
+3. **Socket Mode** → enable it. Generate an App-Level Token with the `connections:write` scope. Copy it (`xapp-...`).
+4. **Slash Commands** → create `/who-is-in`. With Socket Mode on, no request URL is needed.
+5. **Install to Workspace** → copy the bot token (`xoxb-...`).
+6. Invite the bot to your status channel: `/invite @YourBotName`.
+7. Put both tokens in `.env` as `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`. Optionally set `SLACK_CHANNEL` if you don't want `#a-lab-status`.
+8. Restart the app. You should see `Slack: bot client initialised` and `Slack: Socket Mode listener started` in the console.
 
 ---
 
@@ -259,5 +267,3 @@ _Internal use, KIT Intelligent Software Engineering Lab. Add a formal LICENSE fi
 ## Acknowledgments
 
 - Built for the **ISEL Lab** at the Kyoto Institute of Technology.
-- Face recognition via [DeepFace](https://github.com/serengil/deepface) (ArcFace).
-- Inspired by [GitHub's contribution graph](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/managing-contribution-settings-on-your-profile/viewing-contributions-on-your-profile) for the weekly attendance grid.

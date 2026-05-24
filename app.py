@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -28,6 +29,21 @@ def create_app(config_name: str = 'dev') -> Flask:
 
     from isel.api import register_blueprints
     register_blueprints(app)
+
+    # Slack: start the bot client (and Socket Mode listener if both tokens
+    # are present). In dev with Werkzeug's auto-reloader the parent process
+    # spawns a child that re-runs create_app; only let the child start the
+    # Socket Mode thread, otherwise we'd double-connect.
+    _in_werkzeug_reloader_parent = (
+        app.config.get('DEBUG') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true'
+    )
+    if not _in_werkzeug_reloader_parent and not app.config.get('TESTING'):
+        from isel.integrations.slack import init as init_slack
+        init_slack(
+            bot_token=app.config.get('SLACK_BOT_TOKEN', ''),
+            app_token=app.config.get('SLACK_APP_TOKEN', ''),
+            channel  =app.config.get('SLACK_CHANNEL', '#a-lab-status'),
+        )
 
     @app.cli.command('auto-checkout')
     def _cli_auto_checkout():
