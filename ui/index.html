@@ -5,55 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ISEL 在室管理</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
-  <!--
-    CSS is split into three files:
-      style.css      — design tokens, reset, top-nav, modal, shared buttons
-      checkin.css    — kiosk / face-recognition screen
-      dashboard.css  — presence dashboard + admin tab
-  -->
-  <link rel="stylesheet" href="/ui/style.css" />
-  <link rel="stylesheet" href="/ui/checkin.css" />
-  <link rel="stylesheet" href="/ui/dashboard.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="/ui/img/favicon.png" />
+  <link rel="stylesheet" href="/ui/css/tokens.css" />
+  <link rel="stylesheet" href="/ui/css/base.css" />
+  <link rel="stylesheet" href="/ui/css/checkin.css" />
+  <link rel="stylesheet" href="/ui/css/dashboard.css" />
 </head>
 <body>
 
   <!-- ═══════════════════════════════════════════════════
        TOP NAVIGATION
-       Shared across both screens. The screen switcher
-       (Kiosk | Dashboard) lives here.
   ═══════════════════════════════════════════════════ -->
   <header class="topbar">
     <div class="logo">
-      <div class="logo-mark">IS</div>
+      <div class="logo-mark"><img src="/ui/img/logo.png" alt="ISEL" style="width:20px;height:20px;object-fit:contain;display:block;filter:brightness(0) invert(1);"></div>
       <div>
-        <div class="logo-text">isel 在室管理</div>
+        <div class="logo-text">ISEL 在室管理</div>
         <div class="logo-sub">KIT · Intelligent Software Engineering Lab</div>
       </div>
     </div>
 
     <div class="screen-switcher">
-      <button class="sw-btn active" id="sw-kiosk"     onclick="switchScreen('kiosk')">Kiosk</button>
-      <button class="sw-btn"        id="sw-dashboard" onclick="switchScreen('dashboard')">Dashboard</button>
+      <button class="sw-btn active" id="sw-check-in"  onclick="switchScreen('check-in')">Check-in <kbd class="kbd-badge">C</kbd></button>
+      <button class="sw-btn"        id="sw-dashboard" onclick="switchScreen('dashboard')">Dashboard <kbd class="kbd-badge">D</kbd></button>
     </div>
 
     <div class="topbar-right">
-      <div class="live-dot"></div>
       <span id="clock">--:--:--</span>
     </div>
   </header>
 
 
   <!-- ═══════════════════════════════════════════════════
-       SCREEN 1 — KIOSK (face recognition / check-in)
-       Intended to run on the lab's always-on display.
-       Logic: ui/checkin.js
+       SCREEN 1 — CHECK-IN
   ═══════════════════════════════════════════════════ -->
-  <div id="screen-kiosk" class="screen active">
+  <div id="screen-check-in" class="screen active">
 
     <div class="checkin-area">
 
-      <!-- Live camera feed with animated face-tracking overlay -->
       <div class="cam-feed">
         <video id="checkin-video" autoplay playsinline muted></video>
         <div class="face-box state-idle" id="face-box">
@@ -61,115 +51,266 @@
           <div class="corner tr"></div>
           <div class="corner bl"></div>
           <div class="corner br"></div>
-          <!-- Animated bar shown only in 'scanning' state -->
           <div class="scan-line" id="scan-line" style="display:none"></div>
         </div>
-        <div class="cam-label">camera feed</div>
+        <div class="cam-label">Camera Feed</div>
       </div>
 
-      <!-- Status panel: tag, big text, user card, scan button -->
       <div class="state-panel">
         <div class="state-tag tag-idle" id="state-tag">
-          <div class="dot dot-gray" id="state-dot"></div>
-          <span id="tag-text">waiting</span>
+          <span id="tag-text">Waiting</span>
         </div>
 
         <div class="state-name" id="state-name">Stand in front<br>of camera</div>
-        <div class="state-sub"  id="state-sub">face recognition ready</div>
+        <div class="state-sub"  id="state-sub">Face Recognition Ready</div>
 
-        <!-- Populated by checkin.js after a scan result -->
         <div id="result-card"></div>
 
-        <button class="btn-scan" id="btn-scan" onclick="scanFace()">Scan Face</button>
+        <button class="btn-scan" id="btn-scan" onclick="onScanBtnClick()">Scan Face</button>
 
-        <div class="hint-row">
-          <div class="hint"><span>Enter</span> · scan</div>
-          <div class="hint"><span>Esc</span> · reset</div>
+        <div class="hint-row" id="check-in-hints">
+          <div class="hint-group"><kbd class="hint-key">↵</kbd><span class="hint-label">Scan</span></div>
+          <div class="hint-group"><kbd class="hint-key">Space</kbd><span class="hint-label">Manual</span></div>
         </div>
       </div>
 
-    </div><!-- /checkin-area -->
-
-    <!-- Strip at the bottom showing who's currently in the lab -->
-    <div class="member-strip" id="member-strip">
-      <span class="strip-empty">loading…</span>
     </div>
 
-  </div><!-- /screen-kiosk -->
+    <div class="member-strip" id="member-strip">
+      <span class="strip-empty">Loading…</span>
+    </div>
+
+  </div><!-- /screen-check-in -->
 
 
   <!-- ═══════════════════════════════════════════════════
        SCREEN 2 — DASHBOARD
-       Overview of who's in the lab + activity log.
-       Admin tab lets you add / view all members.
-       Logic: ui/dashboard.js
   ═══════════════════════════════════════════════════ -->
   <div id="screen-dashboard" class="screen">
 
-    <!-- Sub-tabs: Dashboard | Admin -->
-    <div class="dash-tabs">
-      <div class="nav-tabs">
-        <button class="nav-tab active" onclick="switchDashTab('overview', this)">Dashboard</button>
-        <button class="nav-tab"        onclick="switchDashTab('admin', this)">Admin</button>
+    <!-- ── Left sidebar ── -->
+    <nav class="sidebar">
+      <div class="sidebar-nav">
+        <!-- Overview -->
+        <button class="sidebar-tab active" id="sbt-overview"
+                onclick="switchDashTab('overview', this)" title="Overview [1]">
+          <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
+            <rect x="1" y="1" width="7" height="7" rx="1.5"/>
+            <rect x="10" y="1" width="7" height="7" rx="1.5"/>
+            <rect x="1" y="10" width="7" height="7" rx="1.5"/>
+            <rect x="10" y="10" width="7" height="7" rx="1.5"/>
+          </svg>
+          <kbd class="kbd-badge kbd-sidebar">1</kbd>
+        </button>
+
+        <!-- Attendance -->
+        <button class="sidebar-tab" id="sbt-attendance"
+                onclick="switchDashTab('attendance', this)" title="Attendance [2]">
+          <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
+            <polygon points="9,1 11.5,6.5 17.5,7.2 13,11.5 14.3,17.5 9,14.5 3.7,17.5 5,11.5 0.5,7.2 6.5,6.5"/>
+          </svg>
+          <kbd class="kbd-badge kbd-sidebar">2</kbd>
+        </button>
+
+        <!-- Members -->
+        <button class="sidebar-tab" id="sbt-members"
+                onclick="switchDashTab('members', this)" title="Members [3]">
+          <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
+            <circle cx="6" cy="6" r="2.5"/>
+            <circle cx="13" cy="6.5" r="2"/>
+            <path d="M1 16c0-2.8 2.2-5 5-5s5 2.2 5 5H1z"/>
+            <path d="M11.5 16c0-1.8 1-3.4 2.5-4.3 1.5.9 2.5 2.5 2.5 4.3h-5z"/>
+          </svg>
+          <kbd class="kbd-badge kbd-sidebar">3</kbd>
+        </button>
+
+        <!-- Activity log -->
+        <button class="sidebar-tab" id="sbt-activity"
+                onclick="switchDashTab('activity', this)" title="Activity log [4]">
+          <svg viewBox="0 0 18 18" fill="currentColor" width="17" height="17" aria-hidden="true">
+            <path d="M2 3h14v2H2zM2 8h14v2H2zM2 13h10v2H2z"/>
+          </svg>
+          <kbd class="kbd-badge kbd-sidebar">4</kbd>
+        </button>
       </div>
-    </div>
 
-    <div class="dashboard-content">
+    </nav>
 
-      <!-- ── Overview page ── -->
-      <div class="db-page active" id="db-overview">
+    <!-- ── Main content ── -->
+    <div class="dashboard-main">
 
-        <div class="stat-row">
-          <div class="stat-card">
-            <div class="stat-label">in the lab</div>
-            <div class="stat-value green" id="stat-in">–</div>
+      <!-- Page header (title changes on tab switch) -->
+      <div class="page-header">
+        <div class="page-title" id="page-title">Overview</div>
+        <div class="page-subtitle" id="page-subtitle">Today's lab activity</div>
+      </div>
+
+      <div class="dashboard-content">
+
+        <!-- ── Overview page ── -->
+        <div class="db-page active" id="db-overview">
+
+          <div class="stat-row">
+            <div class="stat-card">
+              <div class="stat-label">In The Lab</div>
+              <div class="stat-value green" id="stat-in">–</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Check-Ins Today</div>
+              <div class="stat-value teal" id="stat-today">–</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Active Days This Month</div>
+              <div class="stat-value warm" id="stat-active-days">–</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Members</div>
+              <div class="stat-value" id="stat-total">–</div>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">check-ins today</div>
-            <div class="stat-value" id="stat-today">–</div>
+
+          <!-- Charts row -->
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="chart-title">Lab Activity (Last 7 Days)</div>
+              <div class="chart-area"><canvas id="chart-line"></canvas></div>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">total members</div>
-            <div class="stat-value" id="stat-total">–</div>
+
+          <div class="section-label">Members</div>
+          <div class="member-grid" id="member-grid">
+            <div class="grid-empty">Loading…</div>
           </div>
-        </div>
 
-        <div class="section-label">members</div>
-        <div class="member-grid" id="member-grid">
-          <div class="grid-empty">loading…</div>
-        </div>
+          <div class="section-label">Activity Log</div>
+          <div class="log-section">
+            <div class="log-header log-nav">
+              <button class="log-nav-btn" onclick="changeLogDate(-1)">←</button>
+              <span id="log-date-label">Today</span>
+              <button class="log-nav-btn" id="log-nav-next" onclick="changeLogDate(1)" disabled>→</button>
+            </div>
+            <div id="log-body"><div class="log-empty">Loading…</div></div>
+          </div>
 
-        <div class="section-label">today's log</div>
-        <div class="log-section">
-          <div class="log-header" id="log-header">Activity</div>
-          <div id="log-body"><div class="log-empty">loading…</div></div>
-        </div>
+        </div><!-- /db-overview -->
 
-      </div><!-- /db-overview -->
+        <!-- ── Members page ── -->
+        <div class="db-page" id="db-members">
+          <div class="admin-header">
+            <button class="add-btn" onclick="openRegModal()">+ Add Member</button>
+            <div class="admin-header-right">
+              <button class="add-btn" onclick="runPromotion()">Promote Students</button>
+              <button class="add-btn" onclick="exportSessionsCsv()">Export Sessions CSV</button>
+              <button class="add-btn" onclick="adminLogout()">Logout</button>
+            </div>
+          </div>
+          <div class="section-label">All Members</div>
+          <div class="admin-grid" id="admin-grid">
+            <div class="log-empty">Loading…</div>
+          </div>
+        </div><!-- /db-members -->
 
-      <!-- ── Admin page ── -->
-      <div class="db-page" id="db-admin">
-        <button class="add-btn" onclick="openRegModal()">+ add member</button>
-        <div class="section-label">all members</div>
-        <div class="admin-grid" id="admin-grid">
-          <div class="log-empty">loading…</div>
-        </div>
-      </div><!-- /db-admin -->
+        <!-- ── Activity log page ── -->
+        <div class="db-page" id="db-activity">
+          <div class="admin-header">
+            <div class="page-subtitle" style="margin:0;">Filter, search and inspect all admin / attendance events.</div>
+            <div class="admin-header-right">
+              <button class="add-btn" onclick="exportAuditCsv()">Export Audit CSV</button>
+            </div>
+          </div>
+          <div class="audit-filters">
+            <div class="audit-filters-row">
+              <label class="filter-field">
+                <span class="filter-label">Member</span>
+                <div id="audit-member-filter"></div>
+              </label>
+              <label class="filter-field">
+                <span class="filter-label">Date</span>
+                <select id="filter-date-preset" onchange="applyDatePreset(this.value)">
+                  <option value="this-week">This week</option>
+                  <option value="last-week">Last week</option>
+                  <option value="this-month">This month</option>
+                  <option value="last-month">Last month</option>
+                  <option value="all">All time</option>
+                  <option value="custom">Custom range…</option>
+                </select>
+              </label>
+              <div class="filter-field filter-date-custom hidden" id="filter-date-custom">
+                <span class="filter-label">Custom range</span>
+                <div class="filter-date-range">
+                  <input type="date" id="filter-start" oninput="scheduleFilterReload()" />
+                  <span class="filter-date-sep">→</span>
+                  <input type="date" id="filter-end" oninput="scheduleFilterReload()" />
+                </div>
+              </div>
+              <label class="filter-field filter-field-grow">
+                <span class="filter-label">Search (matches name OR action)</span>
+                <input type="search" id="filter-q" oninput="scheduleFilterReload()" placeholder='e.g. "naimi" or "checkin"' />
+              </label>
+            </div>
+            <div class="audit-filters-row audit-filters-row-chips">
+              <span class="filter-label">Actions</span>
+              <div class="chip-presets">
+                <button class="chip-preset" data-preset="all"        onclick="applyActionPreset('all')">All</button>
+                <button class="chip-preset" data-preset="attendance" onclick="applyActionPreset('attendance')">Attendance</button>
+                <button class="chip-preset" data-preset="admin"      onclick="applyActionPreset('admin')">Admin</button>
+              </div>
+              <div class="chip-group-break"></div>
+              <div class="chip-group" id="filter-actions"></div>
+            </div>
+            <div class="audit-filters-footer">
+              <span id="audit-result-count" class="audit-result-count">– events</span>
+              <a class="filter-clear-link" onclick="clearAuditFilters()">Clear filters</a>
+            </div>
+          </div>
+          <div class="log-section">
+            <div id="audit-body"><div class="log-empty">Loading…</div></div>
+          </div>
+        </div><!-- /db-activity -->
 
-    </div><!-- /dashboard-content -->
+        <!-- ── Attendance page ── -->
+        <div class="db-page" id="db-attendance">
+          <div class="grid-toolbar">
+            <button class="stats-nav-btn" onclick="changeGridWeek(-1)">←</button>
+            <span id="grid-week-label" class="stats-month-label">–</span>
+            <button class="stats-nav-btn" id="grid-nav-next" onclick="changeGridWeek(1)">→</button>
+            <button class="add-btn" onclick="goCurrentWeek()">This week</button>
+            <div class="grid-member-filter" id="grid-member-filter"></div>
+          </div>
+          <div id="grid-content"><div class="log-empty">Loading…</div></div>
+
+          <div class="section-label" style="margin-top:24px;">Monthly Leaderboard</div>
+          <div class="stats-nav">
+            <button class="stats-nav-btn" onclick="changePointsMonth(-1)">←</button>
+            <span id="points-month-label" class="stats-month-label">–</span>
+            <button class="stats-nav-btn" id="points-nav-next" onclick="changePointsMonth(1)">→</button>
+            <select id="points-year-select" class="stats-nav-select" onchange="onPointsYearChange(this.value)"></select>
+            <select id="points-month-select" class="stats-nav-select" onchange="onPointsMonthChange(this.value)"></select>
+          </div>
+          <div id="points-content"><div class="log-empty">Loading…</div></div>
+
+          <div class="section-label" style="margin-top:24px;" id="ay-section-label">年度 Leaderboard</div>
+          <div class="stats-nav">
+            <button class="stats-nav-btn" onclick="changePointsYear(-1)">←</button>
+            <span id="points-year-label" class="stats-month-label">–</span>
+            <button class="stats-nav-btn" id="points-year-next" onclick="changePointsYear(1)">→</button>
+            <select id="points-ay-select" class="stats-nav-select" onchange="onPointsAyChange(this.value)"></select>
+          </div>
+          <div id="points-year-content"><div class="log-empty">Loading…</div></div>
+        </div><!-- /db-attendance -->
+
+      </div><!-- /dashboard-content -->
+    </div><!-- /dashboard-main -->
 
   </div><!-- /screen-dashboard -->
 
 
   <!-- ═══════════════════════════════════════════════════
        REGISTRATION MODAL
-       Opened from the Admin tab. Starts its own camera
-       stream (independent of the kiosk stream).
-       Logic: ui/dashboard.js — openRegModal / closeRegModal
   ═══════════════════════════════════════════════════ -->
   <div class="modal-overlay hidden" id="reg-modal" onclick="closeRegModalOnBg(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-title">Add member</div>
+      <div class="modal-title">Add Member</div>
 
       <div class="modal-field">
         <label>Name</label>
@@ -179,13 +320,24 @@
       <div class="modal-field">
         <label>Role</label>
         <select id="reg-type">
-          <option value="学生">Student (学生)</option>
-          <option value="管理者">Admin (管理者)</option>
+          <option value="先生">先生 (Teacher)</option>
+          <option value="B4">B4 (学生)</option>
+          <option value="M1">M1 (学生)</option>
+          <option value="M2">M2 (学生)</option>
+          <option value="PhD">PhD (学生)</option>
+          <option value="Intern">Intern (学生)</option>
         </select>
       </div>
 
       <div class="modal-field">
-        <label>Face photo — look at the camera, then click Register</label>
+        <div class="reg-step-bar">
+          <span class="reg-dot reg-dot-on" data-step="1">1</span>
+          <span class="reg-dot"            data-step="2">2</span>
+          <span class="reg-dot"            data-step="3">3</span>
+        </div>
+        <div class="reg-step-label" id="reg-step-label">
+          Step 1 of 3 — <strong>Normal</strong> (no glasses, no mask)
+        </div>
         <div class="modal-cam">
           <video id="reg-video" autoplay playsinline muted></video>
         </div>
@@ -194,54 +346,139 @@
       <div class="modal-msg" id="reg-msg"></div>
 
       <div class="modal-actions">
-        <button class="btn-ghost"   onclick="closeRegModal()">Cancel</button>
-        <button class="btn-primary" id="btn-register" onclick="captureAndRegister()">Capture &amp; Register</button>
+        <button class="btn-ghost" onclick="closeRegModal()">Cancel</button>
+        <button class="btn-ghost" id="btn-register-skip" onclick="onRegStepSkip()" hidden>Skip</button>
+        <button class="btn-primary" id="btn-register" onclick="onRegStepCapture()">Capture</button>
       </div>
     </div>
   </div>
 
-  <!-- Off-screen canvas used to grab JPEG frames from any video element -->
-  <canvas id="capture-canvas" hidden></canvas>
+  <!-- Face re-registration modal -->
+  <div class="modal-overlay hidden" id="face-rereg-modal" onclick="closeFaceReregModalOnBg(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title" id="face-rereg-title">Add Face Variant</div>
+      <div class="modal-field">
+        <label>Which variant to (re-)capture?</label>
+        <div class="variant-picker">
+          <label><input type="radio" name="rereg-variant" value="normal" checked> Normal</label>
+          <label><input type="radio" name="rereg-variant" value="glasses"> Glasses</label>
+          <label><input type="radio" name="rereg-variant" value="mask"> Mask</label>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>Look at the camera, then click Save</label>
+        <div class="modal-cam">
+          <video id="face-rereg-video" autoplay playsinline muted></video>
+        </div>
+      </div>
+      <div class="modal-msg" id="face-rereg-msg"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeFaceReregModal()">Cancel</button>
+        <button class="btn-primary" id="btn-face-rereg" onclick="captureAndReregFace()">Save Face</button>
+      </div>
+    </div>
+  </div>
 
-  <!--
-    JS is split into three files (loaded in order):
-      app.js       — camera, API fetch helpers, clock, screen switching
-      checkin.js   — check-in state machine (scanFace, setState, member strip)
-      dashboard.js — dashboard data loading + admin / registration modal
-  -->
-  <script src="/ui/app.js"></script>
-  <script src="/ui/checkin.js"></script>
-  <script src="/ui/dashboard.js"></script>
+  <!-- Manual picker modal -->
+  <div class="modal-overlay hidden" id="picker-modal">
+    <div class="picker-box" onclick="event.stopPropagation()">
+      <div class="picker-title">Select Member</div>
+      <input type="text" id="picker-search" class="picker-search" placeholder="Type To Search…" autocomplete="off" />
+      <div class="picker-list" id="picker-list"></div>
+      <div class="picker-hint">
+        <kbd class="hint-key">↑</kbd><kbd class="hint-key">↓</kbd><span class="hint-label">Move</span>
+        <span class="hint-sep">·</span>
+        <kbd class="hint-key">↵</kbd><span class="hint-label">Pick</span>
+        <span class="hint-sep">·</span>
+        <kbd class="hint-key">Esc</kbd><span class="hint-label">Close</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN Modal -->
+  <div class="modal-overlay hidden" id="pin-modal" onclick="closePinModalOnBg(event)">
+    <div class="modal-box modal-sm" onclick="event.stopPropagation()">
+      <div class="modal-title">Admin access</div>
+      <div class="modal-field">
+        <label>PIN</label>
+        <input type="password" id="pin-input" maxlength="8" placeholder="Enter PIN"
+               autocomplete="off" onkeydown="if(event.key==='Enter') submitPin()" />
+      </div>
+      <div class="modal-msg" id="pin-msg"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost"   onclick="closePinModal()">Cancel</button>
+        <button class="btn-primary" id="btn-pin-submit" onclick="submitPin()">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile modal -->
+  <div class="modal-overlay hidden" id="profile-modal" onclick="closeProfileModalOnBg(event)">
+    <div class="modal-box profile-box" onclick="event.stopPropagation()">
+      <div class="profile-header">
+        <div class="modal-title" id="profile-name">–</div>
+        <div class="profile-badges" id="profile-badges"></div>
+      </div>
+      <div class="profile-monthly" id="profile-monthly"></div>
+      <div class="section-label" style="margin-top:16px;">Last 10 Sessions</div>
+      <div id="profile-sessions"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeProfileModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Promote-students wizard modal -->
+  <div class="modal-overlay hidden" id="promote-modal" onclick="closePromoteModalOnBg(event)">
+    <div class="modal-box modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-title">Promote Students</div>
+      <div class="modal-subtitle">Review and adjust the next role for each promotable member, then click Apply.</div>
+      <div id="promote-body"><div class="log-empty">Loading…</div></div>
+      <div class="modal-msg" id="promote-msg"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closePromoteModal()">Cancel</button>
+        <button class="add-btn"   id="btn-promote-apply" onclick="applyPromotions()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit context modal -->
+  <div class="modal-overlay hidden" id="context-modal" onclick="closeContextModalOnBg(event)">
+    <div class="modal-box modal-md" onclick="event.stopPropagation()">
+      <div class="modal-title" id="context-title">Context</div>
+      <div id="context-body"><div class="log-empty">Loading…</div></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="context-profile-btn">View full profile →</button>
+        <button class="btn-primary" onclick="closeContextModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+<canvas id="capture-canvas" hidden></canvas>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <script src="/ui/js/core/utils.js"></script>
+  <script src="/ui/js/core/camera.js"></script>
+  <script src="/ui/js/core/nav.js"></script>
+  <script src="/ui/js/core/cohort-multiselect.js"></script>
+  <script src="/ui/js/checkin/state-machine.js"></script>
+  <script src="/ui/js/checkin/manual-picker.js"></script>
+  <script src="/ui/js/checkin/index.js"></script>
+  <script src="/ui/js/dashboard/overview.js"></script>
+  <script src="/ui/js/dashboard/attendance.js"></script>
+  <script src="/ui/js/dashboard/attendance-grid.js"></script>
+  <script src="/ui/js/dashboard/members.js"></script>
+  <script src="/ui/js/dashboard/activity.js"></script>
+  <script src="/ui/js/dashboard/modals.js"></script>
+  <script src="/ui/js/dashboard/index.js"></script>
 
   <script>
-    /* Boot: start kiosk camera and member strip auto-refresh */
     initCheckin();
     startCamera('checkin-video');
     loadMemberStrip();
     setInterval(loadMemberStrip, 30_000);
-
-    window.addEventListener('keydown', (e) => {
-      if (!document.getElementById('screen-kiosk').classList.contains('active')) return;
-
-      if (e.key === 'Enter') {
-        if (e.repeat) return; 
-        
-        if (pendingCommit) {
-          // 猶予期間中にEnterを押したら、待たずに即確定
-          clearTimeout(pendingCommit.timer);
-          commitToggle(pendingCommit.userId);
-        } else {
-          // 通常時はスキャン
-          if (document.getElementById('reg-modal').classList.contains('hidden')) {
-            scanFace();
-          }
-        }
-      }
-
-      if (e.key === 'Escape') {
-        cancelToggle(); // 保留があれば破棄してidleへ
-      }
-    });
   </script>
 
 </body>

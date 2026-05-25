@@ -1,0 +1,319 @@
+/*
+ * checkin.css — Styles for the check-in screen only.
+ * Loaded alongside style.css (which defines the shared tokens).
+ */
+
+/* ── Main layout ── */
+.checkin-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(20px, 3vw, 48px) clamp(16px, 3vw, 40px);
+  gap: clamp(24px, 4vw, 72px);
+}
+
+/* ── Camera feed box (kept dark for video contrast) ── */
+.cam-feed {
+  width: clamp(240px, 32vw, 520px);
+  height: clamp(240px, 32vw, 520px);
+  background: var(--color-surface-dark);
+  border-radius: var(--border-radius-lg);
+  border: 1.5px solid var(--color-border-primary);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.cam-feed video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cam-label {
+  position: absolute; bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px; color: var(--color-text-tertiary);
+  font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap; pointer-events: none;
+}
+
+/* ── Face-tracking box (corner bracket overlay) ── */
+.face-box {
+  position: absolute;
+  width: 45%; height: 53%;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -58%);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: clamp(12px, 1.1vw, 20px);
+  height: clamp(12px, 1.1vw, 20px);
+}
+
+.corner.tl { top: 0; left: 0;  border-top: 2px solid; border-left: 2px solid;  border-radius: 3px 0 0 0; }
+.corner.tr { top: 0; right: 0; border-top: 2px solid; border-right: 2px solid; border-radius: 0 3px 0 0; }
+.corner.bl { bottom: 0; left: 0;  border-bottom: 2px solid; border-left: 2px solid;  border-radius: 0 0 0 3px; }
+.corner.br { bottom: 0; right: 0; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
+
+/* Corner colours per state */
+.state-idle     .corner { border-color: var(--color-surface-dark); }
+.state-scanning .corner { border-color: var(--color-accent-mid); }
+.state-checkin  .corner,
+.state-checkout .corner { border-color: var(--color-success); }
+.state-fail     .corner { border-color: var(--color-error); }
+
+/* Animated scan line (visible only in scanning state) */
+.scan-line {
+  position: absolute; left: 0; right: 0;
+  height: 1px;
+  background: var(--color-accent-mid); opacity: 0.7;
+  animation: scandown 1.8s linear infinite;
+}
+
+@keyframes scandown {
+  0%   { top: 6%; }
+  100% { top: 94%; }
+}
+
+/* Pulse the corner brackets briefly when captureBurst grabs a frame.
+   Triggered from ui/js/core/camera.js _flashCorners(). Scale + opacity
+   together feel like a quick acknowledgment without changing colour. */
+@keyframes corner-pulse {
+  0%   { transform: scale(1);   opacity: 1; }
+  40%  { transform: scale(1.4); opacity: 0.6; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.face-box.flash-corners .corner {
+  animation: corner-pulse 220ms ease-out;
+}
+
+/* ── State panel (right of camera) ── */
+.state-panel {
+  flex: 1; max-width: clamp(300px, 28vw, 480px);
+  display: flex; flex-direction: column;
+  justify-content: center;
+  gap: 14px; min-width: 0;
+}
+
+.state-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+  padding: 4px 10px; border-radius: 999px; width: fit-content;
+}
+
+.tag-idle     { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+.tag-scanning { background: var(--color-warning-bg);           color: var(--color-warning); }
+.tag-success  { background: var(--color-success-bg);           color: var(--color-success); }
+.tag-fail     { background: var(--color-warning-bg);           color: var(--color-warning); }
+
+.state-name {
+  font-size: clamp(24px, 2.6vw, 44px); font-weight: 700;
+  font-family: 'Syne', sans-serif;
+  color: var(--color-text-primary); line-height: 1.1;
+}
+
+.state-sub {
+  font-size: clamp(12px, 1.1vw, 15px); color: var(--color-text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── User card shown after recognition ── */
+.checkin-card {
+  background: var(--color-background-primary);
+  border-radius: var(--border-radius-lg);
+  border: 1.5px solid var(--color-border-tertiary);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+
+.checkin-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; flex-shrink: 0;
+  font-family: 'Syne', sans-serif;
+}
+
+.av-green { background: var(--color-success-bg); color: var(--color-success); }
+.av-red   { background: var(--color-error-bg);   color: var(--color-error); }
+
+.checkin-info { flex: 1; min-width: 0; }
+.checkin-name   { font-size: 15px; font-weight: 700; font-family: 'Syne', sans-serif; }
+.checkin-detail { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+
+.event-badge {
+  font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+}
+
+.badge-in  { background: var(--color-success-bg); color: var(--color-success); }
+.badge-out { background: var(--color-error-bg);   color: var(--color-error); }
+
+/* ── Scan button ── */
+.btn-scan {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--border-radius-md);
+  padding: clamp(9px, 0.9vw, 14px) clamp(18px, 1.8vw, 30px);
+  font-size: clamp(12px, 1.1vw, 15px); font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  width: fit-content;
+  box-shadow: 0 4px 14px rgba(29, 92, 78, 0.3);
+}
+
+.btn-scan:hover:not(:disabled) { background: var(--color-accent-hover); transform: translateY(-1px); }
+.btn-scan:active:not(:disabled) { transform: translateY(0); }
+.btn-scan:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+/* ── Keyboard hints ── */
+.hint-row {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  min-height: 24px;
+}
+
+.hint-group {
+  display: flex; align-items: center; gap: 4px;
+}
+
+.hint-key {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 500; line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  min-width: 20px;
+}
+
+.hint-label {
+  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+  color: var(--color-text-secondary);
+}
+
+.hint-sep {
+  font-size: 10px; color: var(--color-border-primary);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── Manual picker overlay ── */
+.picker-box {
+  background: var(--color-background-primary);
+  border-radius: 20px;
+  box-shadow: var(--shadow-modal);
+  padding: 20px;
+  width: 100%; max-width: 480px;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+  gap: 12px;
+}
+
+.picker-title {
+  font-size: 16px; font-weight: 700;
+  font-family: 'Syne', sans-serif;
+}
+
+.picker-search {
+  width: 100%;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  padding: 9px 13px;
+  font-size: 13px; font-family: 'Nunito', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.picker-search:focus { border-color: var(--color-accent); }
+
+.picker-list {
+  overflow-y: auto; flex: 1;
+  display: flex; flex-direction: column;
+  gap: 3px;
+}
+
+.picker-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 10px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid transparent;
+  cursor: pointer; transition: background 0.1s;
+}
+
+.picker-row:hover { background: var(--color-background-secondary); }
+
+.picker-row.active {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+}
+
+.picker-av {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+  font-family: 'Syne', sans-serif;
+  /* Background and colour come from the .av-* rotation classes (see dashboard.css). */
+}
+
+.picker-name { flex: 1; font-size: 13px; font-weight: 600; font-family: 'Nunito', sans-serif; }
+
+.picker-hint {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex-wrap: wrap;
+}
+
+.picker-empty {
+  font-size: 12px; color: var(--color-text-secondary);
+  font-family: 'IBM Plex Mono', monospace; text-align: center; padding: 20px;
+}
+
+/* ── Present-users strip at the bottom ── */
+.member-strip {
+  background: var(--color-background-primary);
+  border-top: 1px solid var(--color-border-tertiary);
+  padding: 10px 20px;
+  display: flex; gap: 8px;
+  overflow-x: auto; flex-shrink: 0;
+  min-height: 46px; align-items: center;
+}
+
+.mini-member {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 999px; white-space: nowrap; flex-shrink: 0;
+  transition: box-shadow 0.15s;
+}
+
+.mini-member.mini-out  { opacity: 0.45; }
+.mini-name { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; }
+
+.strip-empty { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; }
+
+/* ── Camera error overlay ── */
+.cam-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(26, 46, 40, 0.92);
+  z-index: 10;
+}
+.cam-error-icon { font-size: 32px; color: var(--color-warning); line-height: 1; }
+.cam-error-msg  { font-size: 14px; font-weight: 600; color: #F0F0F0; font-family: 'Nunito', sans-serif; }
+.cam-error-hint { font-size: 11px; color: var(--color-text-tertiary); font-family: 'IBM Plex Mono', monospace; }
