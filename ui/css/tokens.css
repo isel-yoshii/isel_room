@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Backgrounds — warm cream neutral, no teal undertone */
+  --color-background-primary:   #FFFFFF;
+  --color-background-secondary: #FBFAF6;
+  --color-background-tertiary:  #F4F1E8;
+
+  /* Borders — neutral warm grey except for the interactive (primary) tier */
+  --color-border-primary:       #3A6F60;
+  --color-border-secondary:     #D8D2C0;
+  --color-border-tertiary:      #EBE6D8;
+
+  /* Text — true charcoal + warm greys, no teal undertone */
+  --color-text-primary:         #1F1F1F;
+  --color-text-secondary:       #6B6660;
+  --color-text-tertiary:        #9A938A;
+
+  /* Accent — primary interactive colour */
+  --color-accent:               #1D5C4E;
+  --color-accent-mid:           #2E8B70;
+  --color-accent-soft:          #7AB5A8;
+  --color-accent-light:         #D4EDE8;
+  --color-accent-hover:         #164A3E;
+
+  /* Secondary accent — blue */
+  --color-blue:                 #1A5FA5;
+  --color-blue-mid:             #4A90D4;
+  --color-blue-light:           #E0EDFB;
+
+  /* Warm secondary accent — terracotta. Highlights only, used sparingly. */
+  --color-warm:                 #D97757;
+  --color-warm-soft:            #E8A684;
+  --color-warm-light:           #FAEFE7;
+
+  /* Status colours */
+  --color-success:              #0F9E6E;
+  --color-success-bg:           #D9F0E4;
+  --color-warning:              #C07A00;
+  --color-warning-bg:           #FEF3DC;
+  --color-error:                #D84A4A;
+  --color-error-bg:             #FBEBEA;
+
+  /* Dark surface (camera feed background) — warm charcoal, not dark teal */
+  --color-surface-dark:         #22201D;
+
+  /* Leaderboard ranks */
+  --color-rank-gold:            #D97757;
+  --color-rank-silver:          #9B9B9B;
+  --color-rank-bronze:          #8B6340;
+
+  /* Charts */
+  --color-chart-line:           #2E8B70;
+
+  /* Radius / shadow */
+  --border-radius-lg:           12px;
+  --border-radius-md:           10px;
+  --shadow-card:                none;
+  --shadow-modal:               0 12px 40px rgba(0, 0, 0, 0.14);
+}

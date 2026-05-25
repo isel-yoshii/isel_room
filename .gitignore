@@ -65,6 +65,9 @@ db.sqlite3-journal
 # isel_room local database
 isel_room.db
 
+# Slack status-board state (local cache of last-posted message ts)
+slack_state.json
+
 # Flask stuff:
 instance/
 .webassets-cache

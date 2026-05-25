@@ -1,0 +1,269 @@
+/* Base reset, top nav, screen switcher, clock, modal, shared buttons. */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  background: var(--color-background-primary);
+  border-bottom: 1px solid var(--color-border-tertiary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.logo { display: flex; align-items: center; gap: 10px; }
+
+.logo-mark {
+  width: 28px; height: 28px;
+  background: var(--color-accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  color: #FFFFFF;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.logo-text {
+  font-size: 13px; font-weight: 600;
+  color: var(--color-text-primary);
+  font-family: 'Syne', sans-serif;
+}
+
+.logo-sub {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.screen-switcher {
+  display: flex;
+  gap: 3px;
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 3px;
+  border: 1px solid var(--color-border-tertiary);
+}
+
+.sw-btn {
+  padding: 5px 14px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.sw-btn.active {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(29, 92, 78, 0.3);
+}
+
+.kbd-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  opacity: 0.55;
+  margin-left: 4px;
+  vertical-align: middle;
+  pointer-events: none;
+}
+
+.sw-btn.active .kbd-badge {
+  border-color: rgba(255,255,255,0.6);
+  opacity: 0.7;
+}
+
+.kbd-sidebar {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  margin-left: 0;
+  font-size: 8px;
+  padding: 1px 3px;
+}
+
+.topbar-right {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.screen.active { display: flex; }
+
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(26, 46, 40, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.modal-overlay.hidden { display: none; }
+
+.modal-box {
+  background: var(--color-background-primary);
+  border-radius: 20px;
+  box-shadow: var(--shadow-modal);
+  padding: 28px;
+  width: 100%; max-width: 400px;
+}
+
+.modal-sm { max-width: 300px; }
+.modal-md { max-width: 560px; }
+.modal-lg { max-width: 640px; }
+
+.modal-title {
+  font-size: 16px; font-weight: 700;
+  margin-bottom: 18px;
+  font-family: 'Syne', sans-serif;
+}
+
+.modal-field { margin-bottom: 14px; }
+
+.modal-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.modal-field input,
+.modal-field select {
+  width: 100%;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  padding: 9px 13px;
+  font-size: 13px;
+  font-family: 'Nunito', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.modal-field input:focus,
+.modal-field select:focus { border-color: var(--color-accent); }
+
+.modal-cam {
+  width: 100%; aspect-ratio: 4/3;
+  background: var(--color-surface-dark);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.modal-cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+.modal-msg {
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  text-align: center;
+  padding: 6px;
+  min-height: 28px;
+  border-radius: var(--border-radius-md);
+}
+
+.modal-msg.ok  { color: var(--color-success); background: rgba(15, 158, 110, 0.08); }
+.modal-msg.err { color: var(--color-error); background: rgba(232, 69, 69, 0.08); }
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--border-radius-md);
+  padding: 9px 16px;
+  font-size: 13px; font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer; flex: 1;
+  transition: background 0.15s;
+  box-shadow: 0 2px 8px rgba(29, 92, 78, 0.25);
+}
+
+.btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1.5px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-ghost:hover {
+  color: var(--color-text-primary);
+  background: var(--color-background-secondary);
+}
+
+/* ─── Wait-time feedback animations ───
+   Used during face capture / processing to reassure the user that
+   work is happening. See ui/js/checkin/state-machine.js (scanning
+   sub-text cycler), ui/js/dashboard/modals.js (registration
+   "Processing"), and ui/js/core/camera.js (captureBurst flash). */
+
+/* Rotating border circle next to "Processing". */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border-tertiary, #ccc);
+  border-top-color: var(--color-text-secondary, #888);
+  border-radius: 50%;
+  vertical-align: -2px;
+  margin-left: 4px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Trailing dots after "Processing" that cycle 0 → 1 → 2 → 3 dots. */
+.processing-dots::after {
+  content: '';
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: processing-dots 1.2s steps(4, end) infinite;
+}
+@keyframes processing-dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
