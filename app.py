@@ -45,6 +45,18 @@ def create_app(config_name: str = 'dev') -> Flask:
             channel  =app.config.get('SLACK_CHANNEL', '#a-lab-status'),
         )
 
+    # Auto-checkout scheduler: fires in-app at DAY_RESET_HOUR:00 (Asia/Tokyo).
+    # Reuses the Werkzeug-reloader guard above so it doesn't double-start in dev,
+    # and skips under tests. If gunicorn ever runs >1 worker, set ENABLE_SCHEDULER=0
+    # on the extras so only one process schedules the job.
+    if (
+        not _in_werkzeug_reloader_parent
+        and not app.config.get('TESTING')
+        and os.environ.get('ENABLE_SCHEDULER', '1') != '0'
+    ):
+        from isel.jobs.scheduler import start as start_scheduler
+        start_scheduler(app.config['DAY_RESET_HOUR'])
+
     @app.cli.command('auto-checkout')
     def _cli_auto_checkout():
         from isel.services.attendance import auto_checkout_all

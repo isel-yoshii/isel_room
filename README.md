@@ -46,7 +46,7 @@ Members check in and out by looking at a camera at the lab door. Everyone can se
 - **Member management.** Add, edit, delete, re-register faces. A Promotion Wizard walks the admin through grade transitions each April.
 - **Audit log.** Every admin and attendance event is recorded. Filter by member, action, date, or free text. Export to CSV.
 - **Slack daily status board + `/who` and `/points` slash commands.** One Block Kit message per day in your lab channel, edited in place as people come and go (no chat firehose). Anyone in the workspace can run `/who` for the current present-list or `/points` for the top 5 of this month's leaderboard, both ephemeral.
-- **Auto-checkout cron.** A nightly job force-closes any forgotten sessions.
+- **Auto-checkout scheduler.** A nightly in-app job at `DAY_RESET_HOUR` (Asia/Tokyo) force-closes any forgotten sessions.
 - **Manual fallback.** When face recognition fails, anyone can pick their name from a list.
 
 ---
@@ -120,7 +120,7 @@ flask --app app run --host 0.0.0.0 --port 5001
 
 Open <http://localhost:5001> in a browser. The Check-in screen loads by default. Press `D` to switch to the Dashboard.
 
-> **Production:** use `wsgi.py` with gunicorn. The auto-checkout job is a CLI command (`flask auto-checkout`). Schedule it via cron, not as part of the web process.
+> **Production:** use `wsgi.py` with gunicorn. The auto-checkout runs automatically inside the app at `DAY_RESET_HOUR` (Asia/Tokyo) — no cron needed. Run gunicorn with a **single worker** (the default), or if you scale out set `ENABLE_SCHEDULER=0` on the extra workers so only one process schedules the job. `flask auto-checkout` remains available as a manual fallback.
 
 ---
 
@@ -147,15 +147,17 @@ If your face is not matched, press `Space` to pick your name from a list.
 
 **Promote students at year-end:** Members tab → Promote Students → walk through each student in the wizard and pick their new role (M1 → M2, M2 → 卒業 or PhD, and so on). All changes are applied atomically and logged.
 
-### Nightly auto-checkout (cron)
+### Nightly auto-checkout
 
-Add this to your crontab to force-close forgotten sessions every night at 22:00:
+This runs automatically inside the app — an in-process scheduler fires at `DAY_RESET_HOUR:00` **Asia/Tokyo** every night and force-closes any forgotten sessions. No crontab setup is required. On startup the app logs `Auto-checkout scheduler started`.
 
-```cron
-0 22 * * *  cd /path/to/isel_room && FLASK_APP="app:create_app" flask auto-checkout
+To force a checkout manually (or if you've disabled the scheduler), use the CLI fallback:
+
+```bash
+FLASK_APP="app:create_app" flask auto-checkout
 ```
 
-If you miss a tick, no big deal. Any session open for more than 24 hours is closed automatically on the user's next check-in.
+If the scheduler ever misses a tick, no big deal. Any session open for more than 24 hours is closed automatically on the user's next check-in.
 
 ---
 
@@ -172,7 +174,8 @@ All configuration is via environment variables, loaded from `.env`:
 | `SLACK_CHANNEL` | `#a-lab-status` | No | Channel where the daily status board is posted |
 | `DATABASE_URL` | `sqlite:///isel_room.db` | No | SQLAlchemy connection string |
 | `LOW_CONFIDENCE_THRESHOLD` | `0.40` | No | UI badge cutoff for low-confidence matches (cosmetic only) |
-| `DAY_RESET_HOUR` | `22` | No | Documents your lab's closing hour. The cron is the actual reset trigger. |
+| `DAY_RESET_HOUR` | `22` | No | Hour (Asia/Tokyo) the in-app scheduler runs the nightly auto-checkout |
+| `ENABLE_SCHEDULER` | `1` | No | Set `0` to disable the in-app auto-checkout scheduler (e.g. on extra gunicorn workers) |
 
 `ProdConfig` (used by `wsgi.py`) refuses to start if any of `FLASK_SECRET_KEY`, `ADMIN_PIN`, `SLACK_BOT_TOKEN`, or `SLACK_APP_TOKEN` is missing. In dev the Slack tokens are still optional; the integration disables itself with a warning and the rest of the app runs normally.
 

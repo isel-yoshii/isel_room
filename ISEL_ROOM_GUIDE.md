@@ -217,7 +217,9 @@ def create_app(config_name: str = 'dev') -> Flask:
     from isel.api import register_blueprints
     register_blueprints(app)
 
-    @app.cli.command('auto-checkout')            # `flask auto-checkout` CLI
+    start_scheduler(app.config['DAY_RESET_HOUR'])  # nightly auto-checkout (in-app)
+
+    @app.cli.command('auto-checkout')            # `flask auto-checkout` CLI (fallback)
     def _cli_auto_checkout():
         from isel.services.attendance import auto_checkout_all
         auto_checkout_all()
@@ -302,9 +304,9 @@ Toggle-based. Check-in and check-out share one function.
 
 - **`toggle_entry(user_id, check_in_method='face') → dict`.** If user is OUT, opens a new `Session` row and sets `status=True`. If IN, sets `status=False` and closes the open session. Always writes an `AuditLog` row with `performed_by='check-in'`. Returns `{user_id, name, event_type: 'IN' | 'OUT', timestamp}`.
 
-- **`auto_checkout_all() → None`.** Closes all open sessions, marks status False on every present user, writes one `AUTO_CHECKOUT` audit row per user, then refreshes the Slack board. Called nightly via the `flask auto-checkout` cron.
+- **`auto_checkout_all() → None`.** Closes all open sessions, marks status False on every present user, writes one `AUTO_CHECKOUT` audit row per user, then refreshes the Slack board. Called nightly by the in-app APScheduler job (`isel/jobs/scheduler.py`) at `DAY_RESET_HOUR` Asia/Tokyo; also exposed as the `flask auto-checkout` CLI fallback.
 
-- **`_close_stale_session(session, user_id, now)`.** Internal safety net. If a session has been open more than 24h, it is almost certainly forgotten. Closes it lazily on the user's *next* check-in and writes a `STALE_SESSION_CLOSED` audit row. This means missing one cron tick is non-catastrophic.
+- **`_close_stale_session(session, user_id, now)`.** Internal safety net. If a session has been open more than 24h, it is almost certainly forgotten. Closes it lazily on the user's *next* check-in and writes a `STALE_SESSION_CLOSED` audit row. This means missing one scheduler tick is non-catastrophic.
 
 - **`get_present_users_detailed() → list[dict]`.** Returns currently-present members with `{id, name, type, duration}` for the bottom presence strip.
 
@@ -665,7 +667,7 @@ When empty: a header (`⚫ Lab is empty`) + the context footer; no section block
 
 `init()` starts the `SocketModeHandler` on a daemon thread (`name='slack-socket-mode'`). The thread dies cleanly with the main process. The slash command handler runs inside that thread; SQLAlchemy sessions are per-thread (the engine is created with `check_same_thread: False`), so there's no contention with the HTTP threads.
 
-In dev, `flask --app app run` forks a Werkzeug reloader parent that re-execs a child on file change. Without a guard, Socket Mode would connect twice (once per process), wasting a Slack connection and confusing the handlers. [app.py](app.py) only calls `init()` when `WERKZEUG_RUN_MAIN == 'true'` (the child) or when `DEBUG == False` (prod, no Werkzeug). Same trap that pushed `auto-checkout` from a daemon thread to a cron job in [§9](#9-background-jobs); here a thread is unavoidable but the guard prevents the doubling.
+In dev, `flask --app app run` forks a Werkzeug reloader parent that re-execs a child on file change. Without a guard, Socket Mode would connect twice (once per process), wasting a Slack connection and confusing the handlers. [app.py](app.py) only calls `init()` when `WERKZEUG_RUN_MAIN == 'true'` (the child) or when `DEBUG == False` (prod, no Werkzeug). The auto-checkout scheduler in [§9](#9-background-jobs) reuses the exact same guard so it doesn't double-start either.
 
 ### Who calls it
 
@@ -694,18 +696,23 @@ If you don't want to set up a Slack workspace just to hack on the kiosk, leave b
 
 ### Auto-checkout
 
-One CLI command: `flask auto-checkout`. Closes all open sessions, marks every user OUT, writes `AUTO_CHECKOUT` audit rows, refreshes Slack. Idempotent. Safe to run twice.
+`auto_checkout_all()` closes all open sessions, marks every user OUT, writes `AUTO_CHECKOUT` audit rows, refreshes Slack. Idempotent. Safe to run twice (a second run finds no present users).
 
-Schedule it nightly via cron at your lab's closing time (e.g. 22:00):
+It runs **automatically in-app**: [isel/jobs/scheduler.py](isel/jobs/scheduler.py) starts an APScheduler `BackgroundScheduler` from `create_app()` with a `CronTrigger(hour=DAY_RESET_HOUR, minute=0, timezone='Asia/Tokyo')`. The same function is still exposed as `flask auto-checkout` for a manual fallback.
 
-```cron
-# crontab -e
-0 22 * * *  cd /path/to/isel_room && FLASK_APP="app:create_app" flask auto-checkout
-```
+**Why APScheduler now, after we moved off the daemon thread to cron?** The earlier daemon-thread version had three real problems: hard to debug, doubled in dev under Werkzeug's reloader, and left no record it ran. We briefly switched to an OS cron job, but cron has its own footgun — it fires at 22:00 in the *server's* timezone, so a UTC server runs the job at 07:00 JST, and the crontab line is an easy-to-forget manual deploy step (the original reason the 22:00 logout silently never worked). The in-app scheduler fixes all of this:
 
-**Why a CLI command instead of a daemon thread?** A previous version ran auto-checkout from a daemon thread inside the Flask app. Problems: hard to debug when it failed, doubled in dev because of Werkzeug's reloader, no record of whether it actually ran. Cron is older than Python, every sysadmin understands it, logs are in syslog. Boring is good for infrastructure.
+- **Timezone is pinned to `Asia/Tokyo`** on both the scheduler and trigger, so 22:00 means 22:00 JST regardless of where it runs.
+- **APScheduler is event-driven**, not a hand-rolled busy-wait loop — far easier to reason about than the old thread.
+- **It reuses the Werkzeug reloader guard** (`_in_werkzeug_reloader_parent` in [app.py](app.py)), so it doesn't double-start in dev.
+- **It logs** `Auto-checkout scheduler started` on boot and `Auto-checkout job firing` on each run, plus the existing `AUTO_CHECKOUT` audit rows — so there's a record it ran.
+- Nothing to install on the host. `DAY_RESET_HOUR` is now the *actual* trigger hour (was previously decorative).
 
-If you miss a cron tick, no big deal. `_close_stale_session` in `attendance.py` closes any session open more than 24h the next time that user checks in.
+**Multiple gunicorn workers:** each worker process would start its own scheduler. The deployment is single-worker (the `FaceEngine` is stateful and loads ~500MB of TensorFlow per process), so this isn't normally a concern. If you do scale out, set `ENABLE_SCHEDULER=0` on the extra workers and `=1` on one dedicated process. Even a double-fire is harmless because `auto_checkout_all()` is idempotent.
+
+**Kiosk-activity guard dropped.** The old thread skipped checkout if the kiosk had been touched in the last 15s. That guard depended on `get_last_kiosk_activity()`, which no longer exists. At 22:00 closing time the risk is negligible, and `_close_stale_session` is the backstop anyway.
+
+If the scheduler ever misses a tick, no big deal. `_close_stale_session` in `attendance.py` closes any session open more than 24h the next time that user checks in.
 
 ---
 
@@ -921,7 +928,7 @@ A short list. The codebase itself is the canonical example.
 | Admin login locked out | Too many wrong PIN attempts (5 per IP, resets after 60 s) | Wait 60 s |
 | Dev DB out of sync after schema change | No migrations. Drop tables manually. | `python seed_db.py` (or delete `isel_room.db` for empty) |
 | Camera permission denied in browser | First-time prompt missed | Click lock icon → site settings → allow camera; or chrome://settings/content/camera |
-| Auto-checkout doesn't run | Cron not configured, or wrong path in crontab | `crontab -l` to verify; check syslog for cron errors |
+| Auto-checkout doesn't run | Scheduler not started, disabled, or wrong timezone/hour | Check app logs for `Auto-checkout scheduler started`; confirm `ENABLE_SCHEDULER != 0` and `DAY_RESET_HOUR`; the job fires at that hour **Asia/Tokyo** (not server-local); if running >1 gunicorn worker, only one should have the scheduler enabled. Run `flask auto-checkout` to force it manually. |
 
 ---
 
