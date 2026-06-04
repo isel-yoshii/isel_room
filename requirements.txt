@@ -8,6 +8,7 @@ deepface
 python-dotenv
 tf-keras
 slack-bolt
+APScheduler==3.10.4
 pymysql
 pytest
 pytest-flask
