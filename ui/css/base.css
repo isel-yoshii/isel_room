@@ -180,7 +180,7 @@ body {
   margin-bottom: 10px;
 }
 
-.modal-cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.modal-cam video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
 
 .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 
