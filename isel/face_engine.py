@@ -28,7 +28,11 @@ class FaceEngine:
                 align=True,
             )
             if results:
-                return results[0]['embedding']
+                for face_data in results:
+                    confidence = face_data.get('face_confidence', 0.0)
+                    if confidence >= 0.90:
+                        return face_data['embedding']
+                return None
         except Exception:
             pass
         return None

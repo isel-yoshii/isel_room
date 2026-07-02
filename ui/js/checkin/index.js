@@ -1,5 +1,6 @@
 (function () {
   let pendingConfirm = null;
+  let currentScanId = null;
 
   window.loadMemberStrip = async function loadMemberStrip() {
     try {
@@ -19,10 +20,19 @@
 
   window.scanFace = async function scanFace() {
     if (pendingConfirm) return;
+
+    const myScanId = Date.now();
+    currentScanId = myScanId;
+
     setState('scanning');
     try {
       const images   = await captureBurst('checkin-video');
       const authData = await api.post('/api/auth', { images });
+
+      if (currentScanId !== myScanId) {
+        console.log("Old ScanID(Deleted)");
+        return; 
+      }
 
       if (authData.matched) {
         if (authData.low_confidence) {
@@ -38,6 +48,7 @@
         setTimeout(() => { if (getCheckinState() === 'fail') setState('idle'); }, 8000);
       }
     } catch (e) {
+      if (currentScanId !== myScanId) return;
       console.error(e);
       setState('idle');
     }
@@ -58,6 +69,7 @@
 
   window.cancelToggle = function cancelToggle() {
     pendingConfirm = null;
+    currentScanId = null;
     setState('idle');
   };
 
