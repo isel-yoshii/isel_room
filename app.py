@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -10,6 +11,17 @@ from isel.utils import ApiError, ImageDecodeError
 
 
 def create_app(config_name: str = 'dev') -> Flask:
+    # Without this the diagnostics below are invisible: nothing configures the
+    # root logger under gunicorn, so INFO records from isel.* are dropped and
+    # only WARNING+ reaches stderr via logging's last-resort handler. The face
+    # matcher and the auto-checkout job both report at INFO.
+    _level = os.getenv('LOG_LEVEL', 'INFO').upper()
+    logging.basicConfig(
+        level=_level,
+        format='%(asctime)s %(levelname)-8s %(name)s %(message)s',
+    )
+    logging.getLogger('isel').setLevel(_level)
+
     cfg = get_config(config_name)
     app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
     app.config.from_object(cfg)
@@ -52,7 +64,12 @@ def create_app(config_name: str = 'dev') -> Flask:
     # FaceEngine is stateful — create once per app instance.
     from isel.face_engine import FaceEngine
     from isel.services.users import get_all_embeddings
-    app.config['FACE_ENGINE'] = FaceEngine(get_all_embeddings)
+    app.config['FACE_ENGINE'] = FaceEngine(
+        get_all_embeddings,
+        auth_threshold=app.config['FACE_AUTH_THRESHOLD'],
+        match_margin=app.config['FACE_MATCH_MARGIN'],
+        detect_confidence=app.config['FACE_DETECT_CONFIDENCE'],
+    )
 
     from isel.api import register_blueprints
     register_blueprints(app)
