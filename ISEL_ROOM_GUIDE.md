@@ -734,10 +734,24 @@ worth not re-entering.
    "scheduler started". `create_app()` now calls `logging.basicConfig` with
    `LOG_LEVEL` (default INFO), and the scheduler logs at WARNING so it survives
    a quieter setting.
-4. **`flask run --no-reload` skipped it silently.** The reloader guard tests
-   `WERKZEUG_RUN_MAIN != 'true'`, which is also true when the reloader is
-   simply off. Every skip reason is now logged at WARNING, and
-   `ENABLE_SCHEDULER=1` forces past the guard.
+4. **The reloader guard skipped it on every start — this is the root cause.**
+   The guard was `DEBUG and WERKZEUG_RUN_MAIN != 'true'`, intended to spot the
+   Werkzeug reloader's parent process. But `WERKZEUG_RUN_MAIN` is unset in the
+   reloader parent *and* in any run with no reloader at all — and
+   `flask --app app run`, the command in the README's own Quick Start, does not
+   enable the reloader (Flask needs `--debug`), while `DevConfig.DEBUG` stays
+   `True`. So the documented dev command hit the guard every time and the
+   scheduler never started, silently, for months. Reproduced against the
+   pre-fix code.
+
+   The scheduler no longer has that guard, because it never needed one:
+   `auto_checkout_all()` is idempotent, so if the reloader *is* active and both
+   processes schedule the job, the second run finds nothing left to close.
+   Slack keeps the guard — a doubled Socket Mode connection is real waste.
+   `ENABLE_SCHEDULER=0` is still the way to opt a process out.
+
+   **Lesson worth keeping:** a guard that decides whether critical work happens
+   must fail loudly, not silently. This one had no log line either way.
 
 **Check whether it is armed right now**, in the process actually serving you:
 
