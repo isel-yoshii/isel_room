@@ -14,8 +14,7 @@ def auth():
     low_conf_threshold = current_app.config['LOW_CONFIDENCE_THRESHOLD']
 
     data = request.json or {}
-    # The kiosk POSTs a 3-frame burst as {images: [b64, b64, b64]} so a blink
-    # or motion blur on one frame doesn't tank the whole scan.
+    # A burst, not one frame, so a blink or motion blur doesn't fail the scan.
     raw_images = data.get('images') or []
 
     embeddings = engine.embeddings_from_frames(raw_images, enforce=False)

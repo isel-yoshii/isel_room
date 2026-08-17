@@ -7,8 +7,7 @@ from isel.utils import ok, fail
 
 bp = Blueprint('auth', __name__)
 
-# In-memory PIN-attempt tracker. Keyed by client IP.
-# value = (failed_count, locked_until_epoch)
+# {client_ip: (failed_count, locked_until_epoch)}
 _LOCKOUT_MAX_FAILS = 5
 _LOCKOUT_SECONDS = 60
 _attempts: dict[str, tuple[int, float]] = {}

@@ -1,4 +1,3 @@
-"""Audit log service — single entry point for writing and reading audit entries."""
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import select, or_

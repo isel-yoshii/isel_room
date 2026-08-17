@@ -1,4 +1,3 @@
-"""Tests for user registration, deletion, and grade promotion."""
 from __future__ import annotations
 from unittest.mock import MagicMock
 from datetime import datetime

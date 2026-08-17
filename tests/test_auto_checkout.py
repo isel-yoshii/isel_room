@@ -1,9 +1,5 @@
-"""Tests for the nightly auto-checkout.
-
-This is the job that was silently not running in production: it swept by
-`users.status` and swallowed every exception into a print(), so a run that
-fired and failed was indistinguishable from a run that never happened.
-"""
+"""Tests for the nightly auto-checkout — the job that was silently not running
+in production. See ISEL_ROOM_GUIDE.md §9 for the post-mortem."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -45,13 +41,9 @@ def test_closes_everyone_and_reports_the_count(db_session):
 
 
 def test_closes_an_open_session_whose_user_is_not_flagged_present(db_session):
-    """The desync the old status-driven sweep could never fix.
-
-    A crash between writing the session row and setting users.status leaves an
-    open session belonging to a user with status=False. The old implementation
-    selected `User.status.is_(True)` and so walked straight past it, and the
-    session then read as an ever-growing visit on the dashboard forever.
-    """
+    """The desync a status-driven sweep can never fix: a crash between the
+    session row and users.status leaves an open session on a status=False user,
+    which then reads as an ever-growing visit on the dashboard forever."""
     ghost = _user(db_session, 'Ghost', status=False)
     _open_session(db_session, ghost.user_id, hours_ago=50)
 
@@ -155,12 +147,9 @@ def test_scheduler_arms_the_job_and_reports_the_next_run():
 
 
 def test_a_broken_slack_token_does_not_stop_the_app_or_the_scheduler(monkeypatch):
-    """Slack used to be initialised before the scheduler, and fatally.
-
-    slack_bolt's App() calls auth.test on construction, so a revoked or rotated
-    token raised straight out of create_app — taking down check-in, the
-    dashboard and the nightly auto-checkout with it.
-    """
+    """Slack used to be initialised before the scheduler, and fatally: App()
+    calls auth.test on construction, so a rotated token raised straight out of
+    create_app and took check-in and the nightly checkout down with it."""
     import isel.integrations.slack as slack
     from isel.jobs import scheduler
     from app import create_app
@@ -201,11 +190,9 @@ def test_the_scheduled_job_records_a_failure_instead_of_dying(monkeypatch):
 def test_scheduler_arms_under_the_documented_dev_command(monkeypatch):
     """`flask --app app run` — the command in our own README — must arm it.
 
-    THE root cause of the 22:00 checkout never running. That command does not
-    enable Werkzeug's reloader (Flask needs --debug), so WERKZEUG_RUN_MAIN is
-    never set, while DevConfig.DEBUG stays True. The old guard read that
-    combination as "I am the reloader parent" and skipped the scheduler on
-    every start, forever, silently.
+    THE root cause. That command does not enable Werkzeug's reloader (Flask
+    needs --debug), so WERKZEUG_RUN_MAIN is never set while DevConfig.DEBUG
+    stays True. The old guard read that as "I am the reloader parent".
     """
     from isel.jobs import scheduler
     from app import create_app

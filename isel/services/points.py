@@ -1,10 +1,7 @@
-"""Points service — leaderboards.
+"""1 point per calendar day with at least one check-in. No manual overrides.
 
-A user earns 1 point per calendar day on which they had at least one
-check-in. Score is purely days-present — no manual overrides.
-
-The all-time leaderboard resets every April 1 (Japanese academic year):
-each AY runs from April 1 (inclusive) to April 1 of the next year (exclusive).
+The all-time board resets every April 1 (Japanese academic year): AY YYYY is
+[YYYY-04-01, (YYYY+1)-04-01).
 """
 from __future__ import annotations
 from datetime import date, datetime
@@ -15,10 +12,7 @@ from isel.utils import month_range
 
 
 def current_academic_year(today: date | None = None) -> int:
-    """Return the academic year (Apr 1 → Mar 31) containing the given date.
-
-    AY YYYY runs from `YYYY-04-01` to `(YYYY+1)-04-01` (exclusive).
-    """
+    """The academic year (Apr 1 → Mar 31) containing the given date."""
     t = today or date.today()
     return t.year if t.month >= 4 else t.year - 1
 
@@ -56,10 +50,6 @@ def monthly_leaderboard(year: int, month: int) -> list[dict]:
 
 
 def academic_year_leaderboard(ay_year: int) -> list[dict]:
-    """Distinct days-present per user within academic year `ay_year`.
-
-    Window is [Apr 1 ay_year, Apr 1 ay_year+1) exclusive on the upper bound.
-    """
     with session_scope() as session:
         start = datetime(ay_year, 4, 1)
         end   = datetime(ay_year + 1, 4, 1)

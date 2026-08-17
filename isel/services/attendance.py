@@ -1,4 +1,3 @@
-"""Attendance service — toggle entry, auto checkout, presence queries."""
 from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
@@ -58,15 +57,12 @@ def toggle_entry(user_id: int, check_in_method: str = 'face') -> dict:
 def auto_checkout_all() -> int:
     """Close everyone out. Returns how many sessions were closed.
 
-    Errors are logged and re-raised: this used to swallow every exception into a
-    print(), so a nightly job that fired and failed looked exactly like a
-    nightly job that never fired at all. The scheduler logs the failure and
-    keeps its next run.
+    Sweeps by *open session*, not by `users.status`: the two desync when a crash
+    lands between the session row and the status flag, and a status-driven sweep
+    leaves that session open forever as an ever-growing visit.
 
-    Sweeps by *open session*, not by `users.status`. The two can disagree — a
-    crash between writing the session row and the status flag leaves a session
-    that a status-driven sweep would never close, and that session then reads as
-    an ever-growing visit on the dashboard.
+    Errors propagate on purpose — swallowing them made a job that fired and
+    failed look exactly like a job that never fired.
     """
     now = datetime.now()
     with session_scope() as session:
@@ -86,8 +82,7 @@ def auto_checkout_all() -> int:
                 timestamp=now,
             ))
 
-        # Anyone still flagged present without an open session (the other half
-        # of the same desync) is cleared too.
+        # The other half of the same desync: flagged present, nothing open.
         still_present = list(session.execute(
             select(User).where(User.status.is_(True))
         ).scalars().all())
@@ -98,8 +93,8 @@ def auto_checkout_all() -> int:
         logger.info('Auto-checkout closed %d open session(s); cleared %d present flag(s).',
                     count, len(still_present))
 
-    # Slack is best-effort: a failed board refresh must not undo the checkout,
-    # which is already committed by this point.
+    # Best-effort: the checkout is already committed, so a failed board refresh
+    # must not turn into a failed checkout.
     try:
         from isel.integrations.slack import update_status_board
         update_status_board()
@@ -147,7 +142,6 @@ def update_session(session_id: int, checked_in_at: datetime, checked_out_at: dat
 
 
 def _open_session(session, user_id: int):
-    """The user's most recent session that was never checked out, if any."""
     stmt = (
         select(LabSession)
         .where(LabSession.user_id == user_id, LabSession.checked_out_at.is_(None))
@@ -170,11 +164,8 @@ def _close_open_session(
 
 
 def _close_stale_session(session, user_id: int, now: datetime) -> None:
-    """Close a session left open longer than _STALE_SESSION_HOURS, with an audit row.
-
-    Distinct from _close_open_session: this one only fires past the staleness
-    window, and records that the system (not the person) ended the visit.
-    """
+    """Unlike _close_open_session, records that the system — not the person —
+    ended the visit."""
     open_sess = _open_session(session, user_id)
     if open_sess and (now - open_sess.checked_in_at) > timedelta(hours=_STALE_SESSION_HOURS):
         open_sess.checked_out_at = now

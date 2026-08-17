@@ -1,5 +1,4 @@
 (function () {
-  /* ── Admin PIN modal ── */
 
   let _pinCallback = null;
 
@@ -58,11 +57,9 @@
     loadOverview();
   };
 
-  /* ── Registration modal ── */
 
   let _regStream = null;
 
-  /* ── Registration 3-step wizard (normal → glasses → mask) ── */
 
   const REG_STEPS = [
     { key: 'normal',  label: 'Normal',  hint: 'no glasses, no mask', skippable: false },
@@ -186,7 +183,6 @@
     }
   }
 
-  /* ── Face re-registration modal ── */
 
   let _faceReregStream = null;
   let _faceReregUserId = null;
@@ -253,7 +249,6 @@
     btn.disabled = false;
   };
 
-  /* ── Member profile modal ── */
 
   let _currentProfileUserId = null;
 
@@ -321,7 +316,6 @@
     closeModal('profile-modal');
   };
 
-  /* ── Session time editing ── */
 
   window.openEditSessionForm = function openEditSessionForm(sessionId, inIso, outIso) {
     const row = document.getElementById(`sess-row-${sessionId}`);

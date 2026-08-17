@@ -1,10 +1,5 @@
 (function () {
-  /**
-   * mountCohortMultiselect(container, { onChange })
-   * Renders a single trigger button that opens a popover with cohort presets,
-   * search, and a per-member checkbox list. onChange(selectedIds[]) fires on Apply.
-   * Empty list means "all members".
-   */
+  // onChange(selectedIds[]) fires on Apply. An empty list means "all members".
   window.mountCohortMultiselect = function mountCohortMultiselect(container, { onChange } = {}) {
     const state = { allUsers: [], selectedIds: new Set(), filterTerm: '' };
 
@@ -150,7 +145,6 @@
       if (onChange) onChange([...state.selectedIds]);
     });
 
-    // Lazy-load member list once.
     api.get('/api/users').then(users => {
       state.allUsers = users;
       renderList();

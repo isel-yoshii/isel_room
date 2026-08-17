@@ -1,4 +1,3 @@
-"""Stats service — activity logs, monthly/weekly/daily aggregations, CSV export."""
 from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timedelta, time as dt_time, date
@@ -9,7 +8,6 @@ from isel.utils import minutes_between, month_range
 
 
 def daily_log(date_str: str | None = None) -> list[dict]:
-    """Return activity log for a calendar day, sorted newest-first."""
     with session_scope() as session:
         now = datetime.now()
         logical_date = (
@@ -109,7 +107,6 @@ def today_unique_checkins() -> int:
 
 
 def active_days_this_month() -> int:
-    """Count distinct calendar days this month on which at least one session started."""
     with session_scope() as session:
         now = datetime.now()
         start, end = month_range(now.year, now.month)
@@ -202,7 +199,6 @@ def export_monthly_csv(year: int, month: int) -> list[dict]:
 
 
 def weekly_grid(start_date: date, user_ids: list[int] | None = None) -> list[dict]:
-    """Per-user × per-day attendance grid for the 7-day window starting at start_date."""
     with session_scope() as session:
         user_stmt = select(User)
         if user_ids:
@@ -256,7 +252,6 @@ def weekly_grid(start_date: date, user_ids: list[int] | None = None) -> list[dic
 
 
 def anomalies(days: int = 7) -> list[dict]:
-    """Per-user anomaly counters over the last `days` days."""
     with session_scope() as session:
         now = datetime.now()
         window_start = datetime.combine((now - timedelta(days=days - 1)).date(), dt_time(0, 0))

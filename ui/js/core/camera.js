@@ -28,10 +28,8 @@
     return canvas.toDataURL('image/jpeg', 0.85);
   };
 
-  // Re-trigger the CSS pulse on the kiosk face-box corners. The
-  // class toggle + forced reflow is needed because re-adding the same
-  // class otherwise won't restart the animation. On the registration
-  // modal (no face-box element) this is a no-op, by design.
+  // The remove + forced reflow is what restarts the CSS animation; re-adding
+  // the class alone does nothing. No-op on the registration modal, by design.
   function _flashCorners() {
     const fb = document.getElementById('face-box');
     if (!fb) return;
@@ -40,11 +38,7 @@
     fb.classList.add('flash-corners');
   }
 
-  // Snap `count` frames spaced `gapMs` apart. Returns base64 JPEGs.
-  // Used at registration (to capture pose variation per variant) and
-  // at kiosk scan time (so a blink on one frame doesn't fail the scan).
-  // On the kiosk, briefly pulses the face-box corner brackets on each
-  // frame so the user sees something is happening during the ~1 s burst.
+  // Several frames, so a blink on one doesn't fail the scan. Returns base64 JPEGs.
   window.captureBurst = async function captureBurst(videoId, count = 3, gapMs = 350) {
     const video  = document.getElementById(videoId);
     const canvas = document.getElementById('capture-canvas');

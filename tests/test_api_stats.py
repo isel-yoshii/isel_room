@@ -1,10 +1,8 @@
 """HTTP smoke tests for the stats and admin blueprints.
 
-Status codes, content types, and top-level response shape only — the aggregation
-logic itself is covered in test_stats.py. These exist because every route in
-isel/api/stats.py and isel/api/admin.py previously had zero HTTP coverage, so a
-blueprint that failed to register or a route that 500'd on an empty database
-would not have been caught.
+Status codes, content types and top-level shape only — the aggregation logic is
+covered in test_stats.py. These catch a blueprint that failed to register or a
+route that 500s on an empty database.
 """
 from __future__ import annotations
 
@@ -14,7 +12,6 @@ import pytest
 
 from isel.db.models import LabSession, User
 
-# Routes that any kiosk/dashboard visitor may call.
 PUBLIC_ROUTES = [
     '/api/log/today',
     '/api/log?date=2026-05-20',
@@ -27,7 +24,6 @@ PUBLIC_ROUTES = [
     '/api/stats/points/year?year=2026',
 ]
 
-# Routes that must refuse an unauthenticated caller.
 ADMIN_ROUTES = [
     '/api/export/csv?year=2026&month=5',
     '/api/audit/log',
@@ -148,11 +144,8 @@ def test_promote_students_moves_a_grade(admin_client, db_session, some_data):
 
 
 def test_promote_students_rejects_a_malformed_promotion(admin_client, db_session, some_data):
-    """A bad payload is a client error, not a server error.
-
-    This used to raise KeyError inside the service and surface as a 500 with the
-    raw exception text ("'user_id'") as the user-facing message.
-    """
+    """A bad payload is a client error. This used to raise KeyError inside the
+    service and surface as a 500 with "'user_id'" as the user-facing message."""
     resp = admin_client.post('/api/admin/promote-students',
                              json={'promotions': [{'from': 'M1', 'to': 'M2'}]})
 

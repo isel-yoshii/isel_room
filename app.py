@@ -11,10 +11,9 @@ from isel.utils import ApiError, ImageDecodeError
 
 
 def create_app(config_name: str = 'dev') -> Flask:
-    # Without this the diagnostics below are invisible: nothing configures the
-    # root logger under gunicorn, so INFO records from isel.* are dropped and
-    # only WARNING+ reaches stderr via logging's last-resort handler. The face
-    # matcher and the auto-checkout job both report at INFO.
+    # Without this, nothing configures the root logger under gunicorn and every
+    # INFO record from isel.* is dropped — including the face matcher's and the
+    # auto-checkout job's only diagnostics.
     _level = os.getenv('LOG_LEVEL', 'INFO').upper()
     logging.basicConfig(
         level=_level,
@@ -26,15 +25,14 @@ def create_app(config_name: str = 'dev') -> Flask:
     app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
     app.config.from_object(cfg)
     app.config['TEMPLATES_AUTO_RELOAD'] = True
-    app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 MB request cap
+    app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024
 
     @app.errorhandler(ImageDecodeError)
     def _image_decode_error(err: ImageDecodeError):
         return jsonify({'matched': False, 'success': False, 'message': str(err)}), 400
 
-    # Everything under /api/ answers in JSON, including when it fails. The UI's
-    # fetch wrapper does `.then(r => r.json())` with no status check, so an HTML
-    # error page makes it throw a parse error and show the user nothing at all.
+    # /api/ must answer JSON even when it fails: the UI's fetch wrapper calls
+    # r.json() with no status check, so an HTML error page shows the user nothing.
     def _is_api() -> bool:
         return request.path.startswith('/api/')
 
@@ -50,8 +48,6 @@ def create_app(config_name: str = 'dev') -> Flask:
 
     @app.errorhandler(Exception)
     def _unhandled_error(err: Exception):
-        # An exception that reached here is a bug, not a bad request. Log the
-        # traceback for us; tell the caller nothing that leaks internals.
         app.logger.exception('Unhandled error on %s %s', request.method, request.path)
         if not _is_api():
             raise err
@@ -61,7 +57,6 @@ def create_app(config_name: str = 'dev') -> Flask:
     from isel.db import init_db
     init_db()
 
-    # FaceEngine is stateful — create once per app instance.
     from isel.face_engine import FaceEngine
     from isel.services.users import get_all_embeddings
     app.config['FACE_ENGINE'] = FaceEngine(
@@ -79,25 +74,13 @@ def create_app(config_name: str = 'dev') -> Flask:
     )
 
     # Auto-checkout scheduler: fires in-app at DAY_RESET_HOUR:00 (Asia/Tokyo).
-    #
-    # Every reason for NOT starting is logged at WARNING. Silence here was the
-    # whole problem: a process that skipped the scheduler looked identical to
-    # one that started it, so a nightly job that never ran was invisible.
-    # Deliberately NOT guarded by _in_werkzeug_reloader_parent, unlike Slack.
-    #
-    # That guard is unknowable from in here: it tests `WERKZEUG_RUN_MAIN is
-    # unset`, which is true both for the reloader's parent AND for any run with
-    # no reloader at all. `flask --app app run` — the command in our own README
-    # — does not enable the reloader (Flask needs --debug for that) while
-    # DevConfig.DEBUG stays True, so the guard concluded "reloader parent" and
-    # skipped the scheduler on every single start. That is why the 22:00
-    # checkout silently never ran.
-    #
-    # No guard is needed here anyway: auto_checkout_all() is idempotent, so if
-    # the reloader IS active and both processes schedule the job, the second
-    # run finds nothing left to close. Slack keeps its guard because a doubled
-    # Socket Mode connection is real waste.
-    _forced = os.environ.get('ENABLE_SCHEDULER')     # None | '0' | '1'
+    # Deliberately NOT guarded by _in_werkzeug_reloader_parent, unlike Slack —
+    # that guard skipped the scheduler on every `flask run` and the 22:00
+    # checkout silently never fired. Post-mortem: ISEL_ROOM_GUIDE.md §9.
+    # Double-scheduling is harmless anyway; auto_checkout_all() is idempotent.
+    # Every reason for NOT starting is logged at WARNING, because silence here
+    # made a job that never ran look exactly like one that did.
+    _forced = os.environ.get('ENABLE_SCHEDULER')
     if app.config.get('TESTING'):
         _skip = 'TESTING'
     elif _forced == '0':
@@ -111,13 +94,9 @@ def create_app(config_name: str = 'dev') -> Flask:
         from isel.jobs.scheduler import start as start_scheduler
         start_scheduler(app.config['DAY_RESET_HOUR'])
 
-    # Slack: started AFTER the scheduler, and never allowed to be fatal.
-    #
-    # slack_bolt's App() calls auth.test during construction, so a revoked or
-    # rotated token raised BoltError straight out of create_app — which killed
-    # the whole application, the nightly auto-checkout included. A chat
-    # integration must not be able to take down attendance, least of all while
-    # the lab is migrating off Slack.
+    # Started AFTER the scheduler and never allowed to be fatal: slack_bolt's
+    # App() calls auth.test during construction, so a rotated token used to
+    # raise straight out of create_app and take attendance down with it.
     if not _in_werkzeug_reloader_parent and not app.config.get('TESTING'):
         try:
             from isel.integrations.slack import init as init_slack
@@ -140,9 +119,8 @@ def create_app(config_name: str = 'dev') -> Flask:
 
     @app.cli.command('scheduler-status')
     def _cli_scheduler_status():
-        """Print scheduler state. NOTE: this starts a fresh process, so it does
-        NOT report the state of a running gunicorn worker — use
-        GET /api/admin/scheduler for that."""
+        """Print scheduler state. Starts a fresh process, so it does NOT report
+        a running gunicorn worker — use GET /api/admin/scheduler for that."""
         from isel.jobs.scheduler import status
         print(status())
 

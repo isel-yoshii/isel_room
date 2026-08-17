@@ -14,20 +14,13 @@ class FaceEngine:
         self.auth_threshold = auth_threshold
         self.reg_threshold = reg_threshold
         self.detect_confidence = detect_confidence
-        # How much closer the winner must be than the runner-up identity.
-        # A real match on a healthy gallery clears this by a mile (genuine
-        # ~0.30 vs next person ~0.85), so it only bites on genuinely ambiguous
-        # scans. Tune with FACE_MATCH_MARGIN; 0 disables the check.
+        # How much closer the winner must be than the runner-up identity. A real
+        # match clears it easily (~0.30 vs ~0.85); 0 disables the check.
         self.match_margin = match_margin
 
     def extract_embedding(self, frame, enforce: bool = True):
-        """Extract ArcFace embedding from an OpenCV frame. Returns None if no face found.
-
-        We use detector_backend='retinaface' instead of DeepFace's default ('opencv').
-        Retinaface is the gold standard for face localisation: significantly better at
-        finding faces under varied lighting, head pose, and occlusion. First call after
-        app start triggers a one-time ~50 MB model download.
-        """
+        """None if no face found. retinaface (not DeepFace's default 'opencv')
+        handles our lighting and head-pose spread; first call downloads ~50 MB."""
         try:
             results = DeepFace.represent(
                 frame,
@@ -42,9 +35,8 @@ class FaceEngine:
                     if confidence >= self.detect_confidence:
                         return face_data['embedding']
                 # With enforce_detection=False DeepFace returns an embedding for
-                # ANY image — a wall, a hand, an empty room — reporting
-                # face_confidence 0.0. Without this filter those bogus vectors
-                # went into the matcher and matched whoever was nearest.
+                # ANY image (a wall, a hand) at face_confidence 0.0. Unfiltered,
+                # those bogus vectors matched whoever was nearest.
                 logger.info('face: detection rejected, best confidence %.2f < %.2f',
                             max(f.get('face_confidence', 0.0) for f in results),
                             self.detect_confidence)
@@ -57,11 +49,9 @@ class FaceEngine:
     def _rank(targets: list, registered: dict) -> list[tuple[float, int, str]]:
         """Each registered identity's best distance to any target, closest first.
 
-        Ranking per *identity* rather than per stored vector matters: matching
-        on the single nearest vector gives whoever enrolled the most frames the
-        most chances to win. One person with five frames against everyone
-        else's three wins ambiguous comparisons roughly in proportion to that
-        count — which is what "it always says the same person" looks like.
+        Per *identity*, not per stored vector: ranking vectors gives whoever
+        enrolled the most frames the most chances to win, which is what "it
+        always says the same person" looks like.
         """
         best: dict[int, tuple[float, str]] = {}
         for target in targets:
@@ -76,7 +66,7 @@ class FaceEngine:
                         stored_vec = np.array(stored, dtype=float).flatten()
                         dist = distance.cosine(target_vec, stored_vec)
                         # A zero or malformed stored vector yields nan, which
-                        # silently loses every comparison. Skip it explicitly.
+                        # compares false against everything. Skip it explicitly.
                         if not np.isfinite(dist):
                             continue
                         if u_id not in best or dist < best[u_id][0]:
@@ -84,12 +74,9 @@ class FaceEngine:
         return sorted((d, uid, name) for uid, (d, name) in best.items())
 
     def _closest(self, targets: list, registered: dict, threshold: float) -> tuple:
-        """Closest (user_id, name, distance), or (None, None, None).
-
-        Rejects a match when the runner-up identity is within `match_margin` of
-        the winner: if two people are near-equally close, the scan is ambiguous
-        and guessing is worse than asking the person to try again.
-        """
+        """Closest (user_id, name, distance), or (None, None, None) — including
+        when the runner-up is within match_margin, where guessing is worse than
+        asking the person to scan again."""
         ranked = self._rank(targets, registered)
         if not ranked:
             return None, None, None
@@ -115,12 +102,8 @@ class FaceEngine:
 
     def embeddings_from_frames(self, frames_b64: list, limit: int | None = None,
                                enforce: bool = True) -> list[list[float]]:
-        """Decode base64 frames and return an embedding for each one with a face.
-
-        Frames with no detectable face are dropped, so the result may be shorter
-        than the input (or empty). `limit` caps how many frames are processed —
-        registration keeps the first few, the kiosk uses the whole burst.
-        """
+        """Frames with no detectable face are dropped, so the result may be
+        shorter than the input, or empty."""
         from isel.utils import decode_image
 
         out = []
@@ -131,24 +114,11 @@ class FaceEngine:
         return out
 
     def find_match(self, target_embedding, threshold: float) -> tuple:
-        """Compare one embedding against all registered users' variants.
-
-        Returns (user_id, name, distance) for the user with the closest variant
-        below threshold. Distance is the minimum cosine distance across all
-        variants of the matched user.
-        """
         if target_embedding is None:
             return None, None, None
         return self._closest([target_embedding], self.get_embeddings(), threshold)
 
     def find_best_match(self, embeddings: list, threshold: float) -> tuple:
-        """Compare each embedding against the registered set and return the closest match.
-
-        Used by the kiosk to capture multiple frames per scan and pick the best one.
-        Catches blink / motion-blur misses that a single-frame scan would drop.
-        Returns (user_id, name, distance) of the best match across all frames,
-        or (None, None, None) if no frame matches.
-        """
         if not embeddings:
             return None, None, None
         return self._closest(embeddings, self.get_embeddings(), threshold)

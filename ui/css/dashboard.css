@@ -1,12 +1,5 @@
-/*
- * dashboard.css — Styles for the Dashboard screen (sidebar + all sub-pages).
- * Loaded alongside style.css.
- */
-
-/* ── Dashboard screen uses row layout (sidebar + main) ── */
 #screen-dashboard { flex-direction: row; }
 
-/* ── Left sidebar ── */
 .sidebar {
   width: 68px;
   background: var(--color-background-primary);
@@ -50,7 +43,6 @@
   color: #FFFFFF;
 }
 
-/* ── Main content wrapper ── */
 .dashboard-main {
   flex: 1;
   display: flex;
@@ -59,7 +51,6 @@
   min-width: 0;
 }
 
-/* ── Page header bar ── */
 .page-header {
   background: var(--color-background-primary);
   border-bottom: 1px solid var(--color-border-tertiary);
@@ -79,7 +70,6 @@
   margin-top: 2px;
 }
 
-/* ── Scrollable content area ── */
 .dashboard-content {
   padding: 24px;
   width: 100%;
@@ -87,7 +77,6 @@
   flex: 1;
 }
 
-/* ── Inner page switcher ── */
 .db-page { display: none; }
 .db-page.active {
   display: block;
@@ -99,7 +88,6 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Stats row ── */
 .stat-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -128,7 +116,6 @@
 .stat-value.teal  { color: var(--color-accent); }
 .stat-value.warm  { color: var(--color-warm); }
 
-/* ── Chart row ── */
 .chart-row {
   display: grid;
   grid-template-columns: 1fr;
@@ -155,7 +142,6 @@
   position: relative;
 }
 
-/* ── Section heading ── */
 .section-label {
   font-size: 11px; font-weight: 600;
   color: var(--color-text-secondary);
@@ -164,7 +150,6 @@
   margin-bottom: 12px;
 }
 
-/* ── Member grid ── */
 .member-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -186,7 +171,6 @@
 .member-card.present { background: var(--color-success-bg); border: 2px solid var(--color-success); }
 .member-card.absent  { opacity: 0.55; }
 
-/* Avatar circles */
 .avatar {
   width: 48px; height: 48px;
   border-radius: 50%;
@@ -195,13 +179,10 @@
   font-family: 'Syne', sans-serif;
 }
 
-/* Size modifiers. These were inline styles repeated at each call site before
-   avatarHtml() in core/utils.js. */
 .avatar-sm { width: 28px; height: 28px; font-size: 10px; }
 .avatar-md { width: 30px; height: 30px; font-size: 10px; }
 .avatar-lg { width: 36px; height: 36px; font-size: 12px; }
 
-/* Graduated members' avatars fade further than the row already does. */
 .user-row-grad .avatar { opacity: 0.45; }
 
 .av-teal   { background: var(--color-success-bg); color: var(--color-success); }
@@ -226,7 +207,6 @@
 .pill-in  { background: var(--color-success-bg); color: var(--color-success); }
 .pill-out { background: var(--color-background-secondary); color: var(--color-text-secondary); }
 
-/* ── Activity log ── */
 .log-section {
   background: var(--color-background-primary);
   border-radius: var(--border-radius-lg);
@@ -270,14 +250,11 @@
   font-family: 'IBM Plex Mono', monospace; text-align: center;
 }
 
-/* ── Log date navigation ── */
 .log-nav {
   display: flex; align-items: center;
   justify-content: space-between;
 }
 
-/* One circular nav-arrow button, used by the activity log and the monthly
-   stats header. Only the horizontal padding differs between the two. */
 .log-nav-btn,
 .stats-nav-btn {
   background: transparent; border: none;
@@ -298,7 +275,6 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 
-/* ── Monthly stats tab ── */
 .stats-nav {
   display: flex; align-items: center;
   gap: 10px; margin-bottom: 20px;
@@ -306,8 +282,6 @@
 
 /* .stats-nav-btn styling is defined with .log-nav-btn above. */
 
-/* Dropdowns sit next to the arrows as an alternative way to jump
-   directly to a month or year on the Attendance leaderboards. */
 .stats-nav-select {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 12px;
@@ -321,9 +295,8 @@
 }
 .stats-nav-select:hover { border-color: var(--color-text-secondary); }
 
-/* Used during in-place re-fetch (e.g. clicking a leaderboard arrow):
-   the previous content stays in the DOM at the same height, dimmed,
-   so the page doesn't shrink and the user's scroll stays put. */
+/* In-place re-fetch: old content stays in the DOM at the same height, dimmed,
+   so the page doesn't shrink and the user's scroll position survives. */
 .is-loading {
   opacity: 0.45;
   pointer-events: none;
@@ -378,7 +351,6 @@
 
 .stats-value.highlight { color: var(--color-text-primary); font-weight: 600; }
 
-/* ── Points tab ── */
 .points-table {
   background: var(--color-background-primary);
   border-radius: var(--border-radius-lg);
@@ -433,7 +405,6 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 
-/* ── Admin panel ── */
 .admin-header {
   display: flex; align-items: center;
   justify-content: space-between;
@@ -512,7 +483,6 @@
 .badge-face-ok   { background: var(--color-success-bg); color: var(--color-success); }
 .badge-face-none { background: var(--color-warning-bg); color: var(--color-warning); }
 
-/* ── Delete Button ── */
 .del-btn {
   background: transparent;
   color: var(--color-error);
@@ -531,7 +501,6 @@
   border-color: var(--color-error);
 }
 
-/* ── Profile modal ── */
 .profile-box { max-width: 640px; width: 100%; }
 
 .profile-header { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
@@ -566,7 +535,6 @@
 .profile-sess-row { color: var(--color-text-primary); font-family: 'IBM Plex Mono', monospace; }
 .profile-sess-row:last-child { border-bottom: none; }
 
-/* Audit log filter bar */
 .audit-filters {
   display: flex;
   flex-direction: column;
@@ -626,9 +594,7 @@
 }
 
 .chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
-/* One filter-chip component used by two filter rows (action chips on the
-   activity log, date presets below them). Previously duplicated as .chip and
-   .chip-preset with the same declarations under two names. */
+/* One component under two names: action chips and date presets. */
 .chip,
 .chip-preset {
   font-size: 11px;
@@ -661,7 +627,6 @@
 .log-row-clickable { cursor: pointer; }
 .log-row-clickable:hover { background: var(--color-background-tertiary); }
 
-/* ── Weekly attendance grid ── */
 .grid-toolbar {
   display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
   margin-bottom: 16px;
@@ -675,7 +640,6 @@
   border-radius: var(--border-radius-lg);
   padding: 8px;
 }
-.grid-corner { /* top-left empty cell above name column */ }
 .grid-header-cell {
   padding: 6px 8px;
   text-align: center;
@@ -712,7 +676,6 @@
 .grid-cell-present { background: var(--color-success); }
 .grid-cell-today   { box-shadow: inset 0 0 0 1.5px var(--color-accent); }
 
-/* ── Activity log polish: presets, footer, dividers ── */
 .chip-presets { display: flex; gap: 4px; }
 /* .chip-preset styling is defined with .chip above. */
 
@@ -748,7 +711,6 @@
 
 .filter-date-custom.hidden { display: none; }
 
-/* ── Cohort multi-select ── */
 .cohort-ms { position: relative; display: inline-block; }
 .cohort-ms-trigger {
   font-family: 'IBM Plex Mono', monospace;
@@ -835,7 +797,6 @@
 }
 .cohort-ms-actions button { font-size: 12px; padding: 5px 12px; }
 
-/* ── Promotion wizard modal ── */
 .modal-subtitle {
   font-size: 12px;
   color: var(--color-text-secondary);
@@ -871,7 +832,6 @@
   min-width: 120px;
 }
 
-/* ── Registration wizard step indicator ── */
 .reg-step-bar { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; }
 .reg-dot {
   width: 26px; height: 26px; border-radius: 50%;
@@ -891,7 +851,6 @@
   font-family: 'Nunito', sans-serif;
 }
 
-/* ── Face-rereg variant picker ── */
 .variant-picker {
   display: flex; gap: 14px;
   font-family: 'Nunito', sans-serif; font-size: 13px;

@@ -16,7 +16,6 @@
     }
   }
 
-  // mondayOf / isoDate live in core/utils.js — both were duplicated here.
 
   function isToday(isoDateStr) {
     return isoDate(new Date()) === isoDateStr;

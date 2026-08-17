@@ -16,7 +16,6 @@
   const _cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const RANK_COLORS = [_cssVar('--color-rank-gold'), _cssVar('--color-rank-silver'), _cssVar('--color-rank-bronze')];
 
-  // ── Dropdown population (once) + sync helpers ──
 
   function _populateDropdownsOnce() {
     if (_dropdownsPopulated) return;
@@ -25,7 +24,6 @@
     const nowYear = new Date().getFullYear();
     const ay      = currentAcademicYear();
 
-    // Calendar-year dropdown (Monthly leaderboard). Last 4 years up to current.
     const yearSel = document.getElementById('points-year-select');
     if (yearSel) {
       yearSel.innerHTML = '';
@@ -37,7 +35,6 @@
       }
     }
 
-    // Month dropdown (Monthly leaderboard). Jan..Dec.
     const monthSel = document.getElementById('points-month-select');
     if (monthSel) {
       monthSel.innerHTML = '';
@@ -49,7 +46,6 @@
       });
     }
 
-    // Academic-year dropdown (Yearly leaderboard). Last 4 AYs up to current.
     const aySel = document.getElementById('points-ay-select');
     if (aySel) {
       aySel.innerHTML = '';
@@ -74,7 +70,6 @@
     if (aySel) aySel.value = String(_pointsAyYear);
   }
 
-  // ── Label updates ──
 
   window.updatePointsMonthLabel = function updatePointsMonthLabel() {
     const label = new Date(_pointsYear, _pointsMonth - 1, 1)
@@ -96,11 +91,6 @@
     if (nextBtn) nextBtn.disabled = _pointsAyYear >= currentAcademicYear();
   }
 
-  // ── Per-section fetch + render ──
-  // Re-fetches keep the previous table visible (dimmed via .is-loading) so
-  // the content height doesn't change and the user's scroll position stays
-  // exactly where it was. The "Loading…" placeholder is only used on the
-  // very first render of the tab, where the container is genuinely empty.
 
   async function loadMonthly() {
     updatePointsMonthLabel();
@@ -133,7 +123,6 @@
     }
   }
 
-  // ── Navigation handlers ──
 
   window.changePointsMonth = function changePointsMonth(delta) {
     _pointsMonth += delta;
@@ -162,7 +151,6 @@
     loadYearly();
   };
 
-  // ── Entry point: initial load when entering the tab ──
 
   window.loadAttendance = async function loadAttendance() {
     _populateDropdownsOnce();
@@ -170,7 +158,6 @@
     await Promise.all([loadMonthly(), loadYearly()]);
   };
 
-  // ── Render helper (shared between monthly + yearly) ──
 
   function renderAttendanceTable(data, emptyMsg) {
     if (!data.length) return `<div class="log-empty">${emptyMsg}</div>`;

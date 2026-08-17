@@ -2,22 +2,11 @@
 
     python diagnose_faces.py
 
-Read-only: it never writes to the database. Run it on the lab server, where the
-real embeddings are — a local snapshot will not reproduce a problem caused by
-an enrolment that happened since.
+Read-only. Run it on the lab server: a local snapshot will not reproduce a
+problem caused by an enrolment that happened since.
 
-Written for "the kiosk keeps identifying the same person". It answers, in order:
-
-  1. Who is enrolled, and with how many frames.
-  2. Is the gallery separable at all — how close is the nearest *different*
-     person to each stored vector? Anything below the auth threshold means two
-     enrolled people are confusable and the kiosk cannot reliably tell them
-     apart.
-  3. Is one stored vector unusually close to everybody? A frame captured of the
-     wrong thing (a poster, a phone screen, a second person in shot) behaves
-     like a magnet and wins scans it should lose.
-  4. Where does a garbage probe land? Whoever wins here is who a failed scan
-     will be reported as.
+Written for "the kiosk keeps identifying the same person" — each section prints
+what it checks and what a bad result means.
 """
 from __future__ import annotations
 
@@ -41,7 +30,8 @@ MATCH_MARGIN   = float(os.getenv('FACE_MATCH_MARGIN', '0.10'))
 
 
 def load_gallery():
-    """[(user_id, name, variant, frame_index, vector)] for every stored frame."""
+    """[(user_id, name, variant, frame_index, vector)] for every stored frame;
+    vector is None for a registered-but-never-enrolled member."""
     out = []
     with session_scope() as session:
         for u in session.query(User).order_by(User.user_id).all():
@@ -70,7 +60,6 @@ def main() -> None:
     print(f'thresholds: auth<{AUTH_THRESHOLD}  low-confidence<{LOW_CONFIDENCE}  '
           f'ambiguity margin {MATCH_MARGIN}\n')
 
-    # 1 ── enrolment counts
     print('== 1. Enrolled frames per person ==')
     per_user = Counter((uid, name) for uid, name, v, i, vec in vectors)
     never = [(uid, name) for uid, name, v, i, vec in rows if vec is None]
@@ -82,7 +71,6 @@ def main() -> None:
         print(f'  {uid:>3} {name:<20} not enrolled')
     print()
 
-    # 2 ── separability between different people
     print('== 2. Closest DIFFERENT person to each stored frame ==')
     print('   (below the auth threshold = two enrolled people are confusable)')
     worst = []
@@ -103,7 +91,6 @@ def main() -> None:
         print('  OK: every enrolled person is well separated from every other.')
     print()
 
-    # 3 ── magnet vectors
     print('== 3. Magnet check — mean distance from each frame to all other people ==')
     print('   (a much lower mean than its peers = that frame attracts everyone)')
     means = []
@@ -123,7 +110,6 @@ def main() -> None:
     print(f'  gallery mean {overall:.4f}, sd {sd:.4f}')
     print()
 
-    # 4 ── where a garbage probe lands
     print('== 4. Random probes — who a meaningless embedding gets reported as ==')
     rng = np.random.default_rng(0)
     dim = len(vectors[0][4])

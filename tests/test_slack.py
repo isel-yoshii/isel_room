@@ -1,8 +1,5 @@
-"""Unit tests for the Slack Block Kit renderer.
-
-We intentionally don't mock the Slack API. _present_blocks is a pure function
-over a list of dicts and is the only piece of slack.py worth unit-testing.
-"""
+"""Unit tests for the Slack Block Kit renderers — pure functions over dicts, so
+nothing here mocks the Slack API."""
 from __future__ import annotations
 
 from isel.integrations.slack import _present_blocks, _points_blocks
@@ -42,15 +39,11 @@ def test_present_blocks_multiple_users():
 
 
 def test_present_blocks_handles_missing_type():
-    """A user dict without a 'type' key falls back to '?'."""
     blocks = _present_blocks([{'name': 'Mystery'}])
     assert '• Mystery (?)' in blocks[1]['text']['text']
 
 
-# ─── /points renderer ───
-
 def test_points_blocks_empty_leaderboard():
-    """An empty list still renders the header + a friendly empty-state line."""
     blocks = _points_blocks([], 2026, 5)
     assert [b['type'] for b in blocks] == ['header', 'section', 'context']
     assert 'May 2026' in blocks[0]['text']['text']
@@ -87,7 +80,6 @@ def test_points_blocks_after_third_uses_numeric_rank():
 
 
 def test_points_blocks_single_day_uses_singular_suffix():
-    """A user with exactly 1 point reads 'day' not 'days'."""
     blocks = _points_blocks([{'name': 'Lone', 'type': 'B4', 'points': 1}], 2026, 5)
     body = blocks[1]['text']['text']
     assert '— 1 day' in body

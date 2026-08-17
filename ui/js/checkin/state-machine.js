@@ -1,8 +1,6 @@
 (function () {
-  // Every kiosk state is a row in this table, and setState() is the only thing
-  // that writes the screen. Fields may be plain values or functions of the data
-  // passed to setState — that is how confirmation and success get the member's
-  // name in without needing their own hand-written render functions.
+  // setState() is the only thing that writes the kiosk screen. A field may be a
+  // plain value or a function of setState's data argument.
   const CHECKIN_STATES = {
     idle: {
       tagClass: 'tag-idle',     tagText: 'Waiting',
@@ -76,10 +74,8 @@
 
   window.getCheckinState = () => _currentState;
 
-  // Progressive sub-text during the ~2 s scanning window so the user has
-  // something changing to track instead of one frozen "Hold Still" string.
-  // The interval is purely visual; the actual response arrives whenever the
-  // server is done and the next setState() call clears the cycler.
+  // Purely visual — these do not track real progress. The response arrives
+  // whenever the server is done, and the next setState() clears the cycler.
   const _SCAN_PHASES = [
     'Capturing frame 1 of 3…',
     'Capturing frame 2 of 3…',
@@ -115,8 +111,6 @@
 
   const _value = (field, data) => (typeof field === 'function' ? field(data) : field);
 
-  // setState('confirmation' | 'success', { name, event }) — the data argument is
-  // ignored by the states that don't take one.
   window.setState = function setState(key, data = {}) {
     const s = CHECKIN_STATES[key];
     if (!s) return;

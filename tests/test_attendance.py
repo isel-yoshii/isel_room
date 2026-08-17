@@ -1,4 +1,3 @@
-"""Tests for attendance toggle and stale-session safeguard."""
 from __future__ import annotations
 from datetime import datetime, timedelta
 
@@ -52,11 +51,9 @@ def test_stale_session_closed_on_new_checkin(db_session):
     result = attendance.toggle_entry(uid, check_in_method='face')
 
     assert result['event_type'] == 'IN'
-    # Stale session should be closed.
     db_session.expire_all()
     stale_row = db_session.get(LabSession, stale.id)
     assert stale_row.checked_out_at is not None
-    # Audit log should record the stale close.
     audit = db_session.query(AuditLog).filter_by(action_type='STALE_SESSION_CLOSED').first()
     assert audit is not None
 

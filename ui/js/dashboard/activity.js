@@ -26,7 +26,6 @@
   let _selectedUserIds = [];
   let _memberMs = null;
 
-  // mondayOf / isoDate (here: isoDay) live in core/utils.js.
 
   window.loadActivity = async function loadActivity() {
     await initAuditFilters();
@@ -200,7 +199,6 @@
     window.location = '/api/audit/export.csv' + (qs ? '?' + qs : '');
   };
 
-  /* ── Context modal ── */
 
   window.openContextModal = async function openContextModal(userId, isoTs, name) {
     document.getElementById('context-title').textContent =

@@ -1,4 +1,3 @@
-"""API round-trip tests for /api/auth and /api/toggle with a mock face engine."""
 from __future__ import annotations
 from unittest.mock import MagicMock
 
@@ -19,13 +18,9 @@ def _add_user(db_session, name='Test User', status=False) -> int:
 
 
 def _mock_engine(matched=True, user_id=1, name='Test User', status=False, dist=0.2):
-    """A real FaceEngine with only the DeepFace call stubbed.
-
-    Stubbing extract_embedding rather than the whole engine keeps
-    embeddings_from_frames — the decode-and-filter loop the routes share — under
-    test; a MagicMock engine would return a truthy Mock from it and the
-    no-face-detected branch would never be reached.
-    """
+    """A real FaceEngine with only the DeepFace call stubbed, so that
+    embeddings_from_frames stays under test. A MagicMock engine would return a
+    truthy Mock from it and the no-face-detected branch would never run."""
     engine = FaceEngine(get_embeddings=lambda: {})
     engine.auth_threshold = 0.5
     engine.extract_embedding = MagicMock(return_value=[0.1] * 10 if matched else None)
@@ -35,7 +30,6 @@ def _mock_engine(matched=True, user_id=1, name='Test User', status=False, dist=0
 
 
 def test_auth_matched_multi_frame_burst(client, app, db_session):
-    """{images: [...]} picks the best match across frames."""
     uid = _add_user(db_session, status=False)
     app.config['FACE_ENGINE'] = _mock_engine(matched=True, user_id=uid, name='Test User')
 

@@ -8,11 +8,9 @@ from flask import session, jsonify
 
 
 def month_range(year: int, month: int) -> tuple[datetime, datetime]:
-    """The half-open range [start, end) covering one calendar month.
+    """Half-open [start, end) for one calendar month — query with `<`, not `<=`.
 
-    `end` is the first instant of the *next* month, so queries must use `<`, not
-    `<=`. Half-open on purpose: the inclusive `23:59:59` bound this replaces
-    silently dropped anything in the final second of the month.
+    The inclusive `23:59:59` bound this replaces dropped the final second.
     """
     start = datetime(year, month, 1)
     end = datetime(year + (month == 12), month % 12 + 1, 1)
@@ -20,12 +18,10 @@ def month_range(year: int, month: int) -> tuple[datetime, datetime]:
 
 
 def minutes_between(start: datetime, end: datetime) -> int:
-    """Whole minutes from start to end, truncated."""
     return int((end - start).total_seconds() / 60)
 
 
 def ok(message: str | None = None, **extra):
-    """Standard success JSON: 200 + {success: True, message?, ...extra}."""
     payload = {'success': True}
     if message is not None:
         payload['message'] = message
@@ -34,7 +30,6 @@ def ok(message: str | None = None, **extra):
 
 
 def fail(message: str, status: int = 400, **extra):
-    """Standard error JSON: (status, {success: False, message, ...extra})."""
     payload = {'success': False, 'message': message}
     payload.update(extra)
     return jsonify(payload), status
@@ -49,7 +44,7 @@ def admin_required(f):
     return decorated
 
 
-_MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB — plenty for a webcam JPEG
+_MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 
 class ImageDecodeError(ValueError):
@@ -57,13 +52,8 @@ class ImageDecodeError(ValueError):
 
 
 class ApiError(Exception):
-    """Something the caller can fix — a missing record, an invalid field.
-
-    Services raise this instead of returning {'success': False, ...}; the app's
-    error handler turns it into the same JSON body every route used to build by
-    hand. Anything *not* raised as an ApiError is a bug, gets logged with a
-    traceback, and is reported to the caller as a generic 500.
-    """
+    """Something the caller can fix. Anything *not* raised as an ApiError is a
+    bug: it gets logged with a traceback and reported as a generic 500."""
 
     def __init__(self, message: str, status: int = 400) -> None:
         super().__init__(message)
@@ -71,12 +61,8 @@ class ApiError(Exception):
 
 
 def decode_image(data_url: str):
-    """Decode a data: URL into an OpenCV BGR frame.
-
-    Returns None if the data is malformed or not a valid image — callers
-    treat that the same as "no face detected". Raises ImageDecodeError
-    only for oversized payloads, so we never allocate huge buffers.
-    """
+    """Decode a data: URL into an OpenCV BGR frame. None = malformed, which
+    callers treat as "no face detected"; oversized raises before allocating."""
     if not isinstance(data_url, str) or ',' not in data_url:
         return None
 

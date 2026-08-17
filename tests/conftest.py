@@ -1,4 +1,3 @@
-"""Shared pytest fixtures for the isel_room test suite."""
 from __future__ import annotations
 import os
 
@@ -25,7 +24,6 @@ _test_engine = create_engine(
 _db.engine = _test_engine
 _db.SessionLocal = sessionmaker(bind=_test_engine, autoflush=False, autocommit=False)
 
-# Import models to register them with Base, then create tables.
 from isel.db.models import Base, User, LabSession, AuditLog  # noqa
 Base.metadata.create_all(_test_engine)
 
@@ -52,7 +50,6 @@ def db_session():
 
 @pytest.fixture(autouse=True)
 def _clean_db():
-    """Delete all rows between tests to keep isolation."""
     yield
     with _test_engine.connect() as conn:
         for tbl in reversed(Base.metadata.sorted_tables):

@@ -1,9 +1,7 @@
 """Tests for the app-wide error handlers in app.py.
 
-The UI's fetch wrapper is `fetch(url).then(r => r.json())` with no status check,
-so any /api/ response that isn't JSON makes it throw a parse error and show the
-user nothing at all. These tests pin that every failure mode under /api/ still
-answers in JSON.
+The UI calls `r.json()` with no status check, so a non-JSON /api/ response shows
+the user nothing at all. These pin that every failure mode answers JSON.
 """
 from __future__ import annotations
 
@@ -14,11 +12,8 @@ from isel.utils import ApiError
 
 @pytest.fixture()
 def boom_app():
-    """A dedicated app with routes that fail in each way we care about.
-
-    Its own instance, not the session-scoped `app` fixture: Flask refuses to
-    register routes once an app has served a request.
-    """
+    """Its own instance, not the session-scoped `app` fixture: Flask refuses to
+    register routes once an app has served a request."""
     from app import create_app
 
     application = create_app('test')

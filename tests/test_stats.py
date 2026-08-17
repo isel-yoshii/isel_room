@@ -1,14 +1,8 @@
 """Tests for isel/services/stats.py.
 
-Transcribed from the parity suite written for the abandoned Go rewrite
-(isel-room-backend/internal/service/stats_test.go), which was built specifically
-to pin this module's behaviour. Where the rewrite deliberately *changed* a
-behaviour, these tests pin what the Flask code actually does today and say so —
-a test that asserts the rewrite's opinion would just fail against this codebase.
-
-Several functions here read the clock directly (`datetime.now()`,
-`date.today()`) and take no date argument, so they cannot be tested with fixed
-input alone. `frozen_now` freezes the module's clock instead; see below.
+Transcribed from the parity suite written for the abandoned Go rewrite. Where
+that rewrite deliberately changed a behaviour, these pin what the Flask code
+actually does today and say so inline.
 """
 from __future__ import annotations
 
@@ -38,13 +32,9 @@ class _FrozenDate(date):
 
 @pytest.fixture()
 def frozen_now(monkeypatch):
-    """Pin stats.py's clock to NOW.
-
-    today_unique_checkins(), active_days_this_month(), weekly_checkin_counts(),
-    get_user_profile() and anomalies() all call datetime.now()/date.today()
+    """Pin stats.py's clock to NOW. Five of its functions call datetime.now()
     internally rather than accepting a date, so this is the only way to test
-    them without the result changing depending on the day you run the suite.
-    """
+    them without the result depending on the day the suite runs."""
     monkeypatch.setattr(stats, 'datetime', _FrozenDateTime)
     monkeypatch.setattr(stats, 'date', _FrozenDate)
     return NOW
@@ -68,9 +58,6 @@ def _session(db, uid, day: datetime, hours: float | None, method='face'):
 
 def _at(year, month, day, hour, minute=0):
     return datetime(year, month, day, hour, minute)
-
-
-# --- daily_log -----------------------------------------------------------
 
 
 def test_daily_log_pairs_check_ins_and_check_outs(db_session):
@@ -100,9 +87,6 @@ def test_daily_log_defaults_to_today(db_session, frozen_now):
     assert len(stats.daily_log()) == 2  # one IN + one OUT, today only
 
 
-# --- monthly_user_stats --------------------------------------------------
-
-
 def test_monthly_user_stats_sums_closed_sessions(db_session):
     naimi = _user(db_session, 'Naimi', 'M1')
     yoshii = _user(db_session, 'Yoshii', 'M2')
@@ -116,7 +100,6 @@ def test_monthly_user_stats_sums_closed_sessions(db_session):
     rows = stats.monthly_user_stats(2026, 5)
 
     assert len(rows) == 2
-    # Busiest first.
     assert rows[0]['name'] == 'Naimi'
     assert rows[0]['type'] == 'M1'
     assert rows[0]['sessions'] == 2
@@ -159,9 +142,6 @@ def test_monthly_user_stats_is_empty_without_data(db_session):
     assert stats.monthly_user_stats(2026, 5) == []
 
 
-# --- today_unique_checkins / active_days_this_month ----------------------
-
-
 def test_today_unique_counts_people_not_sessions(db_session, frozen_now):
     naimi = _user(db_session, 'Naimi')
     yoshii = _user(db_session, 'Yoshii')
@@ -198,9 +178,6 @@ def test_weekly_checkin_counts_zero_fills_quiet_days(db_session, frozen_now):
     assert len(week) == 7
     assert week[6] == {'date': '05/20', 'count': 2}   # today, ends the series
     assert week[5]['count'] == 0                     # nobody came in, still present
-
-
-# --- get_user_profile ----------------------------------------------------
 
 
 def test_profile(db_session, frozen_now):
@@ -242,9 +219,6 @@ def test_profile_of_unknown_user_is_none(db_session, frozen_now):
     assert stats.get_user_profile(9999) is None
 
 
-# --- export_monthly_csv --------------------------------------------------
-
-
 def test_export_covers_the_month_oldest_first(db_session):
     naimi = _user(db_session, 'Naimi')
 
@@ -262,9 +236,6 @@ def test_export_covers_the_month_oldest_first(db_session):
     # Open sessions are exported with empty duration rather than dropped.
     assert rows[2]['duration_minutes'] == ''
     assert rows[2]['checked_out_at'] == ''
-
-
-# --- weekly_grid ---------------------------------------------------------
 
 
 def test_weekly_grid_shape_and_totals(db_session):
@@ -326,9 +297,6 @@ def test_weekly_grid_counts_an_open_session_up_to_now(db_session, frozen_now):
 
     assert grid[0]['days'][0]['total_minutes'] == 180
     assert grid[0]['days'][0]['sessions'] == 1
-
-
-# --- anomalies -----------------------------------------------------------
 
 
 def test_anomalies_counts_missing_weekdays_and_long_sessions(db_session, frozen_now):

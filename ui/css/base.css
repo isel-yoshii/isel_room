@@ -1,5 +1,3 @@
-/* Base reset, top nav, screen switcher, clock, modal, shared buttons. */
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -229,13 +227,6 @@ body {
   background: var(--color-background-secondary);
 }
 
-/* ─── Wait-time feedback animations ───
-   Used during face capture / processing to reassure the user that
-   work is happening. See ui/js/checkin/state-machine.js (scanning
-   sub-text cycler), ui/js/dashboard/modals.js (registration
-   "Processing"), and ui/js/core/camera.js (captureBurst flash). */
-
-/* Rotating border circle next to "Processing". */
 .spinner {
   display: inline-block;
   width: 12px;
@@ -251,7 +242,6 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* Trailing dots after "Processing" that cycle 0 → 1 → 2 → 3 dots. */
 .processing-dots::after {
   content: '';
   display: inline-block;

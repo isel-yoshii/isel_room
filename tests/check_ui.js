@@ -1,10 +1,5 @@
-// Assertions for ui/js/core/utils.js, run against a minimal DOM stub.
-//
-//   node tests/check_ui_utils.js
-//
-// The frontend has no build step and no test runner, and these helpers are
-// shared by every dashboard tab, so this is the cheapest way to catch a
-// regression in them. Node built-ins only — nothing to install.
+// Assertions for ui/js/core/utils.js against a minimal DOM stub. The frontend
+// has no build step and no test runner, so: node tests/check_ui.js
 const fs = require('fs'), assert = require('assert'), vm = require('vm'), path = require('path');
 
 const sandbox = {
@@ -25,7 +20,6 @@ assert.strictEqual(w.avatarHtml('Naimi Nafis', 1, 'avatar avatar-lg'),
   '<div class="avatar avatar-lg av-blue">NN</div>');
 assert.strictEqual(w.avatarHtml('Naimi Nafis', 0, 'picker-av'),
   '<div class="picker-av av-teal">NN</div>');
-// The escaping gap this closes: two old call sites inlined initials unescaped.
 assert.ok(!w.avatarHtml('<script>x</script> Bad', 0).includes('<s'),
   'initials must be HTML-escaped');
 
@@ -45,18 +39,15 @@ assert.strictEqual(mon.getHours(), 0);
 assert.strictEqual(w.isoDate(w.mondayOf(mon)), '2026-05-18', 'idempotent');
 assert.strictEqual(w.isoDate(w.mondayOf(new Date(2026, 4, 24))), '2026-05-18', 'Sunday belongs to the prior Monday');
 
-// byPresenceThenName: present first, then alphabetical
 const sorted = [
   { name: 'Zoe', status: true }, { name: 'Adam', status: false },
   { name: 'Bob', status: true },
 ].sort(w.byPresenceThenName).map(u => u.name);
 assert.deepStrictEqual(sorted, ['Bob', 'Zoe', 'Adam']);
 
-// fmtMins still fine
 assert.strictEqual(w.fmtMins(125), '2h 5m');
 assert.strictEqual(w.fmtMins(45), '45m');
 
-// dead helpers are gone
 assert.strictEqual(w.isStudent, undefined, 'isStudent was dead');
 assert.strictEqual(w.isTeacher, undefined, 'isTeacher is internal now');
 assert.strictEqual(typeof w.roleBadgeClass('先生'), 'string');
@@ -66,8 +57,7 @@ assert.strictEqual(w.roleBadgeClass('M1'), 'badge-student');
 
 console.log('ui/js/core/utils.js: all assertions passed');
 
-// closeModalOnBg: fires only for a click on the overlay itself, never for a
-// click that bubbled up from the modal's content.
+// closeModalOnBg: overlay clicks only, never clicks bubbling up from content.
 {
   const overlay = { id: 'reg-modal' }, content = { id: 'reg-body' };
   let closed = 0;
@@ -77,11 +67,8 @@ console.log('ui/js/core/utils.js: all assertions passed');
   assert.strictEqual(closed, 1, 'click inside the modal must not close it');
 }
 
-// ── Kiosk state machine ──────────────────────────────────────────────────
-// All five states go through one table, so a regression here would break the
-// door screen. Verified against the pre-refactor implementation as rendering
-// byte-identically for ordinary names; these assertions pin that shape plus
-// the escaping the old hand-written render functions lacked.
+// All five kiosk states go through one table, so a regression here breaks the
+// door screen. These pin the rendered shape and the escaping.
 const IDS = ['state-tag', 'tag-text', 'state-name', 'state-sub', 'result-card',
              'face-box', 'scan-line', 'btn-scan', 'check-in-hints'];
 
@@ -135,8 +122,7 @@ function kioskSandbox() {
   assert.strictEqual(els['state-name'].innerHTML, 'See You,<br>Naimi Nafis!');
   assert.ok(els['result-card'].innerHTML.includes('av-red'));
 
-  // A member name is admin-supplied and lands in innerHTML. The two
-  // hand-written render functions this table replaced did not escape it.
+  // A member name is admin-supplied and lands in innerHTML.
   sb.setState('success', { name: '<img src=x onerror=alert(1)>', event: 'IN' });
   assert.ok(!els['state-name'].innerHTML.includes('<img'), 'name must be escaped');
   assert.ok(!els['result-card'].innerHTML.includes('<img'), 'name must be escaped in the card');

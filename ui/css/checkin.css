@@ -1,9 +1,3 @@
-/*
- * checkin.css — Styles for the check-in screen only.
- * Loaded alongside style.css (which defines the shared tokens).
- */
-
-/* ── Main layout ── */
 .checkin-area {
   flex: 1;
   display: flex;
@@ -13,7 +7,6 @@
   gap: clamp(24px, 4vw, 72px);
 }
 
-/* ── Camera feed box (kept dark for video contrast) ── */
 .cam-feed {
   width: clamp(240px, 32vw, 520px);
   height: clamp(240px, 32vw, 520px);
@@ -41,7 +34,6 @@
   white-space: nowrap; pointer-events: none;
 }
 
-/* ── Face-tracking box (corner bracket overlay) ── */
 .face-box {
   position: absolute;
   width: 45%; height: 53%;
@@ -62,14 +54,12 @@
 .corner.bl { bottom: 0; left: 0;  border-bottom: 2px solid; border-left: 2px solid;  border-radius: 0 0 0 3px; }
 .corner.br { bottom: 0; right: 0; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
 
-/* Corner colours per state */
 .state-idle     .corner { border-color: var(--color-surface-dark); }
 .state-scanning .corner { border-color: var(--color-accent-mid); }
 .state-checkin  .corner,
 .state-checkout .corner { border-color: var(--color-success); }
 .state-fail     .corner { border-color: var(--color-error); }
 
-/* Animated scan line (visible only in scanning state) */
 .scan-line {
   position: absolute; left: 0; right: 0;
   height: 1px;
@@ -82,9 +72,7 @@
   100% { top: 94%; }
 }
 
-/* Pulse the corner brackets briefly when captureBurst grabs a frame.
-   Triggered from ui/js/core/camera.js _flashCorners(). Scale + opacity
-   together feel like a quick acknowledgment without changing colour. */
+/* Triggered from _flashCorners() in ui/js/core/camera.js, once per frame. */
 @keyframes corner-pulse {
   0%   { transform: scale(1);   opacity: 1; }
   40%  { transform: scale(1.4); opacity: 0.6; }
@@ -94,7 +82,6 @@
   animation: corner-pulse 220ms ease-out;
 }
 
-/* ── State panel (right of camera) ── */
 .state-panel {
   flex: 1; max-width: clamp(300px, 28vw, 480px);
   display: flex; flex-direction: column;
@@ -124,7 +111,6 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 
-/* ── User card shown after recognition ── */
 .checkin-card {
   background: var(--color-background-primary);
   border-radius: var(--border-radius-lg);
@@ -156,7 +142,6 @@
 .badge-in  { background: var(--color-success-bg); color: var(--color-success); }
 .badge-out { background: var(--color-error-bg);   color: var(--color-error); }
 
-/* ── Scan button ── */
 .btn-scan {
   background: var(--color-accent);
   color: #FFFFFF;
@@ -175,7 +160,6 @@
 .btn-scan:active:not(:disabled) { transform: translateY(0); }
 .btn-scan:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
-/* ── Keyboard hints ── */
 .hint-row {
   display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
   min-height: 24px;
@@ -207,7 +191,6 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 
-/* ── Manual picker overlay ── */
 .picker-box {
   background: var(--color-background-primary);
   border-radius: 20px;
@@ -279,7 +262,6 @@
   font-family: 'IBM Plex Mono', monospace; text-align: center; padding: 20px;
 }
 
-/* ── Present-users strip at the bottom ── */
 .member-strip {
   background: var(--color-background-primary);
   border-top: 1px solid var(--color-border-tertiary);
@@ -303,7 +285,6 @@
 
 .strip-empty { font-size: 11px; color: var(--color-text-secondary); font-family: 'IBM Plex Mono', monospace; }
 
-/* ── Camera error overlay ── */
 .cam-error-overlay {
   position: absolute;
   inset: 0;

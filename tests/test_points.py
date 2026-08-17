@@ -1,4 +1,3 @@
-"""Tests for points leaderboard and manual adjustments."""
 from __future__ import annotations
 from datetime import datetime, timedelta
 

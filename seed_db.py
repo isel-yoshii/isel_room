@@ -3,18 +3,12 @@
     python seed_db.py            # asks before dropping
     python seed_db.py --force    # no prompt (CI / scripted resets)
 
-Deterministic: the same seed always produces the same data, so a bug you see in
-the dashboard is reproducible for everyone on the team.
+Deterministic, and faces are NOT seeded — embeddings only come from a real scan,
+so register yourself at the kiosk to test face auth.
 
-Faces are deliberately NOT seeded. Embeddings are 512-d ArcFace vectors that can
-only come from a real scan, so every mock member has an empty embedding and the
-kiosk will not recognise them — register yourself at the kiosk to test face auth.
-
-Gotcha, and the reason this matches production: the `embedding` column is
-SQLAlchemy `JSON`, so a Python `None` is stored as the JSON *string* `'null'`,
-not as SQL NULL. Production `user_id 8` (registered, never enrolled) is stored
-exactly this way. `WHERE embedding IS NULL` therefore matches nothing — filter
-on `embedding = 'null'` in SQL, or check falsiness after decoding in Python.
+`embedding` is a SQLAlchemy `JSON` column, so a Python `None` is stored as the
+JSON *string* `'null'`, not SQL NULL — exactly like production user_id 8.
+`WHERE embedding IS NULL` therefore matches nothing.
 """
 from __future__ import annotations
 
@@ -51,11 +45,9 @@ MEMBERS = [
 
 def _sessions_for(user_id: int, attendance_rate: float, arrival_hour: int, rng: random.Random,
                   today: datetime) -> list[LabSession]:
-    """One member's sessions over the history window."""
     out = []
     for days_ago in range(DAYS_OF_HISTORY, 0, -1):
         day = today - timedelta(days=days_ago)
-        # Weekends are quiet but not empty — thesis season is real.
         rate = attendance_rate * (0.25 if day.weekday() >= 5 else 1.0)
         if rng.random() > rate:
             continue
@@ -68,8 +60,8 @@ def _sessions_for(user_id: int, attendance_rate: float, arrival_hour: int, rng: 
         check_out = check_in + timedelta(hours=hours, minutes=rng.randrange(0, 60))
 
         method = 'face' if rng.random() > 0.12 else 'manual'
-        # DAY_RESET_HOUR is 22:00 JST: anything still open gets force-closed,
-        # and the legacy code writes that into the check-IN method column.
+        # Force-closed at DAY_RESET_HOUR, which legacy code records in the
+        # check-IN method column.
         reset = day.replace(hour=22, minute=0, second=0, microsecond=0)
         if check_out > reset:
             check_out, method = reset, 'auto_checkout'

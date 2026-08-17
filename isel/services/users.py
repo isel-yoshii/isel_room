@@ -1,4 +1,3 @@
-"""User service — registration, CRUD, face variants, grade promotion."""
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import select, func
@@ -12,11 +11,7 @@ MAX_FRAMES_PER_VARIANT = 3
 
 
 def _normalize_variants(stored: dict | None) -> dict[str, list[list[float]]]:
-    """Single guard for the {variant_key: [vec, ...]} embedding shape.
-
-    Drops keys that are not in VARIANT_KEYS, drops empty slots, and caps
-    each slot at MAX_FRAMES_PER_VARIANT. Returns {} for None or empty input.
-    """
+    """Single guard for the {variant_key: [vec, ...]} embedding shape."""
     if not stored:
         return {}
     return {
@@ -27,7 +22,6 @@ def _normalize_variants(stored: dict | None) -> dict[str, list[list[float]]]:
 
 
 def register_user(name: str, user_type: str, variants: dict) -> int:
-    """Create a new user and return the generated user_id."""
     variant_dict = _normalize_variants(variants)
     with session_scope() as session:
         user = User(name=name, user_type=user_type, embedding=variant_dict)
@@ -78,7 +72,6 @@ def get_all_users_info() -> list[dict]:
 
 
 def get_all_embeddings() -> dict[int, dict]:
-    """Return {user_id: {name, variants}}; variants is {variant_key: [vec, ...]}."""
     with session_scope() as session:
         users = list(session.execute(select(User)).scalars().all())
         return {
@@ -97,10 +90,7 @@ def update_user(user_id: int, name: str, user_type: str) -> None:
 
 
 def set_face_variant(user_id: int, variant_key: str, frames: list[list[float]]) -> list[str]:
-    """Replace one variant slot (normal/glasses/mask) with the given frames.
-
-    Caps at MAX_FRAMES_PER_VARIANT. Returns the present variant keys after the update.
-    """
+    """Replace one variant slot; returns the variant keys present afterwards."""
     if variant_key not in VARIANT_KEYS:
         raise ApiError(f'Invalid variant: {variant_key}')
     if not frames:
@@ -116,11 +106,7 @@ def set_face_variant(user_id: int, variant_key: str, frames: list[list[float]]) 
 
 
 def promote_students(promotions: list[dict]) -> dict[str, int]:
-    """Apply a list of explicit promotions. Each item: {user_id, new_type}.
-
-    Returns counts keyed by 'old_type→new_type' transitions for the summary.
-    All-or-nothing transaction; any error rolls back the whole batch.
-    """
+    """Each item: {user_id, new_type}. Returns counts keyed 'old→new'."""
     if not promotions:
         return {}
     counts: dict[str, int] = {}

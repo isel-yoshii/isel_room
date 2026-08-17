@@ -14,12 +14,8 @@ class User(Base):
 
 
 class LabSession(Base):
-    """One visit: checked in, maybe checked out.
-
-    Named LabSession, not Session, because every module that touches it also
-    imports flask.session or a SQLAlchemy session. __tablename__ stays 'sessions'.
-    """
-
+    # Not named Session: every module that touches it also imports flask.session
+    # or a SQLAlchemy session.
     __tablename__ = 'sessions'
 
     id              = Column(Integer, primary_key=True, autoincrement=True)
