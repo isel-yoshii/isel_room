@@ -26,18 +26,7 @@
   let _selectedUserIds = [];
   let _memberMs = null;
 
-  function isoDay(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-  function mondayOf(d) {
-    const x = new Date(d); x.setHours(0,0,0,0);
-    const dow = (x.getDay() + 6) % 7;
-    x.setDate(x.getDate() - dow);
-    return x;
-  }
+  // mondayOf / isoDate (here: isoDay) live in core/utils.js.
 
   window.loadActivity = async function loadActivity() {
     await initAuditFilters();
@@ -60,8 +49,8 @@
       customWrap?.classList.remove('hidden');
     } else {
       customWrap?.classList.add('hidden');
-      startEl.value = start ? isoDay(start) : '';
-      endEl.value   = end   ? isoDay(end)   : '';
+      startEl.value = start ? isoDate(start) : '';
+      endEl.value   = end   ? isoDate(end)   : '';
     }
     loadAuditLog();
   };
@@ -157,8 +146,8 @@
   function dateLabel(yyyy_mm_dd) {
     const today = new Date(); today.setHours(0,0,0,0);
     const yest  = new Date(today); yest.setDate(yest.getDate() - 1);
-    if (yyyy_mm_dd === isoDay(today)) return 'Today';
-    if (yyyy_mm_dd === isoDay(yest))  return 'Yesterday';
+    if (yyyy_mm_dd === isoDate(today)) return 'Today';
+    if (yyyy_mm_dd === isoDate(yest))  return 'Yesterday';
     const d = new Date(yyyy_mm_dd + 'T00:00:00');
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   }

@@ -52,6 +52,11 @@
   /* Charts */
   --color-chart-line:           #2E8B70;
 
+  /* Avatar rotation — the other four .av-* colours reuse status/accent tokens;
+     purple has no other home, so it lives here rather than inline. */
+  --color-purple-light:         #EEEDFE;
+  --color-purple-mid:           #534AB7;
+
   /* Radius / shadow */
   --border-radius-lg:           12px;
   --border-radius-md:           10px;

@@ -86,11 +86,9 @@
   // Lived in dashboard/overview.js historically, but every dashboard tab
   // (members, activity, attendance, attendance-grid) needs them. Moving
   // here removes a fragile load-order dependency.
-  const STUDENT_TYPES = new Set(['B4', 'M1', 'M2', 'Intern']);
-  const AV_COLORS     = ['av-teal', 'av-blue', 'av-amber', 'av-pink', 'av-purple'];
+  const AV_COLORS = ['av-teal', 'av-blue', 'av-amber', 'av-pink', 'av-purple'];
 
-  window.isTeacher   = t => t === '先生';
-  window.isStudent   = t => STUDENT_TYPES.has(t);
+  const isTeacher = t => t === '先生';
   window.isGraduated = t => t === '卒業';
 
   window.roleBadgeClass = function roleBadgeClass(type) {
@@ -113,4 +111,33 @@
 
   window.avColor  = i => AV_COLORS[i % AV_COLORS.length];
   window.initials = name => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+  // One avatar circle. `cls` carries the base class plus any size modifier
+  // (see .avatar-sm/-md/-lg in dashboard.css) so sizing lives in CSS rather
+  // than as an inline style repeated at every call site. Always escapes —
+  // two of the five call sites this replaces did not.
+  window.avatarHtml = (name, i, cls = 'avatar') =>
+    `<div class="${cls} ${avColor(i)}">${esc(initials(name))}</div>`;
+
+  // ── Date helpers ──
+  // Both were duplicated in dashboard/attendance-grid.js and dashboard/activity.js,
+  // the latter under the name isoDay.
+  window.mondayOf = function mondayOf(d) {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);              // zero first, then step back — the
+    const dow = (x.getDay() + 6) % 7;    // reverse order shifts by an hour
+    x.setDate(x.getDate() - dow);        // across a DST boundary
+    return x;
+  };
+
+  // Local-time YYYY-MM-DD. Deliberately not toISOString(), which converts to
+  // UTC and returns the previous day for any JST time before 09:00.
+  window.isoDate = function isoDate(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  // Present members first, then alphabetical. Used by both check-in screens.
+  window.byPresenceThenName = (a, b) =>
+    (b.status ? 1 : 0) - (a.status ? 1 : 0) || a.name.localeCompare(b.name);
 })();

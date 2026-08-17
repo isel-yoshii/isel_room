@@ -7,7 +7,7 @@
     renderList('picker-list', users, (u, i) => `
         <div class="picker-row ${i === _pickerIndex ? 'active' : ''}"
              onclick="selectPickerUser(${u.id})">
-          <div class="picker-av ${avColor(i)}">${esc(initials(u.name))}</div>
+          ${avatarHtml(u.name, i, 'picker-av')}
           <div class="picker-name">${esc(u.name)}</div>
           <div class="status-pill ${u.status ? 'pill-in' : 'pill-out'}">${u.status ? 'In Lab' : 'Out'}</div>
         </div>`,
@@ -22,9 +22,7 @@
   window.openManualPicker = async function openManualPicker() {
     try {
       const users = await api.get('/api/users');
-      _pickerUsers = [...users].sort((a, b) =>
-        (b.status ? 1 : 0) - (a.status ? 1 : 0) || a.name.localeCompare(b.name)
-      );
+      _pickerUsers = [...users].sort(byPresenceThenName);
       _pickerIndex    = 0;
       _pickerFiltered = _pickerUsers;
 

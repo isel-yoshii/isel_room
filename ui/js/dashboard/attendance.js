@@ -188,7 +188,7 @@
           <div class="points-row ${i < 3 ? 'points-top' : ''}">
             <div class="points-rank" style="color:${rankColor}">${rankLabel}</div>
             <div class="stats-user">
-              <div class="avatar ${avColor(i)}" style="width:30px;height:30px;font-size:10px;">${initials(u.name)}</div>
+              ${avatarHtml(u.name, i, 'avatar avatar-md')}
               <div>
                 <div class="stats-name">${u.name}</div>
                 <div class="stats-type">${u.type}</div>
@@ -199,10 +199,4 @@
         }).join('')}
       </div>`;
   }
-
-  window.Dashboard = window.Dashboard || {};
-  window.Dashboard.Attendance = {
-    init:    () => loadAttendance(),
-    destroy: () => {},
-  };
 })();

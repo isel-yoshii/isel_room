@@ -74,7 +74,7 @@ window.loadOverview = async function loadOverview() {
         const timeLabel = here ? dur : (formatLastSeen(u.last_seen) || '–');
         return `
           <div class="member-card ${here ? 'present' : 'absent'}" onclick="openProfileModal(${u.id})" style="cursor:pointer">
-            <div class="avatar ${avColor(i)}">${initials(u.name)}</div>
+            ${avatarHtml(u.name, i)}
             <div class="member-name">${u.name}</div>
             <div class="member-time">${timeLabel}</div>
             <div class="status-pill ${here ? 'pill-in' : 'pill-out'}">${here ? 'In Lab' : 'Out'}</div>
@@ -135,10 +135,4 @@ window.loadOverview = async function loadOverview() {
       </div>`,
       '<div class="log-empty">No Activity Recorded</div>');
   }
-
-  window.Dashboard = window.Dashboard || {};
-  window.Dashboard.Overview = {
-    init:    () => loadOverview(),
-    destroy: () => {},
-  };
 })();

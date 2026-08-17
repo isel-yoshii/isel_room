@@ -10,9 +10,7 @@
         const argType  = escAttr(u.type);
         return `
           <div class="user-row ${grad ? 'user-row-grad' : ''}" id="user-row-${u.id}">
-            <div class="avatar ${avColor(i)}" style="width:36px;height:36px;font-size:12px;${grad ? 'opacity:0.45' : ''}">
-              ${esc(initials(u.name))}
-            </div>
+            ${avatarHtml(u.name, i, 'avatar avatar-lg')}
             <div class="user-info">
               <div class="user-name">${safeName}</div>
               <div class="user-role">

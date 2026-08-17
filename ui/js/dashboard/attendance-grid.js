@@ -16,20 +16,7 @@
     }
   }
 
-  function mondayOf(d) {
-    const x = new Date(d);
-    x.setHours(0, 0, 0, 0);
-    const dow = (x.getDay() + 6) % 7;  // Mon=0..Sun=6
-    x.setDate(x.getDate() - dow);
-    return x;
-  }
-
-  function isoDate(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
+  // mondayOf / isoDate live in core/utils.js — both were duplicated here.
 
   function isToday(isoDateStr) {
     return isoDate(new Date()) === isoDateStr;
@@ -103,7 +90,7 @@
       const grad = isGraduated(u.type);
       const nameCell = `
         <div class="grid-name-cell ${grad ? 'grid-name-grad' : ''}" id="grid-row-${u.id}">
-          <div class="avatar ${avColor(i)}" style="width:28px;height:28px;font-size:10px;">${esc(initials(u.name))}</div>
+          ${avatarHtml(u.name, i, 'avatar avatar-sm')}
           <div class="grid-name-info">
             <div class="grid-name">${esc(u.name)}</div>
           </div>
