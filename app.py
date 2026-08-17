@@ -83,17 +83,25 @@ def create_app(config_name: str = 'dev') -> Flask:
     # Every reason for NOT starting is logged at WARNING. Silence here was the
     # whole problem: a process that skipped the scheduler looked identical to
     # one that started it, so a nightly job that never ran was invisible.
+    # Deliberately NOT guarded by _in_werkzeug_reloader_parent, unlike Slack.
+    #
+    # That guard is unknowable from in here: it tests `WERKZEUG_RUN_MAIN is
+    # unset`, which is true both for the reloader's parent AND for any run with
+    # no reloader at all. `flask --app app run` — the command in our own README
+    # — does not enable the reloader (Flask needs --debug for that) while
+    # DevConfig.DEBUG stays True, so the guard concluded "reloader parent" and
+    # skipped the scheduler on every single start. That is why the 22:00
+    # checkout silently never ran.
+    #
+    # No guard is needed here anyway: auto_checkout_all() is idempotent, so if
+    # the reloader IS active and both processes schedule the job, the second
+    # run finds nothing left to close. Slack keeps its guard because a doubled
+    # Socket Mode connection is real waste.
     _forced = os.environ.get('ENABLE_SCHEDULER')     # None | '0' | '1'
     if app.config.get('TESTING'):
         _skip = 'TESTING'
     elif _forced == '0':
         _skip = 'ENABLE_SCHEDULER=0'
-    elif _in_werkzeug_reloader_parent and _forced != '1':
-        # This guard is only correct when the reloader is actually active.
-        # `flask run --no-reload` never sets WERKZEUG_RUN_MAIN, so it would skip
-        # there too — ENABLE_SCHEDULER=1 forces past it.
-        _skip = ('werkzeug reloader parent (dev). If you started with --no-reload '
-                 'the scheduler will NOT run here: set ENABLE_SCHEDULER=1 to force it.')
     else:
         _skip = None
 

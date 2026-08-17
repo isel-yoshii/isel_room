@@ -196,3 +196,45 @@ def test_the_scheduled_job_records_a_failure_instead_of_dying(monkeypatch):
     assert scheduler._last_run['error'] is not None
     assert 'boom' in scheduler._last_run['error']
     scheduler._last_run.update(at=None, closed=None, error=None)
+
+
+def test_scheduler_arms_under_the_documented_dev_command(monkeypatch):
+    """`flask --app app run` — the command in our own README — must arm it.
+
+    THE root cause of the 22:00 checkout never running. That command does not
+    enable Werkzeug's reloader (Flask needs --debug), so WERKZEUG_RUN_MAIN is
+    never set, while DevConfig.DEBUG stays True. The old guard read that
+    combination as "I am the reloader parent" and skipped the scheduler on
+    every start, forever, silently.
+    """
+    from isel.jobs import scheduler
+    from app import create_app
+
+    monkeypatch.delenv('WERKZEUG_RUN_MAIN', raising=False)
+    monkeypatch.delenv('ENABLE_SCHEDULER', raising=False)
+
+    scheduler._scheduler = None
+    try:
+        app = create_app('dev')
+        assert app.config['DEBUG'] is True, 'dev config must still be debug'
+        assert scheduler.status()['running'] is True
+        assert 'T22:00:00+09:00' in scheduler.status()['next_run']
+    finally:
+        if scheduler._scheduler is not None:
+            scheduler._scheduler.shutdown(wait=False)
+            scheduler._scheduler = None
+
+
+def test_enable_scheduler_zero_still_opts_out(monkeypatch):
+    from isel.jobs import scheduler
+    from app import create_app
+
+    monkeypatch.setenv('ENABLE_SCHEDULER', '0')
+    scheduler._scheduler = None
+    try:
+        create_app('dev')
+        assert scheduler._scheduler is None
+    finally:
+        if scheduler._scheduler is not None:
+            scheduler._scheduler.shutdown(wait=False)
+            scheduler._scheduler = None
