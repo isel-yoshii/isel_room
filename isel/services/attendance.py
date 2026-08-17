@@ -1,10 +1,13 @@
 """Attendance service — toggle entry, auto checkout, presence queries."""
 from __future__ import annotations
+import logging
 from datetime import datetime, timedelta
 from sqlalchemy import select
 from isel.db import session_scope
 from isel.db.models import User, LabSession, AuditLog
 from isel.utils import ApiError, minutes_between
+
+logger = logging.getLogger(__name__)
 
 _STALE_SESSION_HOURS = 24
 
@@ -52,32 +55,58 @@ def toggle_entry(user_id: int, check_in_method: str = 'face') -> dict:
         }
 
 
-def auto_checkout_all() -> None:
+def auto_checkout_all() -> int:
+    """Close everyone out. Returns how many sessions were closed.
+
+    Errors are logged and re-raised: this used to swallow every exception into a
+    print(), so a nightly job that fired and failed looked exactly like a
+    nightly job that never fired at all. The scheduler logs the failure and
+    keeps its next run.
+
+    Sweeps by *open session*, not by `users.status`. The two can disagree — a
+    crash between writing the session row and the status flag leaves a session
+    that a status-driven sweep would never close, and that session then reads as
+    an ever-growing visit on the dashboard.
+    """
+    now = datetime.now()
+    with session_scope() as session:
+        open_sessions = list(session.execute(
+            select(LabSession).where(LabSession.checked_out_at.is_(None))
+        ).scalars().all())
+
+        for lab_sess in open_sessions:
+            lab_sess.checked_out_at = now
+            lab_sess.check_in_method = 'auto_checkout'
+            user = session.get(User, lab_sess.user_id)
+            session.add(AuditLog(
+                action_type='AUTO_CHECKOUT',
+                target_user_id=lab_sess.user_id,
+                target_name=user.name if user else f'user_{lab_sess.user_id}',
+                performed_by='system',
+                timestamp=now,
+            ))
+
+        # Anyone still flagged present without an open session (the other half
+        # of the same desync) is cleared too.
+        still_present = list(session.execute(
+            select(User).where(User.status.is_(True))
+        ).scalars().all())
+        for user in still_present:
+            user.status = False
+
+        count = len(open_sessions)
+        logger.info('Auto-checkout closed %d open session(s); cleared %d present flag(s).',
+                    count, len(still_present))
+
+    # Slack is best-effort: a failed board refresh must not undo the checkout,
+    # which is already committed by this point.
     try:
-        with session_scope() as session:
-            stmt = select(User).where(User.status.is_(True))
-            present_users = list(session.execute(stmt).scalars().all())
-            now = datetime.now()
-            for user in present_users:
-                user.status = False
-                _close_open_session(session, user.user_id, now, method='auto_checkout')
-                session.add(AuditLog(
-                    action_type='AUTO_CHECKOUT',
-                    target_user_id=user.user_id,
-                    target_name=user.name,
-                    performed_by='system',
-                    timestamp=now,
-                ))
-            count = len(present_users)
-        if count:
-            print(f'[{datetime.now().strftime("%H:%M:%S")}] {count}名の自動退室処理を完了しました。')
-        try:
-            from isel.integrations.slack import update_status_board
-            update_status_board()
-        except Exception as e:
-            print(f'Slack board refresh after auto-checkout failed: {e}')
-    except Exception as e:
-        print(f'自動退室処理でエラー: {e}')
+        from isel.integrations.slack import update_status_board
+        update_status_board()
+    except Exception:
+        logger.exception('Slack board refresh after auto-checkout failed (checkout itself succeeded).')
+
+    return count
 
 
 def get_present_users() -> list[str]:

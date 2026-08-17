@@ -62,6 +62,29 @@ def promote_students():
     return ok(promoted=users_svc.promote_students(promotions))
 
 
+@bp.get('/api/admin/scheduler')
+@admin_required
+def scheduler_status():
+    """Is the nightly auto-checkout actually armed in the process serving this?
+
+    `running: false` or a null `next_run` means the job will not fire — check
+    the startup log for the "scheduler NOT started" warning and its reason.
+    With more than one gunicorn worker you reach an arbitrary worker, so an
+    inconsistent answer across refreshes means the job is armed in some workers
+    and not others.
+    """
+    from isel.jobs.scheduler import status
+    import os
+    return jsonify({**status(), 'pid': os.getpid()})
+
+
+@bp.post('/api/admin/auto-checkout')
+@admin_required
+def run_auto_checkout():
+    """Close everyone out now. The manual lever for when the nightly job missed."""
+    return ok(closed=attendance_svc.auto_checkout_all())
+
+
 @bp.get('/api/stats/points')
 def points_stats():
     year = int(request.args.get('year', datetime.now().year))

@@ -57,37 +57,69 @@ def create_app(config_name: str = 'dev') -> Flask:
     from isel.api import register_blueprints
     register_blueprints(app)
 
-    # Slack: start the bot client (and Socket Mode listener if both tokens
-    # are present). In dev with Werkzeug's auto-reloader the parent process
-    # spawns a child that re-runs create_app; only let the child start the
-    # Socket Mode thread, otherwise we'd double-connect.
     _in_werkzeug_reloader_parent = (
         app.config.get('DEBUG') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true'
     )
-    if not _in_werkzeug_reloader_parent and not app.config.get('TESTING'):
-        from isel.integrations.slack import init as init_slack
-        init_slack(
-            bot_token=app.config.get('SLACK_BOT_TOKEN', ''),
-            app_token=app.config.get('SLACK_APP_TOKEN', ''),
-            channel  =app.config.get('SLACK_CHANNEL', '#a-lab-status'),
-        )
 
     # Auto-checkout scheduler: fires in-app at DAY_RESET_HOUR:00 (Asia/Tokyo).
-    # Reuses the Werkzeug-reloader guard above so it doesn't double-start in dev,
-    # and skips under tests. If gunicorn ever runs >1 worker, set ENABLE_SCHEDULER=0
-    # on the extras so only one process schedules the job.
-    if (
-        not _in_werkzeug_reloader_parent
-        and not app.config.get('TESTING')
-        and os.environ.get('ENABLE_SCHEDULER', '1') != '0'
-    ):
+    #
+    # Every reason for NOT starting is logged at WARNING. Silence here was the
+    # whole problem: a process that skipped the scheduler looked identical to
+    # one that started it, so a nightly job that never ran was invisible.
+    _forced = os.environ.get('ENABLE_SCHEDULER')     # None | '0' | '1'
+    if app.config.get('TESTING'):
+        _skip = 'TESTING'
+    elif _forced == '0':
+        _skip = 'ENABLE_SCHEDULER=0'
+    elif _in_werkzeug_reloader_parent and _forced != '1':
+        # This guard is only correct when the reloader is actually active.
+        # `flask run --no-reload` never sets WERKZEUG_RUN_MAIN, so it would skip
+        # there too — ENABLE_SCHEDULER=1 forces past it.
+        _skip = ('werkzeug reloader parent (dev). If you started with --no-reload '
+                 'the scheduler will NOT run here: set ENABLE_SCHEDULER=1 to force it.')
+    else:
+        _skip = None
+
+    if _skip:
+        app.logger.warning('Auto-checkout scheduler NOT started: %s', _skip)
+    else:
         from isel.jobs.scheduler import start as start_scheduler
         start_scheduler(app.config['DAY_RESET_HOUR'])
 
+    # Slack: started AFTER the scheduler, and never allowed to be fatal.
+    #
+    # slack_bolt's App() calls auth.test during construction, so a revoked or
+    # rotated token raised BoltError straight out of create_app — which killed
+    # the whole application, the nightly auto-checkout included. A chat
+    # integration must not be able to take down attendance, least of all while
+    # the lab is migrating off Slack.
+    if not _in_werkzeug_reloader_parent and not app.config.get('TESTING'):
+        try:
+            from isel.integrations.slack import init as init_slack
+            init_slack(
+                bot_token=app.config.get('SLACK_BOT_TOKEN', ''),
+                app_token=app.config.get('SLACK_APP_TOKEN', ''),
+                channel  =app.config.get('SLACK_CHANNEL', '#a-lab-status'),
+            )
+        except Exception:
+            app.logger.exception(
+                'Slack integration failed to start; continuing without it. '
+                'Check-in, the dashboard and auto-checkout are unaffected.')
+
     @app.cli.command('auto-checkout')
     def _cli_auto_checkout():
+        """Close everyone out now. Safe to run from OS cron as a safety net."""
         from isel.services.attendance import auto_checkout_all
-        auto_checkout_all()
+        closed = auto_checkout_all()
+        print(f'Auto-checkout complete: {closed} session(s) closed.')
+
+    @app.cli.command('scheduler-status')
+    def _cli_scheduler_status():
+        """Print scheduler state. NOTE: this starts a fresh process, so it does
+        NOT report the state of a running gunicorn worker — use
+        GET /api/admin/scheduler for that."""
+        from isel.jobs.scheduler import status
+        print(status())
 
     @app.get('/')
     def index():

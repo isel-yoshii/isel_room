@@ -6,6 +6,8 @@ server's timezone (a UTC server would otherwise fire at 07:00 JST).
 """
 from __future__ import annotations
 import logging
+import os
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -16,12 +18,40 @@ _TOKYO = ZoneInfo('Asia/Tokyo')
 _scheduler: BackgroundScheduler | None = None
 
 
+_last_run: dict = {'at': None, 'closed': None, 'error': None}
+
+
 def _run_auto_checkout() -> None:
     # Imported lazily to avoid heavy imports at module load and import cycles.
     from isel.services.attendance import auto_checkout_all
     logger.info('Auto-checkout job firing (Asia/Tokyo daily reset).')
-    auto_checkout_all()
-    logger.info('Auto-checkout job finished.')
+    started = datetime.now(_TOKYO)
+    try:
+        closed = auto_checkout_all()
+        _last_run.update(at=started.isoformat(), closed=closed, error=None)
+        logger.info('Auto-checkout job finished: %d session(s) closed.', closed)
+    except Exception as exc:
+        # Never let the job die silently — APScheduler would swallow it and the
+        # next morning would look identical to "the scheduler never started".
+        _last_run.update(at=started.isoformat(), closed=None, error=repr(exc))
+        logger.exception('Auto-checkout job FAILED.')
+
+
+def status() -> dict:
+    """Whether the job is armed in *this* process, and when it next fires.
+
+    Deliberately per-process: with more than one gunicorn worker only the
+    worker you happen to reach will answer, which is itself the thing worth
+    knowing — see the deployment note in the guide.
+    """
+    if _scheduler is None:
+        return {'running': False, 'next_run': None, 'last_run': _last_run}
+    job = _scheduler.get_job('auto_checkout')
+    return {
+        'running': _scheduler.running,
+        'next_run': job.next_run_time.isoformat() if job and job.next_run_time else None,
+        'last_run': _last_run,
+    }
 
 
 def start(day_reset_hour: int) -> BackgroundScheduler | None:
@@ -40,9 +70,15 @@ def start(day_reset_hour: int) -> BackgroundScheduler | None:
         misfire_grace_time=3600,  # still run if the process was briefly busy/asleep
     )
     sched.start()
-    logger.info(
-        'Auto-checkout scheduler started: daily at %02d:00 Asia/Tokyo.',
-        day_reset_hour,
-    )
     _scheduler = sched
+
+    # Log the actual next fire time, not just "started" — this is the one line
+    # that tells you the job is really armed, and it is what was missing when
+    # the nightly checkout silently never ran.
+    job = sched.get_job('auto_checkout')
+    logger.warning(
+        'Auto-checkout scheduler ARMED in pid %s: daily at %02d:00 Asia/Tokyo, next run %s.',
+        os.getpid(), day_reset_hour,
+        job.next_run_time.isoformat() if job and job.next_run_time else 'UNKNOWN',
+    )
     return sched
