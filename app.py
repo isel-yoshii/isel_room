@@ -7,22 +7,22 @@ load_dotenv()
 from flask import Flask, render_template, jsonify, request
 from werkzeug.exceptions import HTTPException
 from config import get_config
-from isel.utils import ApiError, ImageDecodeError
+from backend.utils import ApiError, ImageDecodeError
 
 
 def create_app(config_name: str = 'dev') -> Flask:
     # Without this, nothing configures the root logger under gunicorn and every
-    # INFO record from isel.* is dropped — including the face matcher's and the
+    # INFO record from backend.* is dropped — including the face matcher's and the
     # auto-checkout job's only diagnostics.
     _level = os.getenv('LOG_LEVEL', 'INFO').upper()
     logging.basicConfig(
         level=_level,
         format='%(asctime)s %(levelname)-8s %(name)s %(message)s',
     )
-    logging.getLogger('isel').setLevel(_level)
+    logging.getLogger('backend').setLevel(_level)
 
     cfg = get_config(config_name)
-    app = Flask(__name__, template_folder='ui', static_folder='ui', static_url_path='/ui')
+    app = Flask(__name__, template_folder='frontend', static_folder='frontend', static_url_path='/frontend')
     app.config.from_object(cfg)
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024
@@ -54,11 +54,11 @@ def create_app(config_name: str = 'dev') -> Flask:
         detail = f'{type(err).__name__}: {err}' if app.config.get('DEBUG') else 'Internal server error'
         return jsonify({'success': False, 'message': detail}), 500
 
-    from isel.db import init_db
+    from backend.db import init_db
     init_db()
 
-    from isel.face_engine import FaceEngine
-    from isel.services.users import get_all_embeddings
+    from backend.face_engine import FaceEngine
+    from backend.services.users import get_all_embeddings
     app.config['FACE_ENGINE'] = FaceEngine(
         get_all_embeddings,
         auth_threshold=app.config['FACE_AUTH_THRESHOLD'],
@@ -66,7 +66,7 @@ def create_app(config_name: str = 'dev') -> Flask:
         detect_confidence=app.config['FACE_DETECT_CONFIDENCE'],
     )
 
-    from isel.api import register_blueprints
+    from backend.api import register_blueprints
     register_blueprints(app)
 
     _in_werkzeug_reloader_parent = (
@@ -91,7 +91,7 @@ def create_app(config_name: str = 'dev') -> Flask:
     if _skip:
         app.logger.warning('Auto-checkout scheduler NOT started: %s', _skip)
     else:
-        from isel.jobs.scheduler import start as start_scheduler
+        from backend.jobs.scheduler import start as start_scheduler
         start_scheduler(app.config['DAY_RESET_HOUR'])
 
     # Started AFTER the scheduler and never allowed to be fatal: slack_bolt's
@@ -99,7 +99,7 @@ def create_app(config_name: str = 'dev') -> Flask:
     # raise straight out of create_app and take attendance down with it.
     if not _in_werkzeug_reloader_parent and not app.config.get('TESTING'):
         try:
-            from isel.integrations.slack import init as init_slack
+            from backend.integrations.slack import init as init_slack
             init_slack(
                 bot_token=app.config.get('SLACK_BOT_TOKEN', ''),
                 app_token=app.config.get('SLACK_APP_TOKEN', ''),
@@ -113,7 +113,7 @@ def create_app(config_name: str = 'dev') -> Flask:
     @app.cli.command('auto-checkout')
     def _cli_auto_checkout():
         """Close everyone out now. Safe to run from OS cron as a safety net."""
-        from isel.services.attendance import auto_checkout_all
+        from backend.services.attendance import auto_checkout_all
         closed = auto_checkout_all()
         print(f'Auto-checkout complete: {closed} session(s) closed.')
 
@@ -121,7 +121,7 @@ def create_app(config_name: str = 'dev') -> Flask:
     def _cli_scheduler_status():
         """Print scheduler state. Starts a fresh process, so it does NOT report
         a running gunicorn worker — use GET /api/admin/scheduler for that."""
-        from isel.jobs.scheduler import status
+        from backend.jobs.scheduler import status
         print(status())
 
     @app.get('/')

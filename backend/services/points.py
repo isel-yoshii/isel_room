@@ -6,9 +6,9 @@ The all-time board resets every April 1 (Japanese academic year): AY YYYY is
 from __future__ import annotations
 from datetime import date, datetime
 from sqlalchemy import select, func
-from isel.db import session_scope
-from isel.db.models import User, LabSession
-from isel.utils import month_range
+from backend.db import session_scope
+from backend.db.models import User, LabSession
+from backend.utils import month_range
 
 
 def current_academic_year(today: date | None = None) -> int:

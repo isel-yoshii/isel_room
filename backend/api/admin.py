@@ -3,11 +3,11 @@ import csv
 import io
 from datetime import datetime
 from flask import Blueprint, request, jsonify, Response
-import isel.services.attendance as attendance_svc
-import isel.services.users as users_svc
-import isel.services.points as points_svc
-import isel.services.audit as audit_svc
-from isel.utils import admin_required, ok
+import backend.services.attendance as attendance_svc
+import backend.services.users as users_svc
+import backend.services.points as points_svc
+import backend.services.audit as audit_svc
+from backend.utils import admin_required, ok
 
 bp = Blueprint('admin', __name__)
 
@@ -71,7 +71,7 @@ def scheduler_status():
     log has the reason. An answer that changes between refreshes means the job
     is armed in some gunicorn workers and not others.
     """
-    from isel.jobs.scheduler import status
+    from backend.jobs.scheduler import status
     import os
     return jsonify({**status(), 'pid': os.getpid()})
 

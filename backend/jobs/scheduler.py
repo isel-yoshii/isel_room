@@ -21,7 +21,7 @@ _last_run: dict = {'at': None, 'closed': None, 'error': None}
 
 
 def _run_auto_checkout() -> None:
-    from isel.services.attendance import auto_checkout_all
+    from backend.services.attendance import auto_checkout_all
     logger.info('Auto-checkout job firing (Asia/Tokyo daily reset).')
     started = datetime.now(_TOKYO)
     try:

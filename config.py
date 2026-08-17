@@ -3,7 +3,7 @@ import os
 
 
 class Config:
-    # DATABASE_URL deliberately does not live here: isel/db/__init__.py builds
+    # DATABASE_URL deliberately does not live here: backend/db/__init__.py builds
     # the engine from the environment at import time, before any config object
     # exists, so a value set here could never take effect.
     SECRET_KEY: str = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')

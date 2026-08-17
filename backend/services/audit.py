@@ -1,8 +1,8 @@
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import select, or_
-from isel.db import session_scope
-from isel.db.models import AuditLog
+from backend.db import session_scope
+from backend.db.models import AuditLog
 
 
 def record(

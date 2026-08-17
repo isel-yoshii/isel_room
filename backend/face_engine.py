@@ -104,7 +104,7 @@ class FaceEngine:
                                enforce: bool = True) -> list[list[float]]:
         """Frames with no detectable face are dropped, so the result may be
         shorter than the input, or empty."""
-        from isel.utils import decode_image
+        from backend.utils import decode_image
 
         out = []
         for b64 in (frames_b64[:limit] if limit else frames_b64):

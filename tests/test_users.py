@@ -4,8 +4,8 @@ from datetime import datetime
 
 from sqlalchemy import select
 
-from isel.db.models import User, LabSession, AuditLog
-import isel.services.users as users
+from backend.db.models import User, LabSession, AuditLog
+import backend.services.users as users
 
 
 def _mock_engine():

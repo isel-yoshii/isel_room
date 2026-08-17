@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from isel.db.models import User
-from isel.face_engine import FaceEngine
-import isel.services.users as users_svc
+from backend.db.models import User
+from backend.face_engine import FaceEngine
+import backend.services.users as users_svc
 
 
 def test_find_match_picks_closest_across_multi_variants(db_session):

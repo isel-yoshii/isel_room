@@ -21,8 +21,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from isel.db import Base, engine, session_scope  # noqa: E402
-from isel.db.models import AuditLog, LabSession, User  # noqa: E402
+from backend.db import Base, engine, session_scope  # noqa: E402
+from backend.db.models import AuditLog, LabSession, User  # noqa: E402
 
 DAYS_OF_HISTORY = 60
 SEED = 20260817

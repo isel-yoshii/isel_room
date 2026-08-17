@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from isel.db.models import AuditLog, LabSession, User
-from isel.services import attendance
+from backend.db.models import AuditLog, LabSession, User
+from backend.services import attendance
 
 
 def _user(db, name, status=True):
@@ -99,7 +99,7 @@ def test_does_not_reopen_or_touch_already_closed_sessions(db_session):
 
 def test_a_slack_failure_does_not_undo_the_checkout(db_session, monkeypatch):
     """Slack is best-effort; the checkout is already committed when it runs."""
-    import isel.integrations.slack as slack
+    import backend.integrations.slack as slack
 
     def boom():
         raise RuntimeError('slack is down')
@@ -124,7 +124,7 @@ def test_a_database_failure_is_raised_not_swallowed(db_session, monkeypatch):
 
 
 def test_scheduler_status_reports_not_running_before_start():
-    from isel.jobs import scheduler
+    from backend.jobs import scheduler
 
     st = scheduler.status()
     assert st['running'] is False
@@ -132,7 +132,7 @@ def test_scheduler_status_reports_not_running_before_start():
 
 
 def test_scheduler_arms_the_job_and_reports_the_next_run():
-    from isel.jobs import scheduler
+    from backend.jobs import scheduler
 
     sched = scheduler.start(22)
     try:
@@ -150,8 +150,8 @@ def test_a_broken_slack_token_does_not_stop_the_app_or_the_scheduler(monkeypatch
     """Slack used to be initialised before the scheduler, and fatally: App()
     calls auth.test on construction, so a rotated token raised straight out of
     create_app and took check-in and the nightly checkout down with it."""
-    import isel.integrations.slack as slack
-    from isel.jobs import scheduler
+    import backend.integrations.slack as slack
+    from backend.jobs import scheduler
     from app import create_app
 
     def boom(**kwargs):
@@ -174,8 +174,8 @@ def test_a_broken_slack_token_does_not_stop_the_app_or_the_scheduler(monkeypatch
 
 def test_the_scheduled_job_records_a_failure_instead_of_dying(monkeypatch):
     """APScheduler swallows a raising job; _run_auto_checkout must not let it."""
-    from isel.jobs import scheduler
-    import isel.services.attendance as svc
+    from backend.jobs import scheduler
+    import backend.services.attendance as svc
 
     monkeypatch.setattr(svc, 'auto_checkout_all',
                         lambda: (_ for _ in ()).throw(RuntimeError('boom')))
@@ -194,7 +194,7 @@ def test_scheduler_arms_under_the_documented_dev_command(monkeypatch):
     needs --debug), so WERKZEUG_RUN_MAIN is never set while DevConfig.DEBUG
     stays True. The old guard read that as "I am the reloader parent".
     """
-    from isel.jobs import scheduler
+    from backend.jobs import scheduler
     from app import create_app
 
     monkeypatch.delenv('WERKZEUG_RUN_MAIN', raising=False)
@@ -213,7 +213,7 @@ def test_scheduler_arms_under_the_documented_dev_command(monkeypatch):
 
 
 def test_enable_scheduler_zero_still_opts_out(monkeypatch):
-    from isel.jobs import scheduler
+    from backend.jobs import scheduler
     from app import create_app
 
     monkeypatch.setenv('ENABLE_SCHEDULER', '0')

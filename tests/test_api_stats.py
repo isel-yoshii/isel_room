@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from isel.db.models import LabSession, User
+from backend.db.models import LabSession, User
 
 PUBLIC_ROUTES = [
     '/api/log/today',

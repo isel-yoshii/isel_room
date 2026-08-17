@@ -72,7 +72,7 @@
   100% { top: 94%; }
 }
 
-/* Triggered from _flashCorners() in ui/js/core/camera.js, once per frame. */
+/* Triggered from _flashCorners() in frontend/js/core/camera.js, once per frame. */
 @keyframes corner-pulse {
   0%   { transform: scale(1);   opacity: 1; }
   40%  { transform: scale(1.4); opacity: 0.6; }

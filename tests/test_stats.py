@@ -1,4 +1,4 @@
-"""Tests for isel/services/stats.py.
+"""Tests for backend/services/stats.py.
 
 Transcribed from the parity suite written for the abandoned Go rewrite. Where
 that rewrite deliberately changed a behaviour, these pin what the Flask code
@@ -10,8 +10,8 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from isel.db.models import LabSession, User
-from isel.services import stats
+from backend.db.models import LabSession, User
+from backend.services import stats
 
 # A Wednesday, mid-afternoon, mid-month, mid-week — no boundary is special here,
 # so a test that cares about a boundary has to create it explicitly.

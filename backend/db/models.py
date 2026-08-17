@@ -1,6 +1,6 @@
 from __future__ import annotations
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, ForeignKey
-from isel.db import Base
+from backend.db import Base
 
 
 class User(Base):

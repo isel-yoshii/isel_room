@@ -21,8 +21,8 @@ from scipy.spatial import distance
 
 load_dotenv()
 
-from isel.db import session_scope                    # noqa: E402
-from isel.db.models import User                      # noqa: E402
+from backend.db import session_scope                    # noqa: E402
+from backend.db.models import User                      # noqa: E402
 
 AUTH_THRESHOLD = float(os.getenv('FACE_AUTH_THRESHOLD', '0.55'))
 LOW_CONFIDENCE = float(os.getenv('LOW_CONFIDENCE_THRESHOLD', '0.40'))

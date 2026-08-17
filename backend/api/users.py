@@ -1,9 +1,9 @@
 from __future__ import annotations
 from flask import Blueprint, request, jsonify, current_app
-import isel.services.users as users_svc
-import isel.services.audit as audit_svc
-from isel.services.users import VARIANT_KEYS
-from isel.utils import admin_required, ok, fail
+import backend.services.users as users_svc
+import backend.services.audit as audit_svc
+from backend.services.users import VARIANT_KEYS
+from backend.utils import admin_required, ok, fail
 
 bp = Blueprint('users', __name__)
 
@@ -15,7 +15,7 @@ def get_users():
 
 @bp.get('/api/user/<int:user_id>/profile')
 def get_user_profile(user_id: int):
-    from isel.services.stats import get_user_profile
+    from backend.services.stats import get_user_profile
     data = get_user_profile(user_id)
     if data is None:
         return jsonify({'error': 'User not found'}), 404

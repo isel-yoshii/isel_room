@@ -1,9 +1,9 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 
-import isel.db as _db
-from isel.db.models import User, LabSession, AuditLog
-import isel.services.attendance as attendance
+import backend.db as _db
+from backend.db.models import User, LabSession, AuditLog
+import backend.services.attendance as attendance
 
 
 def _make_user(db_session, name='Test User', user_type='B4') -> int:

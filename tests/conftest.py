@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 
-# Set before any project modules are imported so isel.db picks up the right URL.
+# Set before any project modules are imported so backend.db picks up the right URL.
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('ADMIN_PIN', 'test-pin')
 os.environ.setdefault('FLASK_SECRET_KEY', 'test-secret')
@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import isel.db as _db
+import backend.db as _db
 
 # Replace the module-level engine with a StaticPool in-memory engine so all
 # sessions share the same in-memory database (SQLite creates a new DB per
@@ -24,7 +24,7 @@ _test_engine = create_engine(
 _db.engine = _test_engine
 _db.SessionLocal = sessionmaker(bind=_test_engine, autoflush=False, autocommit=False)
 
-from isel.db.models import Base, User, LabSession, AuditLog  # noqa
+from backend.db.models import Base, User, LabSession, AuditLog  # noqa
 Base.metadata.create_all(_test_engine)
 
 from app import create_app

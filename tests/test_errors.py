@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from isel.utils import ApiError
+from backend.utils import ApiError
 
 
 @pytest.fixture()

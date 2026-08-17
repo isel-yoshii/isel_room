@@ -1,4 +1,4 @@
-// Assertions for ui/js/core/utils.js against a minimal DOM stub. The frontend
+// Assertions for frontend/js/core/utils.js against a minimal DOM stub. The frontend
 // has no build step and no test runner, so: node tests/check_ui.js
 const fs = require('fs'), assert = require('assert'), vm = require('vm'), path = require('path');
 
@@ -10,7 +10,7 @@ const sandbox = {
 };
 sandbox.window = sandbox;
 vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'ui', 'js', 'core', 'utils.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'frontend', 'js', 'core', 'utils.js'), 'utf8'), sandbox);
 const w = sandbox;
 
 // avatarHtml: default base class, size modifier, and escaping
@@ -55,7 +55,7 @@ assert.strictEqual(w.roleBadgeClass('先生'), 'badge-admin');
 assert.strictEqual(w.roleBadgeClass('卒業'), 'badge-grad');
 assert.strictEqual(w.roleBadgeClass('M1'), 'badge-student');
 
-console.log('ui/js/core/utils.js: all assertions passed');
+console.log('frontend/js/core/utils.js: all assertions passed');
 
 // closeModalOnBg: overlay clicks only, never clicks bubbling up from content.
 {
@@ -84,8 +84,8 @@ function kioskSandbox() {
   };
   sb.window = sb;
   vm.createContext(sb);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'ui', 'js', 'core', 'utils.js'), 'utf8'), sb);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'ui', 'js', 'checkin', 'state-machine.js'), 'utf8'), sb);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'frontend', 'js', 'core', 'utils.js'), 'utf8'), sb);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'frontend', 'js', 'checkin', 'state-machine.js'), 'utf8'), sb);
   return { sb, els };
 }
 
@@ -133,4 +133,4 @@ function kioskSandbox() {
   assert.strictEqual(els['state-name'].innerHTML, before);
 }
 
-console.log('ui/js/checkin/state-machine.js: all assertions passed');
+console.log('frontend/js/checkin/state-machine.js: all assertions passed');

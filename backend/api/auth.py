@@ -3,7 +3,7 @@ import hmac
 import threading
 import time
 from flask import Blueprint, request, jsonify, session, current_app
-from isel.utils import ok, fail
+from backend.utils import ok, fail
 
 bp = Blueprint('auth', __name__)
 

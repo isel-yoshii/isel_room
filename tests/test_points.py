@@ -1,8 +1,8 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 
-from isel.db.models import User, LabSession
-import isel.services.points as points
+from backend.db.models import User, LabSession
+import backend.services.points as points
 
 
 def _make_user(db_session, name='User', user_type='B4') -> User:

@@ -2,8 +2,8 @@ from __future__ import annotations
 import time
 from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, session as flask_session
-import isel.services.attendance as attendance_svc
-from isel.utils import admin_required, ok, fail
+import backend.services.attendance as attendance_svc
+from backend.utils import admin_required, ok, fail
 
 bp = Blueprint('attendance', __name__)
 
@@ -53,7 +53,7 @@ def toggle():
 
     result = attendance_svc.toggle_entry(data['user_id'], check_in_method)
 
-    from isel.integrations.slack import update_status_board
+    from backend.integrations.slack import update_status_board
     update_status_board()
     return jsonify(result)
 

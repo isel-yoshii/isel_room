@@ -3,8 +3,8 @@ import csv
 import io
 from datetime import datetime, date, timedelta
 from flask import Blueprint, request, jsonify, Response
-import isel.services.stats as stats_svc
-from isel.utils import admin_required
+import backend.services.stats as stats_svc
+from backend.utils import admin_required
 
 bp = Blueprint('stats', __name__)
 

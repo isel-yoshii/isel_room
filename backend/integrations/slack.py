@@ -50,7 +50,7 @@ def _register_handlers(app: App) -> None:
     @app.command('/who')
     def _who(ack, respond):
         ack()
-        from isel.services.attendance import get_present_users_detailed
+        from backend.services.attendance import get_present_users_detailed
         present = get_present_users_detailed()
         respond(
             blocks=_present_blocks(present),
@@ -61,7 +61,7 @@ def _register_handlers(app: App) -> None:
     @app.command('/points')
     def _points(ack, respond):
         ack()
-        from isel.services.points import monthly_leaderboard
+        from backend.services.points import monthly_leaderboard
         now = datetime.now()
         rows = monthly_leaderboard(now.year, now.month)[:5]
         respond(
@@ -146,7 +146,7 @@ def update_status_board() -> None:
     if not _app or not _channel:
         return
     try:
-        from isel.services.attendance import get_present_users_detailed
+        from backend.services.attendance import get_present_users_detailed
         present = get_present_users_detailed()
         blocks = _present_blocks(present)
         text   = _fallback_text(present)

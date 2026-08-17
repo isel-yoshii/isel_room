@@ -1,9 +1,9 @@
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import select, func
-from isel.db import session_scope
-from isel.db.models import User, LabSession, AuditLog
-from isel.utils import ApiError
+from backend.db import session_scope
+from backend.db.models import User, LabSession, AuditLog
+from backend.utils import ApiError
 
 
 VARIANT_KEYS = ('normal', 'glasses', 'mask')

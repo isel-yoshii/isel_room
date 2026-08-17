@@ -17,7 +17,6 @@ Members check in and out by looking at a camera at the lab door. Everyone can se
 - [Slack Setup](#slack-setup)
 - [Project Layout](#project-layout)
 - [Testing](#testing)
-- [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
@@ -27,14 +26,13 @@ Members check in and out by looking at a camera at the lab door. Everyone can se
 ## Screenshots
 
 - **Check-in screen.** 
-![Check-in screen](./ui/img/check_in_screen.png)
-
+![Check-in screen](./frontend/img/check_in_screen.png)
 
 - **Dashboard overview.** 
-![Dashboard Overview](./ui/img/overview.png)
+![Dashboard Overview](./frontend/img/overview.png)
 
 - **Attendance tab.**
-![Attendance Tab](./ui/img/attendance.png)
+![Attendance Tab](./frontend/img/attendance.png)
 
 ---
 
@@ -199,7 +197,7 @@ isel_room/
 ├── wsgi.py                 # Production entry point
 ├── config.py               # Dev / Prod / Test configs
 ├── seed_db.py              # Reset dev DB with mock data
-├── isel/
+├── backend/
 │   ├── api/                # Flask blueprints (auth, attendance, users, stats, admin)
 │   ├── services/           # Business logic (attendance, users, points, stats, audit)
 │   ├── db/                 # SQLAlchemy models + session_scope context manager
@@ -207,13 +205,11 @@ isel_room/
 │   ├── integrations/       # Slack status board
 │   └── utils.py            # @admin_required, decode_image, ok()/fail() helpers
 ├── tests/                  # pytest suite
-└── ui/
+└── frontend/
     ├── index.html          # Single-page shell
     ├── css/                # tokens, base, checkin, dashboard
     └── js/                 # core, checkin, dashboard
 ```
-
-See [ISEL_ROOM_GUIDE.md §3](ISEL_ROOM_GUIDE.md#3-repository-layout) for the annotated tree.
 
 ---
 
@@ -230,14 +226,6 @@ The frontend has no build step, so its shared helpers and the kiosk state machin
 ```bash
 node tests/check_ui.js
 ```
-
----
-
-## Documentation
-
-For everything beyond getting it running:
-
-- **[ISEL_ROOM_GUIDE.md](ISEL_ROOM_GUIDE.md).** Comprehensive architecture. Every layer explained. Face pipeline deep-dive. Frontend module map. State machines. Testing patterns. Common workflows (recipes). Troubleshooting. Read this on your first day.
 
 ---
 

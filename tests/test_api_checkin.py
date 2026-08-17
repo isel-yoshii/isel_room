@@ -1,9 +1,9 @@
 from __future__ import annotations
 from unittest.mock import MagicMock
 
-from isel.db.models import User
-from isel.face_engine import FaceEngine
-import isel.db as _db
+from backend.db.models import User
+from backend.face_engine import FaceEngine
+import backend.db as _db
 
 
 def _add_user(db_session, name='Test User', status=False) -> int:

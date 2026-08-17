@@ -2,7 +2,7 @@
 nothing here mocks the Slack API."""
 from __future__ import annotations
 
-from isel.integrations.slack import _present_blocks, _points_blocks
+from backend.integrations.slack import _present_blocks, _points_blocks
 
 
 def test_present_blocks_empty_list():

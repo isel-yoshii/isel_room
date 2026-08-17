@@ -2,9 +2,9 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 from sqlalchemy import select
-from isel.db import session_scope
-from isel.db.models import User, LabSession, AuditLog
-from isel.utils import ApiError, minutes_between
+from backend.db import session_scope
+from backend.db.models import User, LabSession, AuditLog
+from backend.utils import ApiError, minutes_between
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ def auto_checkout_all() -> int:
     # Best-effort: the checkout is already committed, so a failed board refresh
     # must not turn into a failed checkout.
     try:
-        from isel.integrations.slack import update_status_board
+        from backend.integrations.slack import update_status_board
         update_status_board()
     except Exception:
         logger.exception('Slack board refresh after auto-checkout failed (checkout itself succeeded).')

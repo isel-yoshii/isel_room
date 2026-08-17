@@ -16,7 +16,7 @@ Base = declarative_base()
 
 
 def init_db() -> None:
-    from isel.db.models import User, AuditLog, LabSession  # noqa: F401
+    from backend.db.models import User, AuditLog, LabSession  # noqa: F401
     Base.metadata.create_all(engine)
 
 
