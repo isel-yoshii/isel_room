@@ -1,14 +1,28 @@
-flask
+# --- Face recognition stack: DO NOT BUMP ---------------------------------
+# Stored embeddings were produced by exactly these versions. We keep only the
+# 512-d vectors, never the source photos, so a version bump that changes
+# RetinaFace alignment or ArcFace preprocessing silently stops every stored
+# vector from matching — and the only recovery is every lab member physically
+# re-enrolling at the kiosk. retina-face is held BELOW 0.0.18 on purpose.
+# Validate any change by having one known person scan at the kiosk first.
+deepface==0.0.99
+tensorflow==2.21.0
+retina-face==0.0.17
+keras==3.14.0
+tf-keras==2.21.0
+# Bumping these breaks deepface/tensorflow too.
 numpy==2.4.4
 opencv-python==4.13.0.92
 scipy==1.17.1
+# -------------------------------------------------------------------------
+
+Flask==3.1.3
 SQLAlchemy==2.0.49
-typing_extensions==4.15.0
-deepface
-python-dotenv
-tf-keras
-slack-bolt
+python-dotenv==1.2.2
 APScheduler==3.10.4
-pymysql
-pytest
-pytest-flask
+slack-bolt==1.28.0
+PyMySQL==1.1.2
+typing_extensions==4.15.0
+
+pytest==9.0.3
+pytest-flask==1.3.0

@@ -107,10 +107,12 @@ Leave the rest at defaults for now.
 ### Seed the database
 
 ```bash
-python tests/test_seed_db.py
+python seed_db.py
 ```
 
-This drops and recreates the DB with 11 mock members and about 60 days of fake attendance history. Re-run it any time during development to reset.
+This drops and recreates the DB with 11 mock members and about 60 days of fake attendance history. It asks for confirmation first; pass `--force` to skip the prompt. Re-run it any time during development to reset.
+
+Faces are not seeded — ArcFace embeddings can only come from a real scan, so register yourself at the kiosk to test face authentication.
 
 ### Run
 
@@ -196,7 +198,7 @@ isel_room/
 ├── app.py                  # Flask app factory
 ├── wsgi.py                 # Production entry point
 ├── config.py               # Dev / Prod / Test configs
-├── prod_seed_db.py              # Reset DB with mock data
+├── seed_db.py              # Reset dev DB with mock data
 ├── isel/
 │   ├── api/                # Flask blueprints (auth, attendance, users, stats, admin)
 │   ├── services/           # Business logic (attendance, users, points, stats, audit)
@@ -221,7 +223,7 @@ See [ISEL_ROOM_GUIDE.md §3](ISEL_ROOM_GUIDE.md#3-repository-layout) for the ann
 python -m pytest
 ```
 
-Runs the full suite (~19 tests) against an in-memory SQLite. No external services required.
+Runs the full suite (30 tests) against an in-memory SQLite. No external services required.
 
 ---
 
