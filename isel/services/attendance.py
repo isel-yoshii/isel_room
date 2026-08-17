@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from isel.db import session_scope
 from isel.db.models import User, Session as LabSession, AuditLog
+from isel.utils import minutes_between
 
 _STALE_SESSION_HOURS = 24
 
@@ -92,15 +93,10 @@ def get_present_users_detailed() -> list[dict]:
         users = session.execute(stmt).scalars().all()
         result = []
         for u in users:
-            open_stmt = (
-                select(LabSession)
-                .where(LabSession.user_id == u.user_id, LabSession.checked_out_at.is_(None))
-                .order_by(LabSession.checked_in_at.desc())
-            )
-            open_sess = session.execute(open_stmt).scalars().first()
+            open_sess = _open_session(session, u.user_id)
             duration = None
             if open_sess:
-                mins = int((datetime.now() - open_sess.checked_in_at).total_seconds() / 60)
+                mins = minutes_between(open_sess.checked_in_at, datetime.now())
                 duration = f'{mins // 60}h {mins % 60:02d}m'
             result.append({'id': u.user_id, 'name': u.name, 'type': u.user_type, 'duration': duration})
         return result
@@ -125,18 +121,23 @@ def update_session(session_id: int, checked_in_at: datetime, checked_out_at: dat
         return {'success': False, 'message': str(e)}
 
 
+def _open_session(session, user_id: int):
+    """The user's most recent session that was never checked out, if any."""
+    stmt = (
+        select(LabSession)
+        .where(LabSession.user_id == user_id, LabSession.checked_out_at.is_(None))
+        .order_by(LabSession.checked_in_at.desc())
+    )
+    return session.execute(stmt).scalars().first()
+
+
 def _close_open_session(
     session,
     user_id: int,
     now: datetime,
     method: str | None = None,
 ) -> None:
-    stmt = (
-        select(LabSession)
-        .where(LabSession.user_id == user_id, LabSession.checked_out_at.is_(None))
-        .order_by(LabSession.checked_in_at.desc())
-    )
-    open_sess = session.execute(stmt).scalars().first()
+    open_sess = _open_session(session, user_id)
     if open_sess:
         open_sess.checked_out_at = now
         if method:
@@ -144,12 +145,12 @@ def _close_open_session(
 
 
 def _close_stale_session(session, user_id: int, now: datetime) -> None:
-    stmt = (
-        select(LabSession)
-        .where(LabSession.user_id == user_id, LabSession.checked_out_at.is_(None))
-        .order_by(LabSession.checked_in_at.desc())
-    )
-    open_sess = session.execute(stmt).scalars().first()
+    """Close a session left open longer than _STALE_SESSION_HOURS, with an audit row.
+
+    Distinct from _close_open_session: this one only fires past the staleness
+    window, and records that the system (not the person) ended the visit.
+    """
+    open_sess = _open_session(session, user_id)
     if open_sess and (now - open_sess.checked_in_at) > timedelta(hours=_STALE_SESSION_HOURS):
         open_sess.checked_out_at = now
         open_sess.check_in_method = 'auto_checkout'

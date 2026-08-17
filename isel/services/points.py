@@ -7,11 +7,11 @@ The all-time leaderboard resets every April 1 (Japanese academic year):
 each AY runs from April 1 (inclusive) to April 1 of the next year (exclusive).
 """
 from __future__ import annotations
-import calendar
 from datetime import date, datetime
 from sqlalchemy import select, func
 from isel.db import session_scope
 from isel.db.models import User, Session as LabSession
+from isel.utils import month_range
 
 
 def current_academic_year(today: date | None = None) -> int:
@@ -25,9 +25,7 @@ def current_academic_year(today: date | None = None) -> int:
 
 def monthly_leaderboard(year: int, month: int) -> list[dict]:
     with session_scope() as session:
-        start = datetime(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        end = datetime(year, month, last_day, 23, 59, 59)
+        start, end = month_range(year, month)
 
         rows = session.execute(
             select(
@@ -39,7 +37,7 @@ def monthly_leaderboard(year: int, month: int) -> list[dict]:
             .join(LabSession, LabSession.user_id == User.user_id)
             .where(
                 LabSession.checked_in_at >= start,
-                LabSession.checked_in_at <= end,
+                LabSession.checked_in_at < end,
             )
             .group_by(User.user_id)
         ).all()

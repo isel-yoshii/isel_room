@@ -126,13 +126,32 @@ def test_monthly_user_stats_sums_closed_sessions(db_session):
     assert rows[1]['total_minutes'] == 60
 
 
-def test_monthly_user_stats_includes_the_last_second_of_the_month(db_session):
+@pytest.mark.parametrize('checked_in', [
+    datetime(2026, 5, 31, 23, 59, 59),
+    # Sub-second: the old inclusive `<= 23:59:59` upper bound dropped this one.
+    datetime(2026, 5, 31, 23, 59, 59, 750000),
+])
+def test_monthly_user_stats_includes_the_end_of_the_month(db_session, checked_in):
     naimi = _user(db_session, 'Naimi')
-    _session(db_session, naimi, datetime(2026, 5, 31, 23, 59, 59), 0.02)
+    _session(db_session, naimi, checked_in, 0.02)
 
     rows = stats.monthly_user_stats(2026, 5)
 
     assert len(rows) == 1 and rows[0]['sessions'] == 1
+
+
+def test_monthly_user_stats_excludes_the_first_instant_of_the_next_month(db_session):
+    naimi = _user(db_session, 'Naimi')
+    _session(db_session, naimi, datetime(2026, 6, 1, 0, 0, 0), 1)
+
+    assert stats.monthly_user_stats(2026, 5) == []
+
+
+def test_export_includes_the_sub_second_end_of_the_month(db_session):
+    naimi = _user(db_session, 'Naimi')
+    _session(db_session, naimi, datetime(2026, 5, 31, 23, 59, 59, 750000), 1)
+
+    assert len(stats.export_monthly_csv(2026, 5)) == 1
 
 
 def test_monthly_user_stats_is_empty_without_data(db_session):

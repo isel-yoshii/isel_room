@@ -1,9 +1,27 @@
 from __future__ import annotations
 import base64
+from datetime import datetime
 from functools import wraps
 import numpy as np
 import cv2
 from flask import session, jsonify
+
+
+def month_range(year: int, month: int) -> tuple[datetime, datetime]:
+    """The half-open range [start, end) covering one calendar month.
+
+    `end` is the first instant of the *next* month, so queries must use `<`, not
+    `<=`. Half-open on purpose: the inclusive `23:59:59` bound this replaces
+    silently dropped anything in the final second of the month.
+    """
+    start = datetime(year, month, 1)
+    end = datetime(year + (month == 12), month % 12 + 1, 1)
+    return start, end
+
+
+def minutes_between(start: datetime, end: datetime) -> int:
+    """Whole minutes from start to end, truncated."""
+    return int((end - start).total_seconds() / 60)
 
 
 def ok(message: str | None = None, **extra):

@@ -1,11 +1,11 @@
 """Stats service — activity logs, monthly/weekly/daily aggregations, CSV export."""
 from __future__ import annotations
-import calendar
 from collections import defaultdict
 from datetime import datetime, timedelta, time as dt_time, date
 from sqlalchemy import select, func
 from isel.db import session_scope
 from isel.db.models import User, Session as LabSession
+from isel.utils import minutes_between, month_range
 
 
 def daily_log(date_str: str | None = None) -> list[dict]:
@@ -52,16 +52,14 @@ def daily_log(date_str: str | None = None) -> list[dict]:
 
 def monthly_user_stats(year: int, month: int) -> list[dict]:
     with session_scope() as session:
-        start = datetime(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        end = datetime(year, month, last_day, 23, 59, 59)
+        start, end = month_range(year, month)
 
         rows = session.execute(
             select(LabSession, User)
             .join(User, LabSession.user_id == User.user_id)
             .where(
                 LabSession.checked_in_at >= start,
-                LabSession.checked_in_at <= end,
+                LabSession.checked_in_at < end,
                 LabSession.checked_out_at.isnot(None),
             )
             .order_by(User.user_id, LabSession.checked_in_at)
@@ -73,7 +71,7 @@ def monthly_user_stats(year: int, month: int) -> list[dict]:
             uid = user.user_id
             user_meta[uid] = {'name': user.name, 'type': user.user_type}
             user_data[uid]['sessions'] += 1
-            mins = int((lab_sess.checked_out_at - lab_sess.checked_in_at).total_seconds() / 60)
+            mins = minutes_between(lab_sess.checked_in_at, lab_sess.checked_out_at)
             user_data[uid]['total_minutes'] += mins
 
         result = [
@@ -113,12 +111,11 @@ def today_unique_checkins() -> int:
 def active_days_this_month() -> int:
     """Count distinct calendar days this month on which at least one session started."""
     with session_scope() as session:
-        now   = datetime.now()
-        start = datetime(now.year, now.month, 1)
-        end   = datetime(now.year, now.month, calendar.monthrange(now.year, now.month)[1], 23, 59, 59)
+        now = datetime.now()
+        start, end = month_range(now.year, now.month)
         count = session.execute(
             select(func.count(func.distinct(func.date(LabSession.checked_in_at))))
-            .where(LabSession.checked_in_at >= start, LabSession.checked_in_at <= end)
+            .where(LabSession.checked_in_at >= start, LabSession.checked_in_at < end)
         ).scalar()
         return count or 0
 
@@ -130,23 +127,20 @@ def get_user_profile(user_id: int) -> dict | None:
             return None
 
         now = datetime.now()
-        month_start = datetime(now.year, now.month, 1)
-        last_day = calendar.monthrange(now.year, now.month)[1]
-        month_end = datetime(now.year, now.month, last_day, 23, 59, 59)
+        month_start, month_end = month_range(now.year, now.month)
 
         monthly_rows = list(session.execute(
             select(LabSession)
             .where(
                 LabSession.user_id == user_id,
                 LabSession.checked_in_at >= month_start,
-                LabSession.checked_in_at <= month_end,
+                LabSession.checked_in_at < month_end,
                 LabSession.checked_out_at.isnot(None),
             )
         ).scalars().all())
 
         total_minutes = sum(
-            int((r.checked_out_at - r.checked_in_at).total_seconds() / 60)
-            for r in monthly_rows
+            minutes_between(r.checked_in_at, r.checked_out_at) for r in monthly_rows
         )
 
         recent = list(session.execute(
@@ -164,7 +158,7 @@ def get_user_profile(user_id: int) -> dict | None:
                 'checked_out_at': r.checked_out_at.strftime('%H:%M'),
                 'checked_in_at_iso': r.checked_in_at.isoformat(),
                 'checked_out_at_iso': r.checked_out_at.isoformat() if r.checked_out_at else None,
-                'duration_minutes': int((r.checked_out_at - r.checked_in_at).total_seconds() / 60),
+                'duration_minutes': minutes_between(r.checked_in_at, r.checked_out_at),
                 'check_in_method': r.check_in_method or 'face',
             }
             for r in recent
@@ -182,14 +176,12 @@ def get_user_profile(user_id: int) -> dict | None:
 
 def export_monthly_csv(year: int, month: int) -> list[dict]:
     with session_scope() as session:
-        start = datetime(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        end = datetime(year, month, last_day, 23, 59, 59)
+        start, end = month_range(year, month)
 
         rows = session.execute(
             select(LabSession, User)
             .join(User, LabSession.user_id == User.user_id)
-            .where(LabSession.checked_in_at >= start, LabSession.checked_in_at <= end)
+            .where(LabSession.checked_in_at >= start, LabSession.checked_in_at < end)
             .order_by(LabSession.checked_in_at)
         ).all()
 
@@ -197,7 +189,7 @@ def export_monthly_csv(year: int, month: int) -> list[dict]:
         for lab_sess, user in rows:
             duration = ''
             if lab_sess.checked_out_at:
-                duration = int((lab_sess.checked_out_at - lab_sess.checked_in_at).total_seconds() / 60)
+                duration = minutes_between(lab_sess.checked_in_at, lab_sess.checked_out_at)
             result.append({
                 'name': user.name,
                 'date': lab_sess.checked_in_at.strftime('%Y-%m-%d'),
@@ -235,7 +227,7 @@ def weekly_grid(start_date: date, user_ids: list[int] | None = None) -> list[dic
         for s in all_sessions:
             day_key = (s.user_id, s.checked_in_at.date())
             end = s.checked_out_at or now
-            minutes = max(0, int((end - s.checked_in_at).total_seconds() / 60))
+            minutes = max(0, minutes_between(s.checked_in_at, end))
             bucket = by_user_day[day_key]
             bucket['total_minutes'] += minutes
             bucket['sessions'] += 1
@@ -278,7 +270,7 @@ def anomalies(days: int = 7) -> list[dict]:
         for s in all_sessions:
             per_user_days[s.user_id].add(s.checked_in_at.date())
             end = s.checked_out_at or now
-            minutes = max(0, int((end - s.checked_in_at).total_seconds() / 60))
+            minutes = max(0, minutes_between(s.checked_in_at, end))
             if minutes > 12 * 60:
                 per_user_long[s.user_id] += 1
 
