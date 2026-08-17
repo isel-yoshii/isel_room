@@ -3,9 +3,10 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
+from werkzeug.exceptions import HTTPException
 from config import get_config
-from isel.utils import ImageDecodeError
+from isel.utils import ApiError, ImageDecodeError
 
 
 def create_app(config_name: str = 'dev') -> Flask:
@@ -18,6 +19,32 @@ def create_app(config_name: str = 'dev') -> Flask:
     @app.errorhandler(ImageDecodeError)
     def _image_decode_error(err: ImageDecodeError):
         return jsonify({'matched': False, 'success': False, 'message': str(err)}), 400
+
+    # Everything under /api/ answers in JSON, including when it fails. The UI's
+    # fetch wrapper does `.then(r => r.json())` with no status check, so an HTML
+    # error page makes it throw a parse error and show the user nothing at all.
+    def _is_api() -> bool:
+        return request.path.startswith('/api/')
+
+    @app.errorhandler(ApiError)
+    def _api_error(err: ApiError):
+        return jsonify({'success': False, 'message': str(err)}), err.status
+
+    @app.errorhandler(HTTPException)
+    def _http_error(err: HTTPException):
+        if not _is_api():
+            return err
+        return jsonify({'success': False, 'message': err.description}), err.code
+
+    @app.errorhandler(Exception)
+    def _unhandled_error(err: Exception):
+        # An exception that reached here is a bug, not a bad request. Log the
+        # traceback for us; tell the caller nothing that leaks internals.
+        app.logger.exception('Unhandled error on %s %s', request.method, request.path)
+        if not _is_api():
+            raise err
+        detail = f'{type(err).__name__}: {err}' if app.config.get('DEBUG') else 'Internal server error'
+        return jsonify({'success': False, 'message': detail}), 500
 
     from isel.db import init_db
     init_db()

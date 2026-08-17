@@ -56,6 +56,20 @@ class ImageDecodeError(ValueError):
     pass
 
 
+class ApiError(Exception):
+    """Something the caller can fix — a missing record, an invalid field.
+
+    Services raise this instead of returning {'success': False, ...}; the app's
+    error handler turns it into the same JSON body every route used to build by
+    hand. Anything *not* raised as an ApiError is a bug, gets logged with a
+    traceback, and is reported to the caller as a generic 500.
+    """
+
+    def __init__(self, message: str, status: int = 400) -> None:
+        super().__init__(message)
+        self.status = status
+
+
 def decode_image(data_url: str):
     """Decode a data: URL into an OpenCV BGR frame.
 

@@ -7,7 +7,7 @@ import isel.services.attendance as attendance_svc
 import isel.services.users as users_svc
 import isel.services.points as points_svc
 import isel.services.audit as audit_svc
-from isel.utils import admin_required, ok, fail
+from isel.utils import admin_required, ok
 
 bp = Blueprint('admin', __name__)
 
@@ -59,13 +59,7 @@ def export_audit_csv():
 def promote_students():
     data = request.json or {}
     promotions = data.get('promotions', [])
-    try:
-        counts = users_svc.promote_students(promotions)
-        return ok(promoted=counts)
-    except ValueError as e:
-        return fail(str(e), 400)
-    except Exception as e:
-        return fail(str(e), 500)
+    return ok(promoted=users_svc.promote_students(promotions))
 
 
 @bp.get('/api/stats/points')

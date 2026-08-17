@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from isel.db import session_scope
 from isel.db.models import User, Session as LabSession, AuditLog
-from isel.utils import minutes_between
+from isel.utils import ApiError, minutes_between
 
 _STALE_SESSION_HOURS = 24
 
@@ -108,17 +108,13 @@ def get_user_status(user_id: int) -> bool:
         return bool(user.status) if user else False
 
 
-def update_session(session_id: int, checked_in_at: datetime, checked_out_at: datetime | None) -> dict:
-    try:
-        with session_scope() as session:
-            lab_sess = session.get(LabSession, session_id)
-            if not lab_sess:
-                return {'success': False, 'message': 'Session not found'}
-            lab_sess.checked_in_at = checked_in_at
-            lab_sess.checked_out_at = checked_out_at
-            return {'success': True}
-    except Exception as e:
-        return {'success': False, 'message': str(e)}
+def update_session(session_id: int, checked_in_at: datetime, checked_out_at: datetime | None) -> None:
+    with session_scope() as session:
+        lab_sess = session.get(LabSession, session_id)
+        if not lab_sess:
+            raise ApiError('Session not found', 404)
+        lab_sess.checked_in_at = checked_in_at
+        lab_sess.checked_out_at = checked_out_at
 
 
 def _open_session(session, user_id: int):

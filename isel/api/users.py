@@ -69,13 +69,10 @@ def register():
 @bp.delete('/api/user/<int:user_id>')
 @admin_required
 def delete_user(user_id: int):
-    try:
-        name = users_svc.get_user_name(user_id)
-        users_svc.delete_user(user_id)
-        audit_svc.record('DELETE', user_id, name or f'user_{user_id}')
-        return ok('ユーザーを削除しました')
-    except Exception as e:
-        return fail(str(e), 500)
+    name = users_svc.get_user_name(user_id)
+    users_svc.delete_user(user_id)
+    audit_svc.record('DELETE', user_id, name or f'user_{user_id}')
+    return ok('ユーザーを削除しました')
 
 
 @bp.put('/api/user/<int:user_id>')
@@ -86,8 +83,8 @@ def update_user(user_id: int):
     user_type = data.get('user_type', '').strip()
     if not name or not user_type:
         return fail('name and user_type required')
-    result = users_svc.update_user(user_id, name, user_type)
-    return jsonify(result), (200 if result['success'] else 400)
+    users_svc.update_user(user_id, name, user_type)
+    return ok()
 
 
 @bp.post('/api/user/<int:user_id>/face')
@@ -107,5 +104,5 @@ def set_user_face_variant(user_id: int):
             frames_emb.append([float(v) for v in emb])
     if not frames_emb:
         return fail('No face detected in any frame')
-    result = users_svc.set_face_variant(user_id, variant, frames_emb)
-    return jsonify(result), (200 if result['success'] else 400)
+    variants = users_svc.set_face_variant(user_id, variant, frames_emb)
+    return ok(variants=variants)

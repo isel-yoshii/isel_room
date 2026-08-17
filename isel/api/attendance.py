@@ -85,5 +85,5 @@ def update_session(session_id: int):
         )
     except (KeyError, ValueError) as e:
         return fail(f'Invalid datetime: {e}')
-    result = attendance_svc.update_session(session_id, checked_in_at, checked_out_at)
-    return jsonify(result), (200 if result['success'] else 400)
+    attendance_svc.update_session(session_id, checked_in_at, checked_out_at)
+    return ok()

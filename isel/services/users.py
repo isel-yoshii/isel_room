@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import select, func
 from isel.db import session_scope
 from isel.db.models import User, Session as LabSession, AuditLog
+from isel.utils import ApiError
 
 
 VARIANT_KEYS = ('normal', 'glasses', 'mask')
@@ -86,39 +87,32 @@ def get_all_embeddings() -> dict[int, dict]:
         }
 
 
-def update_user(user_id: int, name: str, user_type: str) -> dict:
-    try:
-        with session_scope() as session:
-            user = session.get(User, user_id)
-            if not user:
-                return {'success': False, 'message': 'User not found'}
-            user.name = name
-            user.user_type = user_type
-            return {'success': True}
-    except Exception as e:
-        return {'success': False, 'message': str(e)}
+def update_user(user_id: int, name: str, user_type: str) -> None:
+    with session_scope() as session:
+        user = session.get(User, user_id)
+        if not user:
+            raise ApiError('User not found', 404)
+        user.name = name
+        user.user_type = user_type
 
 
-def set_face_variant(user_id: int, variant_key: str, frames: list[list[float]]) -> dict:
+def set_face_variant(user_id: int, variant_key: str, frames: list[list[float]]) -> list[str]:
     """Replace one variant slot (normal/glasses/mask) with the given frames.
 
     Caps at MAX_FRAMES_PER_VARIANT. Returns the present variant keys after the update.
     """
     if variant_key not in VARIANT_KEYS:
-        return {'success': False, 'message': f'Invalid variant: {variant_key}'}
+        raise ApiError(f'Invalid variant: {variant_key}')
     if not frames:
-        return {'success': False, 'message': 'No frames provided'}
-    try:
-        with session_scope() as session:
-            user = session.get(User, user_id)
-            if not user:
-                return {'success': False, 'message': 'User not found'}
-            current = _normalize_variants(user.embedding)
-            current[variant_key] = list(frames)[:MAX_FRAMES_PER_VARIANT]
-            user.embedding = current
-            return {'success': True, 'variants': [k for k in VARIANT_KEYS if k in current]}
-    except Exception as e:
-        return {'success': False, 'message': str(e)}
+        raise ApiError('No frames provided')
+    with session_scope() as session:
+        user = session.get(User, user_id)
+        if not user:
+            raise ApiError('User not found', 404)
+        current = _normalize_variants(user.embedding)
+        current[variant_key] = list(frames)[:MAX_FRAMES_PER_VARIANT]
+        user.embedding = current
+        return [k for k in VARIANT_KEYS if k in current]
 
 
 def promote_students(promotions: list[dict]) -> dict[str, int]:
@@ -134,7 +128,7 @@ def promote_students(promotions: list[dict]) -> dict[str, int]:
         now = datetime.now()
         for entry in promotions:
             if not isinstance(entry, dict) or 'user_id' not in entry or 'new_type' not in entry:
-                raise ValueError('each promotion needs a user_id and a new_type')
+                raise ApiError('each promotion needs a user_id and a new_type')
             user = session.get(User, entry['user_id'])
             if user is None:
                 continue
