@@ -308,7 +308,7 @@
   <!-- ═══════════════════════════════════════════════════
        REGISTRATION MODAL
   ═══════════════════════════════════════════════════ -->
-  <div class="modal-overlay hidden" id="reg-modal" onclick="closeRegModalOnBg(event)">
+  <div class="modal-overlay hidden" id="reg-modal" onclick="closeModalOnBg(event, closeRegModal)">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-title">Add Member</div>
 
@@ -354,7 +354,7 @@
   </div>
 
   <!-- Face re-registration modal -->
-  <div class="modal-overlay hidden" id="face-rereg-modal" onclick="closeFaceReregModalOnBg(event)">
+  <div class="modal-overlay hidden" id="face-rereg-modal" onclick="closeModalOnBg(event, closeFaceReregModal)">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-title" id="face-rereg-title">Add Face Variant</div>
       <div class="modal-field">
@@ -396,7 +396,7 @@
   </div>
 
   <!-- PIN Modal -->
-  <div class="modal-overlay hidden" id="pin-modal" onclick="closePinModalOnBg(event)">
+  <div class="modal-overlay hidden" id="pin-modal" onclick="closeModalOnBg(event, closePinModal)">
     <div class="modal-box modal-sm" onclick="event.stopPropagation()">
       <div class="modal-title">Admin access</div>
       <div class="modal-field">
@@ -413,7 +413,7 @@
   </div>
 
   <!-- Profile modal -->
-  <div class="modal-overlay hidden" id="profile-modal" onclick="closeProfileModalOnBg(event)">
+  <div class="modal-overlay hidden" id="profile-modal" onclick="closeModalOnBg(event, closeProfileModal)">
     <div class="modal-box profile-box" onclick="event.stopPropagation()">
       <div class="profile-header">
         <div class="modal-title" id="profile-name">–</div>
@@ -429,7 +429,7 @@
   </div>
 
   <!-- Promote-students wizard modal -->
-  <div class="modal-overlay hidden" id="promote-modal" onclick="closePromoteModalOnBg(event)">
+  <div class="modal-overlay hidden" id="promote-modal" onclick="closeModalOnBg(event, closePromoteModal)">
     <div class="modal-box modal-lg" onclick="event.stopPropagation()">
       <div class="modal-title">Promote Students</div>
       <div class="modal-subtitle">Review and adjust the next role for each promotable member, then click Apply.</div>
@@ -443,7 +443,7 @@
   </div>
 
   <!-- Audit context modal -->
-  <div class="modal-overlay hidden" id="context-modal" onclick="closeContextModalOnBg(event)">
+  <div class="modal-overlay hidden" id="context-modal" onclick="closeModalOnBg(event, closeContextModal)">
     <div class="modal-box modal-md" onclick="event.stopPropagation()">
       <div class="modal-title" id="context-title">Context</div>
       <div id="context-body"><div class="log-empty">Loading…</div></div>

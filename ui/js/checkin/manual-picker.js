@@ -70,7 +70,7 @@
   window.selectPickerUser = async function selectPickerUser(userId) {
     closeManualPicker();
     const result = await api.post('/api/toggle', { user_id: userId, check_in_method: 'manual' });
-    setStateResult(result.name, result.event_type);
+    setState('success', { name: result.name, event: result.event_type });
     loadMemberStrip();
     setTimeout(() => setState('idle'), 3000);
   };

@@ -242,7 +242,4 @@
     closeModal('context-modal');
   };
 
-  window.closeContextModalOnBg = function closeContextModalOnBg(event) {
-    if (event.target === document.getElementById('context-modal')) closeContextModal();
-  };
 })();

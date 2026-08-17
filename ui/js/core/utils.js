@@ -71,6 +71,14 @@
   window.openModal  = id => document.getElementById(id)?.classList.remove('hidden');
   window.closeModal = id => document.getElementById(id)?.classList.add('hidden');
 
+  // Backdrop click closes the modal; a click on its content does not.
+  // Used as onclick="closeModalOnBg(event, closeRegModal)" on the overlay,
+  // replacing six identical per-modal closeXOnBg wrappers. Each modal keeps
+  // its own close function because several also tear down a camera stream.
+  window.closeModalOnBg = (event, close) => {
+    if (event.target === event.currentTarget) close();
+  };
+
   // Centralised list of modal ids so the "any modal open?" guard used by global
   // keyboard handlers can't fall out of sync between files.
   const _MODAL_IDS = [

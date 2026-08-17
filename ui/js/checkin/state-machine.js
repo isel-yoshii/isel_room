@@ -1,4 +1,8 @@
 (function () {
+  // Every kiosk state is a row in this table, and setState() is the only thing
+  // that writes the screen. Fields may be plain values or functions of the data
+  // passed to setState — that is how confirmation and success get the member's
+  // name in without needing their own hand-written render functions.
   const CHECKIN_STATES = {
     idle: {
       tagClass: 'tag-idle',     tagText: 'Waiting',
@@ -31,6 +35,39 @@
         </div>`,
       btnText: 'Try Again', btnDisabled: false,
       hints: [['↵', 'Try Again'], ['Space', 'Manual'], ['Esc', 'Back']],
+    },
+    confirmation: {
+      tagClass: 'tag-scanning', tagText: 'Confirm?',
+      name:     d => `Is This<br>${esc(d.name)}?`,
+      sub:      d => `Will ${d.event === 'IN' ? 'Check In' : 'Check Out'}`,
+      faceClass: 'state-scanning', scanLine: false,
+      card: '', btnText: 'Confirm', btnDisabled: false,
+      hints: [['↵', 'Confirm'], ['Space', 'Manual'], ['Esc', 'Back']],
+    },
+    success: {
+      tagClass: 'tag-success', tagText: 'Recognised',
+      name: d => d.event === 'IN'
+        ? `Welcome,<br>${esc(d.name)}!`
+        : `See You,<br>${esc(d.name)}!`,
+      sub: d => {
+        const time = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+        return d.event === 'IN' ? `Now In Lab · Since ${time}` : `Left Lab · At ${time}`;
+      },
+      faceClass: 'state-checkin', scanLine: false,
+      card: d => {
+        const isIn = d.event === 'IN';
+        return `
+      <div class="checkin-card">
+        <div class="checkin-avatar ${isIn ? 'av-green' : 'av-red'}">${esc(initials(d.name))}</div>
+        <div class="checkin-info">
+          <div class="checkin-name">${esc(d.name)}</div>
+          <div class="checkin-detail">${isIn ? 'Now In Lab' : 'Left Lab'}</div>
+        </div>
+        <div class="event-badge ${isIn ? 'badge-in' : 'badge-out'}">${isIn ? 'In Lab' : 'Out'}</div>
+      </div>`;
+      },
+      btnText: 'Scan Next', btnDisabled: false,
+      hints: [['↵', 'Next']],
     },
   };
 
@@ -76,7 +113,11 @@
     );
   };
 
-  window.setState = function setState(key) {
+  const _value = (field, data) => (typeof field === 'function' ? field(data) : field);
+
+  // setState('confirmation' | 'success', { name, event }) — the data argument is
+  // ignored by the states that don't take one.
+  window.setState = function setState(key, data = {}) {
     const s = CHECKIN_STATES[key];
     if (!s) return;
     _currentState = key;
@@ -86,9 +127,9 @@
     tag.className = 'state-tag ' + s.tagClass;
     document.getElementById('tag-text').textContent = s.tagText;
 
-    document.getElementById('state-name').innerHTML = s.name;
-    document.getElementById('state-sub').textContent = s.sub;
-    document.getElementById('result-card').innerHTML = s.card;
+    document.getElementById('state-name').innerHTML = _value(s.name, data);
+    document.getElementById('state-sub').textContent = _value(s.sub, data);
+    document.getElementById('result-card').innerHTML = _value(s.card, data);
 
     document.getElementById('face-box').className = 'face-box ' + s.faceClass;
     document.getElementById('scan-line').style.display = s.scanLine ? 'block' : 'none';
@@ -100,68 +141,5 @@
     setHints(s.hints ?? []);
 
     if (key === 'scanning') _startScanningCycler();
-  };
-
-  window.setStateConfirmation = function setStateConfirmation(name, predictedEvent) {
-    _currentState = 'confirmation';
-    _stopScanningCycler();
-    const isIn = predictedEvent === 'IN';
-
-    const tag = document.getElementById('state-tag');
-    tag.className = 'state-tag tag-scanning';
-    document.getElementById('tag-text').textContent = 'Confirm?';
-
-    document.getElementById('state-name').innerHTML = `Is This<br>${name}?`;
-    document.getElementById('state-sub').textContent = `Will ${isIn ? 'Check In' : 'Check Out'}`;
-
-    document.getElementById('result-card').innerHTML = '';
-
-    document.getElementById('face-box').className = 'face-box state-scanning';
-    document.getElementById('scan-line').style.display = 'none';
-
-    const btn = document.getElementById('btn-scan');
-    btn.textContent = 'Confirm';
-    btn.disabled    = false;
-
-    setHints([['↵', 'Confirm'], ['Space', 'Manual'], ['Esc', 'Back']]);
-  };
-
-  window.setStateResult = function setStateResult(name, eventType) {
-    _currentState = 'success';
-    _stopScanningCycler();
-    const isIn  = eventType === 'IN';
-    const inits = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-    const time  = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-
-    const tag = document.getElementById('state-tag');
-    tag.className = 'state-tag tag-success';
-    document.getElementById('tag-text').textContent = 'Recognised';
-
-    document.getElementById('state-name').innerHTML = isIn
-      ? `Welcome,<br>${name}!`
-      : `See You,<br>${name}!`;
-
-    document.getElementById('state-sub').textContent = isIn
-      ? `Now In Lab · Since ${time}`
-      : `Left Lab · At ${time}`;
-
-    document.getElementById('result-card').innerHTML = `
-      <div class="checkin-card">
-        <div class="checkin-avatar ${isIn ? 'av-green' : 'av-red'}">${inits}</div>
-        <div class="checkin-info">
-          <div class="checkin-name">${name}</div>
-          <div class="checkin-detail">${isIn ? 'Now In Lab' : 'Left Lab'}</div>
-        </div>
-        <div class="event-badge ${isIn ? 'badge-in' : 'badge-out'}">${isIn ? 'In Lab' : 'Out'}</div>
-      </div>`;
-
-    document.getElementById('face-box').className = 'face-box state-checkin';
-    document.getElementById('scan-line').style.display = 'none';
-
-    const btn = document.getElementById('btn-scan');
-    btn.textContent = 'Scan Next';
-    btn.disabled    = false;
-
-    setHints([['↵', 'Next']]);
   };
 })();

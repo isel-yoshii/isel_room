@@ -18,10 +18,6 @@
     _pinCallback = null;
   };
 
-  window.closePinModalOnBg = function closePinModalOnBg(event) {
-    if (event.target === document.getElementById('pin-modal')) closePinModal();
-  };
-
   window.submitPin = async function submitPin() {
     const pin = document.getElementById('pin-input').value;
     const msg = document.getElementById('pin-msg');
@@ -118,10 +114,6 @@
       _regStream.getTracks().forEach(t => t.stop());
       _regStream = null;
     }
-  };
-
-  window.closeRegModalOnBg = function closeRegModalOnBg(event) {
-    if (event.target === document.getElementById('reg-modal')) closeRegModal();
   };
 
   window.onRegStepCapture = async function onRegStepCapture() {
@@ -230,10 +222,6 @@
     _faceReregUserId = null;
   };
 
-  window.closeFaceReregModalOnBg = function closeFaceReregModalOnBg(event) {
-    if (event.target === document.getElementById('face-rereg-modal')) closeFaceReregModal();
-  };
-
   window.captureAndReregFace = async function captureAndReregFace() {
     if (!_faceReregUserId || !_faceReregStream) return;
     const variant = document.querySelector('input[name="rereg-variant"]:checked')?.value || 'normal';
@@ -331,10 +319,6 @@
 
   window.closeProfileModal = function closeProfileModal() {
     closeModal('profile-modal');
-  };
-
-  window.closeProfileModalOnBg = function closeProfileModalOnBg(event) {
-    if (event.target === document.getElementById('profile-modal')) closeProfileModal();
   };
 
   /* ── Session time editing ── */

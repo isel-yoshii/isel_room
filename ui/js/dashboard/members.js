@@ -123,10 +123,6 @@
     closeModal('promote-modal');
   };
 
-  window.closePromoteModalOnBg = function closePromoteModalOnBg(event) {
-    if (event.target === document.getElementById('promote-modal')) closePromoteModal();
-  };
-
   window.applyPromotions = async function applyPromotions() {
     const rows = document.querySelectorAll('#promote-body tr[data-user-id]');
     const promotions = [];

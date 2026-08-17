@@ -39,7 +39,7 @@
           return;
         }
         const predictedEvent = authData.status ? 'OUT' : 'IN';
-        setStateConfirmation(authData.name, predictedEvent);
+        setState('confirmation', { name: authData.name, event: predictedEvent });
         pendingConfirm = { userId: authData.user_id };
       } else {
         setState('fail');
@@ -56,7 +56,7 @@
     pendingConfirm = null;
     try {
       const result = await api.post('/api/toggle', { user_id: userId, check_in_method: 'face' });
-      setStateResult(result.name, result.event_type);
+      setState('success', { name: result.name, event: result.event_type });
       loadMemberStrip();
       setTimeout(() => setState('idle'), 3000);
     } catch (e) {
