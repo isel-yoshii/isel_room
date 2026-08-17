@@ -62,6 +62,8 @@ def promote_students():
     try:
         counts = users_svc.promote_students(promotions)
         return ok(promoted=counts)
+    except ValueError as e:
+        return fail(str(e), 400)
     except Exception as e:
         return fail(str(e), 500)
 

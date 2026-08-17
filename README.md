@@ -223,7 +223,7 @@ See [ISEL_ROOM_GUIDE.md §3](ISEL_ROOM_GUIDE.md#3-repository-layout) for the ann
 python -m pytest
 ```
 
-Runs the full suite (30 tests) against an in-memory SQLite. No external services required.
+Runs the full suite (78 tests) against an in-memory SQLite. No external services required.
 
 ---
 

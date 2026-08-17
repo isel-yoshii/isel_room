@@ -133,6 +133,8 @@ def promote_students(promotions: list[dict]) -> dict[str, int]:
     with session_scope() as session:
         now = datetime.now()
         for entry in promotions:
+            if not isinstance(entry, dict) or 'user_id' not in entry or 'new_type' not in entry:
+                raise ValueError('each promotion needs a user_id and a new_type')
             user = session.get(User, entry['user_id'])
             if user is None:
                 continue
