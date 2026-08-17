@@ -202,6 +202,11 @@ def create_app(config_name: str = 'dev') -> Flask:
     def _image_decode_error(err):
         return jsonify({'matched': False, 'success': False, 'message': str(err)}), 400
 
+    @app.errorhandler(ApiError)                  # Services raise these
+    @app.errorhandler(HTTPException)             # 404 / 405 under /api/
+    @app.errorhandler(Exception)                 # Anything else: log + generic 500
+    ...                                          # all answer in JSON for /api/
+
     from isel.db import init_db
     init_db()                                    # CREATE TABLE IF NOT EXISTS
 
@@ -272,7 +277,7 @@ def create_app(config_name: str = 'dev') -> Flask:
 
 ### 4.4 Services per-file deep dive
 
-**Every service function opens its DB session through `session_scope()`** from [isel/db/__init__.py](isel/db/__init__.py). It is a context manager that commits on success, rolls back and re-raises on error, and always closes the session. Reads use it too (the commit is a no-op). Functions that translate errors into `{'success': False, 'message': ...}` wrap the `with` block in their own `try` / `except` so cleanup still runs before the structured response is built. **You should never call `SessionLocal()` directly in service code.** Use the context manager.
+**Every service function opens its DB session through `session_scope()`** from [isel/db/__init__.py](isel/db/__init__.py). It is a context manager that commits on success, rolls back and re-raises on error, and always closes the session. Reads use it too (the commit is a no-op). Functions that need to reject a request raise `ApiError(message, status)` from [isel/utils.py](isel/utils.py) instead of returning `{'success': False, ...}`; the app-wide handler turns that into JSON, and `session_scope` still rolls back on the way out. Anything else that escapes a service is a bug: it is logged with a traceback and reported as a generic 500. **You should never call `SessionLocal()` directly in service code.** Use the context manager.
 
 #### `isel/services/users.py`
 
@@ -462,7 +467,7 @@ It is a brute-force scan. With 15 users × 9 variants × ~200 ns per cosine, tha
 
 **Multi-frame matching: `find_best_match(embeddings, threshold)`.** The kiosk captures 3 frames per scan (via `captureBurst`) and POSTs them all to `/api/auth`. The server runs `find_best_match`, which fetches the registered embedding set once and scans all probe frames against it in a single pass, returning the closest match. This catches the case where one frame in the burst is a blink or motion blur. Cost is small (3× the inner loops, still under 100 μs total).
 
-**Extending the algorithm.** If you want to add per-variant averaging or use a different distance metric, change it inside `find_match` and `find_best_match`. Callers (just `isel/api/attendance.py` and `isel/api/users.py`) treat the engine as an opaque oracle that returns `(user_id, name, distance)`.
+**Extending the algorithm.** Both `find_match` and `find_best_match` delegate to the private `_closest(targets, registered, threshold)`, so a distance-metric or tie-break change is made once, there. Callers (just `isel/api/attendance.py` and `isel/api/users.py`) treat the engine as an opaque oracle that returns `(user_id, name, distance)`.
 
 ### 5.4 Thresholds
 
@@ -548,7 +553,7 @@ None of these change actual latency. They only change how the wait feels.
 | [ui/css/base.css](ui/css/base.css) | Reset, topbar, modals, shared buttons. |
 | [ui/css/checkin.css](ui/css/checkin.css) | Kiosk screen styles. |
 | [ui/css/dashboard.css](ui/css/dashboard.css) | Dashboard styles. Largest file (~900 lines). |
-| [ui/js/core/utils.js](ui/js/core/utils.js) | Escape helpers (`esc`, `escAttr`); `fmtMins`; fetch wrapper `api.get` / `api.post` / `api.put` / `api.delete`; top-bar clock; shared member-display helpers (`avColor`, `initials`, `isStudent`, `isTeacher`, `isGraduated`, `roleBadgeClass`, `formatLastSeen`); modal helpers `openModal(id)` / `closeModal(id)` / `anyModalOpen()`; list-rendering helper `renderList(el, items, template, empty?)`. |
+| [ui/js/core/utils.js](ui/js/core/utils.js) | Escape helpers (`esc`, `escAttr`); `fmtMins`; fetch wrapper `api.get` / `api.post` / `api.put` / `api.delete`; top-bar clock; shared member-display helpers (`avColor`, `initials`, `avatarHtml`, `isGraduated`, `roleBadgeClass`, `formatLastSeen`); date helpers (`mondayOf`, `isoDate`) and the `byPresenceThenName` sort; modal helpers `openModal(id)` / `closeModal(id)` / `anyModalOpen()` / `closeModalOnBg(event, closer)`; list-rendering helper `renderList(el, items, template, empty?)`. |
 | [ui/js/core/camera.js](ui/js/core/camera.js) | `startCamera(videoId)` / `stopCamera()` / `captureFrame(video) → base64` / `captureBurst(video, count=3, gapMs=350) → [base64, ...]`. |
 | [ui/js/core/nav.js](ui/js/core/nav.js) | `switchScreen()` plus global `C` / `D` keyboard shortcuts. Calls `anyModalOpen()` to suppress shortcuts when a modal is open. |
 | [ui/js/core/cohort-multiselect.js](ui/js/core/cohort-multiselect.js) | Multi-select with preset buttons (All / 先生 / M2 / M1 / B4 / Intern / 学生). Smart popover positioning (flips when overflowing viewport). |
@@ -579,9 +584,9 @@ States cycle in this order:
                                                                        (back to idle)
 ```
 
-Defined in [ui/js/checkin/state-machine.js](ui/js/checkin/state-machine.js). Each state has a config object (`tagClass`, `tagText`, `name`, `sub`, `faceClass`, `scanLine`, `card`, `btnText`, `btnDisabled`, `hints`) and `setState(key)` applies all of them in one call.
+Defined in [ui/js/checkin/state-machine.js](ui/js/checkin/state-machine.js). Each state has a config object (`tagClass`, `tagText`, `name`, `sub`, `faceClass`, `scanLine`, `card`, `btnText`, `btnDisabled`, `hints`) and `setState(key, data)` applies all of them in one call. Any field may be a function of `data` instead of a plain value — that is how `confirmation` and `success` render the member's name.
 
-**Adding a new state.** Add an entry to `CHECKIN_STATES`, then transition into it from wherever makes sense (`setState('mynewstate')`). If the state needs dynamic content (like `confirmation`), write a dedicated `setStateXxx()` function.
+**Adding a new state.** Add an entry to `CHECKIN_STATES`, then transition into it from wherever makes sense (`setState('mynewstate')`). If the state needs dynamic content, make the varying fields functions of `data` and pass it in: `setState('success', { name, event })`. Always run member-supplied text through `esc()` — these fields land in `innerHTML`.
 
 **Keyboard bindings** (defined in [ui/js/checkin/index.js](ui/js/checkin/index.js)):
 
@@ -733,6 +738,28 @@ If the scheduler ever misses a tick, no big deal. `_close_stale_session` in `att
 | `admin_client` | function | `client` already logged in with the test PIN |
 | `db_session` | function | A direct SQLAlchemy session for test setup |
 | `_clean_db` | autouse | Truncates all tables after each test |
+| `frozen_now` | function | Pins `datetime.now()` / `date.today()` inside `isel/services/stats.py` (see below) |
+
+**`frozen_now`** exists because several functions in `isel/services/stats.py`
+(`today_unique_checkins`, `active_days_this_month`, `weekly_checkin_counts`,
+`get_user_profile`, `anomalies`) read the clock directly instead of taking a
+date. Without it those tests would give different answers depending on the day
+you run the suite. If you add a function there, prefer taking a date argument —
+then you will not need the fixture at all.
+
+### The frontend check
+
+The frontend has no build step and no test runner, so the shared helpers in
+`ui/js/core/utils.js` and the kiosk state machine have a plain Node assertion
+script instead. Node built-ins only — nothing to install:
+
+```bash
+node tests/check_ui.js
+```
+
+It runs those files against a minimal DOM stub and asserts the avatar/date/sort
+helpers, the modal backdrop handler, and all five kiosk states including that
+member names are HTML-escaped. Run it after touching either file.
 
 ### How tests look
 
@@ -784,7 +811,7 @@ python -m pytest -k "promote"     # tests matching keyword
 2. **Add a service function.** In `isel/services/stats.py` (or whichever fits), write:
    ```python
    from isel.db import session_scope
-   from isel.db.models import Session as LabSession
+   from isel.db.models import LabSession
 
    def get_user_sessions(user_id: int, limit: int = 50) -> list[dict]:
        with session_scope() as session:
