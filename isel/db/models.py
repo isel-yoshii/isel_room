@@ -13,7 +13,13 @@ class User(Base):
     status    = Column(Boolean, default=False)
 
 
-class Session(Base):
+class LabSession(Base):
+    """One visit: checked in, maybe checked out.
+
+    Named LabSession, not Session, because every module that touches it also
+    imports flask.session or a SQLAlchemy session. __tablename__ stays 'sessions'.
+    """
+
     __tablename__ = 'sessions'
 
     id              = Column(Integer, primary_key=True, autoincrement=True)

@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from sqlalchemy import select, func
 from isel.db import session_scope
-from isel.db.models import User, Session as LabSession
+from isel.db.models import User, LabSession
 from isel.utils import month_range
 
 

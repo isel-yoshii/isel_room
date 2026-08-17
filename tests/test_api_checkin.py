@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from isel.db.models import User
+from isel.face_engine import FaceEngine
 import isel.db as _db
 
 
@@ -18,13 +19,18 @@ def _add_user(db_session, name='Test User', status=False) -> int:
 
 
 def _mock_engine(matched=True, user_id=1, name='Test User', status=False, dist=0.2):
-    engine = MagicMock()
+    """A real FaceEngine with only the DeepFace call stubbed.
+
+    Stubbing extract_embedding rather than the whole engine keeps
+    embeddings_from_frames — the decode-and-filter loop the routes share — under
+    test; a MagicMock engine would return a truthy Mock from it and the
+    no-face-detected branch would never be reached.
+    """
+    engine = FaceEngine(get_embeddings=lambda: {})
     engine.auth_threshold = 0.5
+    engine.extract_embedding = MagicMock(return_value=[0.1] * 10 if matched else None)
     if matched:
-        engine.extract_embedding.return_value = [0.1] * 10
-        engine.find_best_match.return_value = (user_id, name, dist)
-    else:
-        engine.extract_embedding.return_value = None
+        engine.find_best_match = MagicMock(return_value=(user_id, name, dist))
     return engine
 
 

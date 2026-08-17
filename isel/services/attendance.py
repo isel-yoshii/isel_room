@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from sqlalchemy import select
 from isel.db import session_scope
-from isel.db.models import User, Session as LabSession, AuditLog
+from isel.db.models import User, LabSession, AuditLog
 from isel.utils import ApiError, minutes_between
 
 _STALE_SESSION_HOURS = 24

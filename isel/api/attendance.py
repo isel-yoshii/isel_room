@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, session as flask_session
 import isel.services.attendance as attendance_svc
-from isel.utils import admin_required, decode_image, fail
+from isel.utils import admin_required, ok, fail
 
 bp = Blueprint('attendance', __name__)
 
@@ -18,12 +18,7 @@ def auth():
     # or motion blur on one frame doesn't tank the whole scan.
     raw_images = data.get('images') or []
 
-    embeddings = []
-    for b64 in raw_images:
-        frame = decode_image(b64)
-        emb = engine.extract_embedding(frame, enforce=False)
-        if emb is not None:
-            embeddings.append(emb)
+    embeddings = engine.embeddings_from_frames(raw_images, enforce=False)
 
     if not embeddings:
         flask_session.pop('pending_toggle', None)

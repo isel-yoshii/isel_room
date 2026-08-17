@@ -5,7 +5,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 
-from isel.db.models import User, Session as LabSession, AuditLog
+from isel.db.models import User, LabSession, AuditLog
 import isel.services.users as users
 
 

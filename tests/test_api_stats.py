@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from isel.db.models import Session as LabSession, User
+from isel.db.models import LabSession, User
 
 # Routes that any kiosk/dashboard visitor may call.
 PUBLIC_ROUTES = [

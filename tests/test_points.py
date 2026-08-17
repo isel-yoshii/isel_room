@@ -2,7 +2,7 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 
-from isel.db.models import User, Session as LabSession
+from isel.db.models import User, LabSession
 import isel.services.points as points
 
 

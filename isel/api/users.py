@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify, current_app
 import isel.services.users as users_svc
 import isel.services.audit as audit_svc
 from isel.services.users import VARIANT_KEYS
-from isel.utils import admin_required, decode_image, ok, fail
+from isel.utils import admin_required, ok, fail
 
 bp = Blueprint('users', __name__)
 
@@ -41,12 +41,7 @@ def register():
     for key, b64_list in variants_b64.items():
         if key not in VARIANT_KEYS or not b64_list:
             continue
-        embs = []
-        for b64 in b64_list[:3]:
-            frame = decode_image(b64)
-            emb = engine.extract_embedding(frame, enforce=True)
-            if emb is not None:
-                embs.append([float(v) for v in emb])
+        embs = engine.embeddings_from_frames(b64_list, limit=3)
         if embs:
             variants_emb[key] = embs
 
@@ -95,13 +90,7 @@ def set_user_face_variant(user_id: int):
     variant = data.get('variant')
     if variant not in VARIANT_KEYS:
         return fail('Invalid variant')
-    frames_b64 = data.get('images') or []
-    frames_emb = []
-    for b64 in frames_b64[:3]:
-        frame = decode_image(b64)
-        emb = engine.extract_embedding(frame, enforce=True)
-        if emb is not None:
-            frames_emb.append([float(v) for v in emb])
+    frames_emb = engine.embeddings_from_frames(data.get('images') or [], limit=3)
     if not frames_emb:
         return fail('No face detected in any frame')
     variants = users_svc.set_face_variant(user_id, variant, frames_emb)

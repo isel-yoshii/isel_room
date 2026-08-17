@@ -68,6 +68,23 @@ class FaceEngine:
             return None, None, None
         return matched_id, matched_name, min_dist
 
+    def embeddings_from_frames(self, frames_b64: list, limit: int | None = None,
+                               enforce: bool = True) -> list[list[float]]:
+        """Decode base64 frames and return an embedding for each one with a face.
+
+        Frames with no detectable face are dropped, so the result may be shorter
+        than the input (or empty). `limit` caps how many frames are processed —
+        registration keeps the first few, the kiosk uses the whole burst.
+        """
+        from isel.utils import decode_image
+
+        out = []
+        for b64 in (frames_b64[:limit] if limit else frames_b64):
+            emb = self.extract_embedding(decode_image(b64), enforce=enforce)
+            if emb is not None:
+                out.append([float(v) for v in emb])
+        return out
+
     def find_match(self, target_embedding, threshold: float) -> tuple:
         """Compare one embedding against all registered users' variants.
 

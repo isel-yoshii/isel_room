@@ -26,7 +26,7 @@ _db.engine = _test_engine
 _db.SessionLocal = sessionmaker(bind=_test_engine, autoflush=False, autocommit=False)
 
 # Import models to register them with Base, then create tables.
-from isel.db.models import Base, User, Session as LabSession, AuditLog  # noqa
+from isel.db.models import Base, User, LabSession, AuditLog  # noqa
 Base.metadata.create_all(_test_engine)
 
 from app import create_app

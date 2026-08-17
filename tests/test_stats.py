@@ -16,7 +16,7 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from isel.db.models import Session as LabSession, User
+from isel.db.models import LabSession, User
 from isel.services import stats
 
 # A Wednesday, mid-afternoon, mid-month, mid-week — no boundary is special here,

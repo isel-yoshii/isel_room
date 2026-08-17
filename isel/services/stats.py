@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, time as dt_time, date
 from sqlalchemy import select, func
 from isel.db import session_scope
-from isel.db.models import User, Session as LabSession
+from isel.db.models import User, LabSession
 from isel.utils import minutes_between, month_range
 
 

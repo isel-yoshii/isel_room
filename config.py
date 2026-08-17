@@ -3,8 +3,11 @@ import os
 
 
 class Config:
+    # NOTE: DATABASE_URL deliberately does not live here. isel/db/__init__.py
+    # builds the engine from the environment at import time, before any config
+    # object exists, so a value set here could never take effect — set the
+    # DATABASE_URL env var instead.
     SECRET_KEY: str = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')
-    DATABASE_URL: str = os.getenv('DATABASE_URL', 'sqlite:///isel_room.db')
     ADMIN_PIN: str = os.getenv('ADMIN_PIN', '')
     LOW_CONFIDENCE_THRESHOLD: float = float(os.getenv('LOW_CONFIDENCE_THRESHOLD', '0.40'))
     DAY_RESET_HOUR: int = int(os.getenv('DAY_RESET_HOUR', '22'))
@@ -47,7 +50,6 @@ class ProdConfig(Config):
 
 class TestConfig(Config):
     TESTING: bool = True
-    DATABASE_URL: str = 'sqlite:///:memory:'
     ADMIN_PIN: str = 'test-pin'
     SECRET_KEY: str = 'test-secret'
     LOW_CONFIDENCE_THRESHOLD: float = 0.40
