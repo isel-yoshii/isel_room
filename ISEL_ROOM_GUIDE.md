@@ -710,8 +710,80 @@ It runs **automatically in-app**: [isel/jobs/scheduler.py](isel/jobs/scheduler.p
 - **Timezone is pinned to `Asia/Tokyo`** on both the scheduler and trigger, so 22:00 means 22:00 JST regardless of where it runs.
 - **APScheduler is event-driven**, not a hand-rolled busy-wait loop — far easier to reason about than the old thread.
 - **It reuses the Werkzeug reloader guard** (`_in_werkzeug_reloader_parent` in [app.py](app.py)), so it doesn't double-start in dev.
-- **It logs** `Auto-checkout scheduler started` on boot and `Auto-checkout job firing` on each run, plus the existing `AUTO_CHECKOUT` audit rows — so there's a record it ran.
+- **It logs** on boot and on each run, plus the existing `AUTO_CHECKOUT` audit rows.
 - Nothing to install on the host. `DAY_RESET_HOUR` is now the *actual* trigger hour (was previously decorative).
+
+### It silently never ran (2026-08-17 post-mortem)
+
+The in-app scheduler then failed the same way cron had, for four separate
+reasons. All four are fixed; they are recorded here because each is a trap
+worth not re-entering.
+
+1. **Slack could abort startup.** `init_slack()` ran *before* the scheduler
+   block, and `slack_bolt`'s `App()` calls `auth.test` during construction — so
+   a revoked or rotated bot token raised `BoltError` straight out of
+   `create_app()`, taking the whole app down with it. Slack now starts *after*
+   the scheduler and is wrapped in `try/except`: it can log a failure, but it
+   can never stop check-in, the dashboard, or the nightly job.
+2. **The job swallowed its own failures.** `auto_checkout_all()` caught every
+   exception and `print()`ed it, so a run that fired and failed was
+   indistinguishable from a run that never fired. It now logs and re-raises,
+   and `_run_auto_checkout` records the failure in `scheduler.status()`.
+3. **The logging was never visible.** Nothing configured the root logger, so
+   every `logger.info(...)` in `isel.*` was dropped — including
+   "scheduler started". `create_app()` now calls `logging.basicConfig` with
+   `LOG_LEVEL` (default INFO), and the scheduler logs at WARNING so it survives
+   a quieter setting.
+4. **`flask run --no-reload` skipped it silently.** The reloader guard tests
+   `WERKZEUG_RUN_MAIN != 'true'`, which is also true when the reloader is
+   simply off. Every skip reason is now logged at WARNING, and
+   `ENABLE_SCHEDULER=1` forces past the guard.
+
+**Check whether it is armed right now**, in the process actually serving you:
+
+```
+GET /api/admin/scheduler      ->  {"running": true, "next_run": "2026-08-17T22:00:00+09:00", ...}
+```
+
+`running: false` or a null `next_run` means it will not fire — look for the
+`Auto-checkout scheduler NOT started:` warning in the log, which names the
+reason. `POST /api/admin/auto-checkout` closes everyone out on demand.
+
+### In-app scheduler vs OS cron — the actual trade-off
+
+We have now been bitten by both, so here is the measured comparison rather than
+the argument.
+
+| | In-app APScheduler | OS cron calling `flask auto-checkout` |
+|---|---|---|
+| Fires when the app is down | No | **Yes** |
+| Survives app restart / crash | Only if the app comes back before 22:00 | **Yes** |
+| Timezone | Pinned to `Asia/Tokyo` in code | Server-local unless you set `CRON_TZ=Asia/Tokyo` |
+| Survives a redeploy | Yes, it is in the code | Only if someone re-adds the crontab line |
+| Extra moving parts | None | A crontab entry, and the venv path inside it |
+| DB contention | Same process, none | Separate process → SQLite write lock |
+
+On that last row, measured rather than assumed: a second process running
+`auto_checkout_all()` **waits** for the web app's write lock and succeeds — it
+only fails with `database is locked` if a write is held longer than sqlite3's
+5s default (observed failing at 5.2s against a deliberately 12s-long lock).
+Real writes here are single-row updates taking milliseconds, and 22:00 is the
+quietest moment of the day, so this risk is theoretical. `PRAGMA
+journal_mode=WAL` would remove even that if you ever want it.
+
+**Recommendation:** if the app is started with `flask run` (the Werkzeug dev
+server, no process supervision), add cron as a safety net — its one real
+advantage, firing when the app is not running, is exactly the failure mode that
+setup has. Belt and braces, and `auto_checkout_all()` is idempotent so a double
+fire is harmless:
+
+```cron
+CRON_TZ=Asia/Tokyo
+5 22 * * * cd /path/to/isel_room && .venv/bin/flask --app app auto-checkout >> /var/log/isel-autocheckout.log 2>&1
+```
+
+Note `22:05`, not `22:00`: let the in-app job go first, and cron only has work
+to do on the nights the app missed. The log file is the record that it ran.
 
 **Multiple gunicorn workers:** each worker process would start its own scheduler. The deployment is single-worker (the `FaceEngine` is stateful and loads ~500MB of TensorFlow per process), so this isn't normally a concern. If you do scale out, set `ENABLE_SCHEDULER=0` on the extra workers and `=1` on one dedicated process. Even a double-fire is harmless because `auto_checkout_all()` is idempotent.
 
@@ -955,7 +1027,8 @@ A short list. The codebase itself is the canonical example.
 | Admin login locked out | Too many wrong PIN attempts (5 per IP, resets after 60 s) | Wait 60 s |
 | Dev DB out of sync after schema change | No migrations. Drop tables manually. | `python seed_db.py` (or delete `isel_room.db` for empty) |
 | Camera permission denied in browser | First-time prompt missed | Click lock icon → site settings → allow camera; or chrome://settings/content/camera |
-| Auto-checkout doesn't run | Scheduler not started, disabled, or wrong timezone/hour | Check app logs for `Auto-checkout scheduler started`; confirm `ENABLE_SCHEDULER != 0` and `DAY_RESET_HOUR`; the job fires at that hour **Asia/Tokyo** (not server-local); if running >1 gunicorn worker, only one should have the scheduler enabled. Run `flask auto-checkout` to force it manually. |
+| Auto-checkout doesn't run | Scheduler never armed, or the job fired and failed | **Start here: `GET /api/admin/scheduler`.** `running: false` or a null `next_run` means it will never fire — the startup log has an `Auto-checkout scheduler NOT started:` warning naming the reason (`TESTING`, `ENABLE_SCHEDULER=0`, or the `--no-reload` reloader guard, which `ENABLE_SCHEDULER=1` overrides). If it *is* armed, check `last_run.error` and the log for `Auto-checkout job FAILED`. Force it with `POST /api/admin/auto-checkout` or `flask auto-checkout`. See the post-mortem in [§9](#9-background-jobs). |
+| Kiosk identifies the wrong person | Confusable enrolments, an outlier frame, or a genuinely ambiguous scan | Run `python diagnose_faces.py` **on the lab server** — it reports enrolment counts, whether two enrolled people are within the auth threshold of each other, whether one stored frame attracts every probe, and who a garbage embedding gets reported as. Then read the log: every scan writes `face: matched <name> at <distance> (runner-up <name> at <distance>)`, or `face: AMBIGUOUS, rejected`. A wrong match with a *large* runner-up gap means a bad enrolment (re-enrol that person); a small gap means tighten `FACE_MATCH_MARGIN`. |
 
 ---
 
