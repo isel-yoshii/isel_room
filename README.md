@@ -102,15 +102,19 @@ ADMIN_PIN=<choose any string>
 
 Leave the rest at defaults for now.
 
-### Seed the database
+### Database
+
+There is no seeding step. `init_db()` runs at startup and creates any missing tables; it never drops one, so it is safe against the live database.
+
+`seed_db.py` was **deliberately deleted**. It dropped and recreated every table, and one careless run against the lab server would destroy every enrolled ArcFace embedding. Those cannot be restored from a code backup — only by having every member physically re-enrol at the kiosk. A confirmation prompt was not worth the risk of the file simply being there.
+
+If you genuinely need mock data locally, take it out of git history and keep it out of the repo:
 
 ```bash
-python seed_db.py
+git show 5b6de35:seed_db.py > seed_db.py   # local only — do not commit it back
 ```
 
-This drops and recreates the DB with 11 mock members and about 60 days of fake attendance history. It asks for confirmation first; pass `--force` to skip the prompt. Re-run it any time during development to reset.
-
-Faces are not seeded — ArcFace embeddings can only come from a real scan, so register yourself at the kiosk to test face authentication.
+Faces are never seeded either way: ArcFace embeddings can only come from a real scan, so register yourself at the kiosk to test face authentication.
 
 ### Run
 
@@ -196,7 +200,6 @@ isel_room/
 ├── app.py                  # Flask app factory
 ├── wsgi.py                 # Production entry point
 ├── config.py               # Dev / Prod / Test configs
-├── seed_db.py              # Reset dev DB with mock data
 ├── backend/
 │   ├── api/                # Flask blueprints (auth, attendance, users, stats, admin)
 │   ├── services/           # Business logic (attendance, users, points, stats, audit)
