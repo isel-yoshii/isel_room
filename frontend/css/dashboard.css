@@ -56,7 +56,20 @@
   border-bottom: 1px solid var(--color-border-tertiary);
   padding: 14px 24px;
   flex-shrink: 0;
+  position: relative;
 }
+
+.scan-status {
+  position: absolute; right: 24px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--color-text-secondary);
+  padding: 3px 8px; border-radius: 6px;
+}
+.scan-status:empty { display: none; }
+.scan-status.scan-ok  { color: var(--color-success); background: var(--color-success-bg); }
+.scan-status.scan-bad { color: var(--color-error);   background: var(--color-error-bg); }
 
 .page-title {
   font-size: 18px; font-weight: 700;
@@ -858,3 +871,21 @@
 }
 .variant-picker label { display: flex; gap: 4px; cursor: pointer; align-items: center; }
 .variant-picker input[type="radio"] { cursor: pointer; }
+
+.device-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+.device-mac { font-family: 'IBM Plex Mono', monospace; }
+.device-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}

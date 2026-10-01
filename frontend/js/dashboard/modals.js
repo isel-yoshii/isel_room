@@ -306,10 +306,59 @@
           </div>`;
       }
 
+      loadProfileDevices(userId);
       openModal('profile-modal');
     } catch (err) {
       console.error('openProfileModal error:', err);
     }
+  };
+
+  // Wi-Fi devices are admin-only (a MAC address tracks a person), so for
+  // everyone else the API answers 403 and the section stays empty.
+  window.loadProfileDevices = async function loadProfileDevices(userId) {
+    const box = document.getElementById('profile-devices');
+    box.innerHTML = '';
+    try {
+      const devices = await api.get(`/api/user/${userId}/devices`);
+      if (!Array.isArray(devices)) return;
+      const rows = devices.map(d => `
+        <div class="device-row">
+          <div class="device-mac">${esc(d.mac)}</div>
+          <div>${esc(d.label)}</div>
+          <div>${d.last_seen_at ? formatLastSeen(d.last_seen_at) : 'Never Seen'}${d.locked ? ' · Locked' : ''}</div>
+          <button class="del-btn" onclick="deleteProfileDevice(${d.id})">Delete</button>
+        </div>`).join('');
+      box.innerHTML = `
+        <div class="section-label" style="margin-top:16px;">Wi-Fi Devices</div>
+        ${rows || '<div class="log-empty">No Devices Registered</div>'}
+        <div class="device-add">
+          <input class="edit-input" id="device-mac" placeholder="aa:bb:cc:dd:ee:ff" style="flex:1" />
+          <input class="edit-input" id="device-label" placeholder="Label (e.g. iPhone)" maxlength="50" />
+          <button class="icon-btn ok-btn" onclick="addProfileDevice()">＋</button>
+        </div>`;
+    } catch (err) {
+      console.error('loadProfileDevices error:', err);
+    }
+  };
+
+  window.addProfileDevice = async function addProfileDevice() {
+    const mac   = document.getElementById('device-mac')?.value.trim();
+    const label = document.getElementById('device-label')?.value.trim();
+    if (!mac) return;
+    try {
+      const r = await api.post(`/api/user/${_currentProfileUserId}/devices`, { mac, label });
+      if (r.success) loadProfileDevices(_currentProfileUserId);
+      else alert(`Failed: ${r.message}`);
+    } catch (e) { console.error(e); }
+  };
+
+  window.deleteProfileDevice = async function deleteProfileDevice(deviceId) {
+    if (!confirm('Remove this device?')) return;
+    try {
+      const r = await api.delete(`/api/device/${deviceId}`);
+      if (r.success) loadProfileDevices(_currentProfileUserId);
+      else alert(`Failed: ${r.message}`);
+    } catch (e) { console.error(e); }
   };
 
   window.closeProfileModal = function closeProfileModal() {

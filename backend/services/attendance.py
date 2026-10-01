@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy import select
 from backend.db import session_scope
-from backend.db.models import User, LabSession, AuditLog
+from backend.db.models import User, LabSession, AuditLog, Device
 from backend.utils import ApiError, minutes_between
 
 logger = logging.getLogger(__name__)
@@ -11,47 +11,71 @@ logger = logging.getLogger(__name__)
 _STALE_SESSION_HOURS = 24
 
 
+_ACTIONS = {
+    ('IN',  'face'):   'CHECKIN',
+    ('IN',  'manual'): 'MANUAL_CHECKIN',
+    ('IN',  'wifi'):   'WIFI_CHECKIN',
+    ('OUT', 'face'):   'CHECKOUT',
+    ('OUT', 'manual'): 'MANUAL_CHECKOUT',
+    ('OUT', 'wifi'):   'WIFI_CHECKOUT',
+}
+
+
 def toggle_entry(user_id: int, check_in_method: str = 'face') -> dict:
     with session_scope() as session:
-        user = session.get(User, user_id)
-        now = datetime.now()
+        user = _get_user(session, user_id)
+        return apply_entry(session, user, not user.status, check_in_method, datetime.now())
 
-        if user.status:  # IN → OUT
-            user.status = False
-            event = 'OUT'
-            _close_open_session(session, user_id, now)
-        else:  # OUT → IN
-            _close_stale_session(session, user_id, now)
+
+def set_entry(user_id: int, present: bool, check_in_method: str = 'face') -> dict:
+    """Unlike toggle_entry, asking for the state the person is already in changes
+    nothing — so a face check-in after Wi-Fi already checked them in is harmless."""
+    with session_scope() as session:
+        user = _get_user(session, user_id)
+        return apply_entry(session, user, present, check_in_method, datetime.now())
+
+
+def apply_entry(session, user: User, present: bool, method: str, at: datetime) -> dict:
+    """Move `user` to `present` inside the caller's transaction. `at` may be in
+    the past: a Wi-Fi checkout is dated to when the phone was last seen."""
+    changed = bool(user.status) != present
+    if changed:
+        if present:
+            _close_stale_session(session, user.user_id, at)
             user.status = True
-            event = 'IN'
-            new_sess = LabSession(
-                user_id=user_id,
-                checked_in_at=now,
-                check_in_method=check_in_method,
-            )
-            session.add(new_sess)
+            session.add(LabSession(
+                user_id=user.user_id,
+                checked_in_at=at,
+                check_in_method=method,
+            ))
+        else:
+            user.status = False
+            _close_open_session(session, user.user_id, at)
 
-        action_map = {
-            ('IN',  'face'):   'CHECKIN',
-            ('IN',  'manual'): 'MANUAL_CHECKIN',
-            ('OUT', 'face'):   'CHECKOUT',
-            ('OUT', 'manual'): 'MANUAL_CHECKOUT',
-        }
-        action = action_map.get((event, check_in_method), 'CHECKIN')
+        event = 'IN' if present else 'OUT'
         session.add(AuditLog(
-            action_type=action,
-            target_user_id=user_id,
+            action_type=_ACTIONS.get((event, method), 'CHECKIN'),
+            target_user_id=user.user_id,
             target_name=user.name,
             performed_by='check-in',
-            timestamp=now,
+            timestamp=at,
         ))
 
-        return {
-            'user_id': user_id,
-            'name': user.name,
-            'event_type': event,
-            'timestamp': now.isoformat(),
-        }
+    # A person's own action decides whether their phone may check them in:
+    # checking in re-arms it, checking out disarms it until it leaves once.
+    if method != 'wifi':
+        if present:
+            _set_device_lock(session, [user.user_id], False)
+        elif changed:
+            _set_device_lock(session, [user.user_id], True)
+
+    return {
+        'user_id': user.user_id,
+        'name': user.name,
+        'event_type': 'IN' if user.status else 'OUT',
+        'changed': changed,
+        'timestamp': at.isoformat(),
+    }
 
 
 def auto_checkout_all() -> int:
@@ -89,6 +113,14 @@ def auto_checkout_all() -> int:
         for user in still_present:
             user.status = False
 
+        # Phones are still on Wi-Fi at reset time; without this the next scan
+        # would check everyone straight back in.
+        _set_device_lock(
+            session,
+            [s.user_id for s in open_sessions] + [u.user_id for u in still_present],
+            True,
+        )
+
         count = len(open_sessions)
         logger.info('Auto-checkout closed %d open session(s); cleared %d present flag(s).',
                     count, len(still_present))
@@ -117,7 +149,7 @@ def get_present_users_detailed() -> list[dict]:
         users = session.execute(stmt).scalars().all()
         result = []
         for u in users:
-            open_sess = _open_session(session, u.user_id)
+            open_sess = open_session(session, u.user_id)
             duration = None
             if open_sess:
                 mins = minutes_between(open_sess.checked_in_at, datetime.now())
@@ -141,7 +173,24 @@ def update_session(session_id: int, checked_in_at: datetime, checked_out_at: dat
         lab_sess.checked_out_at = checked_out_at
 
 
-def _open_session(session, user_id: int):
+def _get_user(session, user_id: int) -> User:
+    user = session.get(User, user_id)
+    if user is None:
+        raise ApiError('User not found', 404)
+    return user
+
+
+def _set_device_lock(session, user_ids: list[int], locked: bool) -> None:
+    if not user_ids:
+        return
+    devices = session.execute(
+        select(Device).where(Device.user_id.in_(user_ids))
+    ).scalars().all()
+    for device in devices:
+        device.locked = locked
+
+
+def open_session(session, user_id: int):
     stmt = (
         select(LabSession)
         .where(LabSession.user_id == user_id, LabSession.checked_out_at.is_(None))
@@ -156,7 +205,7 @@ def _close_open_session(
     now: datetime,
     method: str | None = None,
 ) -> None:
-    open_sess = _open_session(session, user_id)
+    open_sess = open_session(session, user_id)
     if open_sess:
         open_sess.checked_out_at = now
         if method:
@@ -166,7 +215,7 @@ def _close_open_session(
 def _close_stale_session(session, user_id: int, now: datetime) -> None:
     """Unlike _close_open_session, records that the system — not the person —
     ended the visit."""
-    open_sess = _open_session(session, user_id)
+    open_sess = open_session(session, user_id)
     if open_sess and (now - open_sess.checked_in_at) > timedelta(hours=_STALE_SESSION_HOURS):
         open_sess.checked_out_at = now
         open_sess.check_in_method = 'auto_checkout'

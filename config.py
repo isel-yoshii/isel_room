@@ -20,6 +20,15 @@ class Config:
     FACE_DETECT_CONFIDENCE: float = float(os.getenv('FACE_DETECT_CONFIDENCE', '0.90'))
     DAY_RESET_HOUR: int = int(os.getenv('DAY_RESET_HOUR', '22'))
 
+    # Wi-Fi presence. Off unless ENABLE_PRESENCE_SCAN=1, because scanning needs
+    # arp-scan set up on the host (scripts/setup_arp_scan.sh).
+    # GRACE is how long every registered device of a person must go unseen
+    # before they are checked out — sleeping phones miss scans, so keep it long.
+    ENABLE_PRESENCE_SCAN: bool = os.getenv('ENABLE_PRESENCE_SCAN', '0') == '1'
+    PRESENCE_SCAN_INTERVAL: int = int(os.getenv('PRESENCE_SCAN_INTERVAL', '60'))
+    PRESENCE_INTERFACE: str = os.getenv('PRESENCE_INTERFACE', '')
+    PRESENCE_GRACE_MINUTES: int = int(os.getenv('PRESENCE_GRACE_MINUTES', '30'))
+
     SLACK_BOT_TOKEN: str = os.getenv('SLACK_BOT_TOKEN', '')
     SLACK_APP_TOKEN: str = os.getenv('SLACK_APP_TOKEN', '')
     SLACK_CHANNEL: str   = os.getenv('SLACK_CHANNEL', '#a-lab-status')
@@ -60,6 +69,8 @@ class TestConfig(Config):
     SECRET_KEY: str = 'test-secret'
     LOW_CONFIDENCE_THRESHOLD: float = 0.40
     DAY_RESET_HOUR: int = 22
+    ENABLE_PRESENCE_SCAN: bool = False
+    PRESENCE_GRACE_MINUTES: int = 30
     SLACK_BOT_TOKEN: str = ''
     SLACK_APP_TOKEN: str = ''
     SLACK_CHANNEL: str   = '#test-channel'

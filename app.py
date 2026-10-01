@@ -91,8 +91,16 @@ def create_app(config_name: str = 'dev') -> Flask:
     if _skip:
         app.logger.warning('Auto-checkout scheduler NOT started: %s', _skip)
     else:
-        from backend.jobs.scheduler import start as start_scheduler
+        from backend.jobs.scheduler import start as start_scheduler, add_presence_scan
         start_scheduler(app.config['DAY_RESET_HOUR'])
+        if app.config['ENABLE_PRESENCE_SCAN']:
+            add_presence_scan(
+                app.config['PRESENCE_SCAN_INTERVAL'],
+                app.config['PRESENCE_INTERFACE'],
+                app.config['PRESENCE_GRACE_MINUTES'],
+            )
+        else:
+            app.logger.warning('Wi-Fi presence scan NOT started: ENABLE_PRESENCE_SCAN is not 1')
 
     # Started AFTER the scheduler and never allowed to be fatal: slack_bolt's
     # App() calls auth.test during construction, so a rotated token used to
@@ -123,6 +131,13 @@ def create_app(config_name: str = 'dev') -> Flask:
         a running gunicorn worker — use GET /api/admin/scheduler for that."""
         from backend.jobs.scheduler import status
         print(status())
+
+    @app.cli.command('presence-scan')
+    def _cli_presence_scan():
+        """Run one Wi-Fi scan now and print the outcome. For diagnosing a
+        scan that the dashboard reports as failing."""
+        from backend.jobs import presence_scan
+        print(presence_scan.run(app.config['PRESENCE_INTERFACE'], app.config['PRESENCE_GRACE_MINUTES']))
 
     @app.get('/')
     def index():

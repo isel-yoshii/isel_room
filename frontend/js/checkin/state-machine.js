@@ -37,10 +37,15 @@
     confirmation: {
       tagClass: 'tag-scanning', tagText: 'Confirm?',
       name:     d => `Is This<br>${esc(d.name)}?`,
-      sub:      d => `Will ${d.event === 'IN' ? 'Check In' : 'Check Out'}`,
+      sub:      d => `Currently ${d.status ? 'In Lab' : 'Out'}`,
       faceClass: 'state-scanning', scanLine: false,
-      card: '', btnText: 'Confirm', btnDisabled: false,
-      hints: [['↵', 'Confirm'], ['Space', 'Manual'], ['Esc', 'Back']],
+      card: `
+        <div class="confirm-actions">
+          <button class="btn-primary" onclick="commitEntry('in')">← Check In</button>
+          <button class="btn-ghost" onclick="commitEntry('out')">Check Out →</button>
+        </div>`,
+      btnText: 'Choose In Or Out', btnDisabled: true,
+      hints: [['←', 'Check In'], ['→', 'Check Out'], ['Space', 'Manual'], ['Esc', 'Back']],
     },
     success: {
       tagClass: 'tag-success', tagText: 'Recognised',
@@ -48,6 +53,10 @@
         ? `Welcome,<br>${esc(d.name)}!`
         : `See You,<br>${esc(d.name)}!`,
       sub: d => {
+        // The server changed nothing: e.g. Wi-Fi had already checked them in.
+        if (d.changed === false) {
+          return d.event === 'IN' ? 'Already In Lab · No Change' : 'Already Checked Out · No Change';
+        }
         const time = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
         return d.event === 'IN' ? `Now In Lab · Since ${time}` : `Left Lab · At ${time}`;
       },

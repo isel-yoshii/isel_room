@@ -46,8 +46,40 @@
     if (name === 'attendance') loadAttendance();
   };
 
+  // Scanning stops silently — nobody gets checked in, nothing errors — so the
+  // header says when it last worked. Stale counts as failing: a scheduler that
+  // died reports no error at all.
+  window.scanStatusView = function scanStatusView(st, nowMs = Date.now()) {
+    if (!st || !st.enabled) return { text: '', cls: '', title: '' };
+    const last  = st.last_success ? formatLastSeen(st.last_success) : 'Never';
+    const stale = !st.last_success
+      || nowMs - new Date(st.last_success).getTime() > 3 * st.interval * 1000;
+    if (st.error || (stale && st.last_attempt)) {
+      return {
+        text: `Wi-Fi Scan Failing · Last OK ${last}`,
+        cls: 'scan-bad',
+        title: st.error || 'No successful scan recently',
+      };
+    }
+    if (stale) return { text: 'Wi-Fi Scan Starting…', cls: '', title: '' };
+    return { text: `Wi-Fi Scan OK · ${last}`, cls: 'scan-ok', title: `${st.devices} device(s) on the network` };
+  };
+
+  window.loadScanStatus = async function loadScanStatus() {
+    const el = document.getElementById('scan-status');
+    if (!el) return;
+    try {
+      const view = scanStatusView(await api.get('/api/presence/status'));
+      el.textContent = view.text;
+      el.className   = 'scan-status ' + view.cls;
+      el.title       = view.title;
+    } catch {
+      /* silent — network blip */
+    }
+  };
+
   window.loadDashboard = async function loadDashboard() {
-    await Promise.all([loadOverview(), loadLogSection(), loadMembers()]);
+    await Promise.all([loadOverview(), loadLogSection(), loadMembers(), loadScanStatus()]);
   };
 
   document.addEventListener('keydown', (e) => {

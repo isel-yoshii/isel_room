@@ -51,7 +51,15 @@ def toggle():
         if pending['user_id'] != data.get('user_id'):
             return fail('User ID mismatch', 403)
 
-    result = attendance_svc.toggle_entry(data['user_id'], check_in_method)
+    # The kiosk sends an explicit action after a face scan; the manual picker
+    # sends none and still flips whatever the current state is.
+    action = data.get('action')
+    if action is None:
+        result = attendance_svc.toggle_entry(data['user_id'], check_in_method)
+    elif action in ('in', 'out'):
+        result = attendance_svc.set_entry(data['user_id'], action == 'in', check_in_method)
+    else:
+        return fail('action must be "in" or "out"')
 
     from backend.integrations.slack import update_status_board
     update_status_board()

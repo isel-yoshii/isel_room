@@ -36,3 +36,16 @@ class AuditLog(Base):
     timestamp      = Column(DateTime, index=True)
 
 
+class Device(Base):
+    __tablename__ = 'devices'
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    user_id      = Column(Integer, ForeignKey('users.user_id'), nullable=False, index=True)
+    mac          = Column(String(17), nullable=False, unique=True)
+    label        = Column(String(50))
+    last_seen_at = Column(DateTime, nullable=True)
+    # Set when a person or the nightly job checks the owner out. While set, seeing
+    # this device does not check the owner back in — otherwise a phone still on
+    # Wi-Fi would undo the checkout a minute later. Cleared by a face/manual
+    # check-in, or by the device reappearing after being gone for the grace period.
+    locked       = Column(Boolean, default=False, nullable=False)

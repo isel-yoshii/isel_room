@@ -106,12 +106,16 @@ function kioskSandbox() {
   assert.strictEqual(els['tag-text'].textContent, 'Unknown Face');
   assert.ok(els['result-card'].innerHTML.includes('Unknown Person'));
 
-  sb.setState('confirmation', { name: 'Naimi Nafis', event: 'IN' });
+  // The person picks In or Out; the screen only reports where they are now.
+  sb.setState('confirmation', { name: 'Naimi Nafis', status: false });
   assert.strictEqual(sb.getCheckinState(), 'confirmation');
   assert.strictEqual(els['state-name'].innerHTML, 'Is This<br>Naimi Nafis?');
-  assert.strictEqual(els['state-sub'].textContent, 'Will Check In');
-  sb.setState('confirmation', { name: 'Naimi Nafis', event: 'OUT' });
-  assert.strictEqual(els['state-sub'].textContent, 'Will Check Out');
+  assert.strictEqual(els['state-sub'].textContent, 'Currently Out');
+  assert.ok(els['result-card'].innerHTML.includes("commitEntry('in')"));
+  assert.ok(els['result-card'].innerHTML.includes("commitEntry('out')"));
+  assert.strictEqual(els['btn-scan'].disabled, true, 'Enter must not confirm a direction');
+  sb.setState('confirmation', { name: 'Naimi Nafis', status: true });
+  assert.strictEqual(els['state-sub'].textContent, 'Currently In Lab');
 
   sb.setState('success', { name: 'Naimi Nafis', event: 'IN' });
   assert.strictEqual(sb.getCheckinState(), 'success');
@@ -120,6 +124,9 @@ function kioskSandbox() {
   assert.ok(els['result-card'].innerHTML.includes('>NN<'), 'avatar shows initials');
   sb.setState('success', { name: 'Naimi Nafis', event: 'OUT' });
   assert.strictEqual(els['state-name'].innerHTML, 'See You,<br>Naimi Nafis!');
+  sb.setState('success', { name: 'Naimi Nafis', event: 'IN', changed: false });
+  assert.strictEqual(els['state-sub'].textContent, 'Already In Lab · No Change');
+  sb.setState('success', { name: 'Naimi Nafis', event: 'OUT' });
   assert.ok(els['result-card'].innerHTML.includes('av-red'));
 
   // A member name is admin-supplied and lands in innerHTML.
@@ -134,3 +141,25 @@ function kioskSandbox() {
 }
 
 console.log('frontend/js/checkin/state-machine.js: all assertions passed');
+
+// Dashboard header: when the Wi-Fi scan last worked.
+{
+  const sb = { window: null, document: { getElementById: () => null, addEventListener: () => {} }, Date, Promise };
+  sb.window = sb;
+  sb.formatLastSeen = w.formatLastSeen;
+  vm.createContext(sb);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'frontend', 'js', 'dashboard', 'index.js'), 'utf8'), sb);
+  const now = new Date(2026, 9, 1, 12, 0, 0).getTime();
+  const iso = minsAgo => new Date(now - minsAgo * 60000).toISOString();
+  const base = { enabled: true, interval: 60, devices: 7, error: null };
+
+  assert.strictEqual(sb.scanStatusView({ enabled: false }, now).text, '', 'hidden when scanning is off');
+  assert.strictEqual(sb.scanStatusView({ ...base, last_success: iso(1), last_attempt: iso(1) }, now).cls, 'scan-ok');
+  const failing = sb.scanStatusView({ ...base, error: 'arp-scan failed: denied', last_success: iso(90), last_attempt: iso(1) }, now);
+  assert.strictEqual(failing.cls, 'scan-bad');
+  assert.strictEqual(failing.title, 'arp-scan failed: denied');
+  // No error recorded, but nothing has succeeded for far longer than the interval.
+  assert.strictEqual(sb.scanStatusView({ ...base, last_success: iso(30), last_attempt: iso(30) }, now).cls, 'scan-bad');
+  assert.strictEqual(sb.scanStatusView({ ...base, last_success: null, last_attempt: null }, now).text, 'Wi-Fi Scan Starting…');
+}
+console.log('frontend/js/dashboard/index.js: scan status assertions passed');
