@@ -14,18 +14,19 @@
     }
   };
 
+  // Every place that opens a camera closes it through here. Detach as well as
+  // stop: a <video> left pointing at an ended stream keeps its last frame
+  // painted, and where the camera is slow to start (the lab's Ubuntu PC) that
+  // stale frame shows the next time the view opens, until a new one arrives.
+  window.releaseCamera = function releaseCamera(stream, video) {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (video)  video.srcObject = null;
+  };
+
   window.stopCamera = function stopCamera() {
-    if (activeStream) {
-      activeStream.getTracks().forEach(t => t.stop());
-      activeStream = null;
-    }
-    // Detach as well as stop. A <video> left pointing at an ended stream keeps
-    // its last frame painted, and where the camera is slow to start (the lab's
-    // Ubuntu PC) that stale frame shows until the new stream delivers one.
-    if (activeVideo) {
-      activeVideo.srcObject = null;
-      activeVideo = null;
-    }
+    releaseCamera(activeStream, activeVideo);
+    activeStream = null;
+    activeVideo  = null;
   };
 
   window.captureFrame = function captureFrame(videoId) {

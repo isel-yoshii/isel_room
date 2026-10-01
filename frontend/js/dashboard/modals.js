@@ -107,10 +107,8 @@
 
   window.closeRegModal = function closeRegModal() {
     closeModal('reg-modal');
-    if (_regStream) {
-      _regStream.getTracks().forEach(t => t.stop());
-      _regStream = null;
-    }
+    releaseCamera(_regStream, document.getElementById('reg-video'));
+    _regStream = null;
   };
 
   window.onRegStepCapture = async function onRegStepCapture() {
@@ -211,10 +209,8 @@
 
   window.closeFaceReregModal = function closeFaceReregModal() {
     closeModal('face-rereg-modal');
-    if (_faceReregStream) {
-      _faceReregStream.getTracks().forEach(t => t.stop());
-      _faceReregStream = null;
-    }
+    releaseCamera(_faceReregStream, document.getElementById('face-rereg-video'));
+    _faceReregStream = null;
     _faceReregUserId = null;
   };
 
