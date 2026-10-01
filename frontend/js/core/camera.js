@@ -1,11 +1,13 @@
 (function () {
   let activeStream = null;
+  let activeVideo  = null;
 
   window.startCamera = async function startCamera(videoId) {
     window.stopCamera();
     try {
       activeStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      document.getElementById(videoId).srcObject = activeStream;
+      activeVideo  = document.getElementById(videoId);
+      activeVideo.srcObject = activeStream;
     } catch {
       console.warn('Camera access denied or unavailable.');
       if (typeof showCameraError === 'function') showCameraError();
@@ -16,6 +18,13 @@
     if (activeStream) {
       activeStream.getTracks().forEach(t => t.stop());
       activeStream = null;
+    }
+    // Detach as well as stop. A <video> left pointing at an ended stream keeps
+    // its last frame painted, and where the camera is slow to start (the lab's
+    // Ubuntu PC) that stale frame shows until the new stream delivers one.
+    if (activeVideo) {
+      activeVideo.srcObject = null;
+      activeVideo = null;
     }
   };
 

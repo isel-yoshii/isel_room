@@ -332,19 +332,81 @@
         <div class="section-label" style="margin-top:16px;">Wi-Fi Devices</div>
         ${rows || '<div class="log-empty">No Devices Registered</div>'}
         <div class="device-add">
-          <input class="edit-input" id="device-mac" placeholder="aa:bb:cc:dd:ee:ff" style="flex:1" />
-          <input class="edit-input" id="device-label" placeholder="Label (e.g. iPhone)" maxlength="50" />
-          <button class="icon-btn ok-btn" onclick="addProfileDevice()">＋</button>
+          <div class="device-field">
+            <div class="device-field-label">MAC Address</div>
+            <div class="mac-input" id="device-mac">
+              ${[0, 1, 2, 3, 4, 5].map(i => `
+                ${i ? '<span class="mac-sep">:</span>' : ''}
+                <input class="edit-input mac-octet" inputmode="text" autocomplete="off" autocapitalize="off"
+                       spellcheck="false" placeholder="00" aria-label="MAC address pair ${i + 1} of 6"
+                       onfocus="this.select()" onclick="this.select()"
+                       oninput="onMacOctetInput(event, this)" onkeydown="onMacOctetKey(event, this)"
+                       onpaste="onMacOctetPaste(event, this)" />`).join('')}
+            </div>
+          </div>
+          <div class="device-field device-field-grow">
+            <div class="device-field-label">Label</div>
+            <input class="edit-input" id="device-label" placeholder="e.g. iPhone" maxlength="50"
+                   onkeydown="if (event.key === 'Enter') addProfileDevice()" />
+          </div>
+          <button class="icon-btn ok-btn" onclick="addProfileDevice()">＋ Add</button>
         </div>`;
     } catch (err) {
       console.error('loadProfileDevices error:', err);
     }
   };
 
+  const _macOctets = () => [...document.querySelectorAll('#device-mac .mac-octet')];
+
+  const _hexOnly = str => (str || '').replace(/[^0-9a-fA-F]/g, '');
+  const _focusAfter = (boxes, i) => (boxes[i + 1] ?? document.getElementById('device-label')).focus();
+
+  // Two hex digits per box, then on to the next. Typing only ever changes the
+  // box it happens in: a box is selected on focus so typing replaces it, and a
+  // third character typed into a full box starts that box over instead of
+  // spilling into — and overwriting — the boxes after it.
+  window.onMacOctetInput = function onMacOctetInput(e, el) {
+    let hex = _hexOnly(el.value);
+    if (hex.length > 2) hex = _hexOnly(e.data ?? hex).slice(0, 2);
+    el.value = hex;
+    if (hex.length === 2) {
+      const boxes = _macOctets();
+      _focusAfter(boxes, boxes.indexOf(el));
+    }
+  };
+
+  // Pasting is the one case that fills several boxes: a whole address goes in
+  // from the first box wherever it was pasted, a fragment from the current box.
+  window.onMacOctetPaste = function onMacOctetPaste(e, el) {
+    e.preventDefault();
+    const hex = _hexOnly(e.clipboardData?.getData('text'));
+    if (!hex) return;
+    const boxes = _macOctets();
+    let i = hex.length >= 12 ? 0 : boxes.indexOf(el);
+    let last = i;
+    for (let k = 0; i < boxes.length && k < hex.length; i += 1, k += 2) {
+      boxes[i].value = hex.slice(k, k + 2);
+      last = i;
+    }
+    if (boxes[last].value.length < 2) boxes[last].focus();
+    else _focusAfter(boxes, last);
+  };
+
+  window.onMacOctetKey = function onMacOctetKey(e, el) {
+    if (e.key === 'Enter') { addProfileDevice(); return; }
+    if (e.key === 'Backspace' && !el.value) {
+      const boxes = _macOctets();
+      const prev  = boxes[boxes.indexOf(el) - 1];
+      if (prev) { e.preventDefault(); prev.focus(); prev.value = prev.value.slice(0, 1); }
+    }
+  };
+
   window.addProfileDevice = async function addProfileDevice() {
-    const mac   = document.getElementById('device-mac')?.value.trim();
+    const boxes = _macOctets();
+    const unfinished = boxes.find(b => b.value.length !== 2);
+    if (unfinished) { unfinished.focus(); return; }
+    const mac   = boxes.map(b => b.value).join(':');
     const label = document.getElementById('device-label')?.value.trim();
-    if (!mac) return;
     try {
       const r = await api.post(`/api/user/${_currentProfileUserId}/devices`, { mac, label });
       if (r.success) loadProfileDevices(_currentProfileUserId);
