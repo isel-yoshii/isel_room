@@ -1,8 +1,8 @@
 from __future__ import annotations
 from datetime import datetime
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from backend.db import session_scope
-from backend.db.models import User, LabSession, AuditLog
+from backend.db.models import User, LabSession, AuditLog, Device
 from backend.utils import ApiError
 
 
@@ -34,6 +34,9 @@ def delete_user(user_id: int) -> None:
     with session_scope() as session:
         user = session.get(User, user_id)
         if user:
+            # A leftover row would keep the MAC taken (it is unique) and keep
+            # tracking a phone whose owner no longer exists.
+            session.execute(delete(Device).where(Device.user_id == user_id))
             session.delete(user)
 
 

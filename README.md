@@ -134,7 +134,7 @@ Open <http://localhost:5001> in a browser. The Check-in screen loads by default.
 
 1. Walk up to the camera.
 2. Press `Enter` (or click **Scan Face**).
-3. Confirm the match with `Enter`. The screen says "Welcome, <name>!" or "See you, <name>!".
+3. Press `←` to check in or `→` to check out. Choosing the state you are already in changes nothing, so it is safe to scan after Wi-Fi has checked you in.
 
 If your face is not matched, press `Space` to pick your name from a list.
 
@@ -163,6 +163,33 @@ FLASK_APP="app:create_app" flask auto-checkout
 
 If the scheduler ever misses a tick, no big deal. Any session open for more than 24 hours is closed automatically on the user's next check-in.
 
+### Wi-Fi presence (automatic check-in / check-out)
+
+With `ENABLE_PRESENCE_SCAN=1` the app ARP-scans the lab network once a minute (inside the same scheduler as the nightly auto-checkout — there is no second process to run). Only MACs registered to a member are kept; the rest are discarded unsaved.
+
+| Situation | What happens |
+|---|---|
+| Out, phone appears | Checked in (`WIFI_CHECKIN`), unless the phone is locked |
+| In, phone still visible | Nothing; only the phone's last-seen time moves |
+| In, phone unseen for `PRESENCE_GRACE_MINUTES` | Checked out (`WIFI_CHECKOUT`), dated to when it was last seen. This applies to face check-ins too, once the phone has been seen during the visit |
+| Checked out by face, manually, or by the nightly job | The member's phones are **locked**: still being on Wi-Fi does not check them back in |
+| Locked phone unseen for the grace period, then seen again | Unlocked, checked in |
+| Face or manual check-in | Unlocks immediately |
+
+Setup, on the lab PC:
+
+```bash
+sudo scripts/setup_arp_scan.sh        # installs arp-scan, lets it run without root
+arp-scan --localnet                   # as your normal user: should list devices
+# .env: ENABLE_PRESENCE_SCAN=1, then restart the app
+```
+
+The dashboard header shows **Wi-Fi Scan OK · 1m ago**, or **Wi-Fi Scan Failing** with the reason on hover. A failing scan checks nobody out. Re-run `setup_arp_scan.sh` if it starts failing with a permission error after a system update — the update replaced the `arp-scan` binary and with it the permission. To run a single scan by hand and see the outcome: `flask --app app presence-scan`.
+
+On macOS (development only) `arp-scan` comes from `brew install arp-scan` and needs `sudo chown "$USER" /dev/bpf*`, which resets on reboot.
+
+Register a phone on the dashboard: open the member's profile while logged in as admin → **Wi-Fi Devices**. Use the address the phone shows for the lab SSID (iOS: Settings → Wi-Fi → ⓘ → Wi-Fi Address), and set Private Wi-Fi Address to **Fixed**, not Rotating, for that network. Register phones only — a laptop left on a desk keeps its owner checked in.
+
 ---
 
 ## Configuration
@@ -180,6 +207,10 @@ All configuration is via environment variables, loaded from `.env`:
 | `LOW_CONFIDENCE_THRESHOLD` | `0.40` | No | UI badge cutoff for low-confidence matches (cosmetic only) |
 | `DAY_RESET_HOUR` | `22` | No | Hour (Asia/Tokyo) the in-app scheduler runs the nightly auto-checkout |
 | `ENABLE_SCHEDULER` | `1` | No | Set `0` to disable the in-app auto-checkout scheduler (e.g. on extra gunicorn workers) |
+| `ENABLE_PRESENCE_SCAN` | `0` | No | Set `1` to scan the lab Wi-Fi and check members in/out by their phones |
+| `PRESENCE_INTERFACE` | _(empty)_ | No | Network interface to scan; empty lets `arp-scan` choose |
+| `PRESENCE_SCAN_INTERVAL` | `60` | No | Seconds between scans |
+| `PRESENCE_GRACE_MINUTES` | `30` | No | Minutes a member's phone must go unseen before they are checked out |
 
 `ProdConfig` (used by `wsgi.py`) refuses to start if any of `FLASK_SECRET_KEY`, `ADMIN_PIN`, `SLACK_BOT_TOKEN`, or `SLACK_APP_TOKEN` is missing. In dev the Slack tokens are still optional; the integration disables itself with a warning and the rest of the app runs normally.
 
@@ -200,12 +231,13 @@ isel_room/
 ├── app.py                  # Flask app factory
 ├── wsgi.py                 # Production entry point
 ├── config.py               # Dev / Prod / Test configs
+├── scripts/                # One-time host setup (arp-scan permissions)
 ├── backend/
-│   ├── api/                # Flask blueprints (auth, attendance, users, stats, admin)
-│   ├── services/           # Business logic (attendance, users, points, stats, audit)
+│   ├── api/                # Flask blueprints (auth, attendance, users, stats, admin, presence)
+│   ├── services/           # Business logic (attendance, users, points, stats, audit, presence)
 │   ├── db/                 # SQLAlchemy models + session_scope context manager
 │   ├── face_engine.py      # DeepFace ArcFace wrapper
-│   ├── integrations/       # Slack status board
+│   ├── integrations/       # Slack status board, arp-scan wrapper
 │   └── utils.py            # @admin_required, decode_image, ok()/fail() helpers
 ├── tests/                  # pytest suite
 └── frontend/

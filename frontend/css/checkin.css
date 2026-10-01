@@ -299,3 +299,9 @@
 .cam-error-icon { font-size: 32px; color: var(--color-warning); line-height: 1; }
 .cam-error-msg  { font-size: 14px; font-weight: 600; color: #F0F0F0; font-family: 'Nunito', sans-serif; }
 .cam-error-hint { font-size: 11px; color: var(--color-text-tertiary); font-family: 'IBM Plex Mono', monospace; }
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+.confirm-actions button { flex: 1; }

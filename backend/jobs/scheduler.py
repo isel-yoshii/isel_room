@@ -1,4 +1,5 @@
-"""In-app scheduler — fires the nightly auto-checkout at DAY_RESET_HOUR.
+"""In-app scheduler — fires the nightly auto-checkout at DAY_RESET_HOUR and,
+when enabled, the Wi-Fi presence scan every minute.
 
 Asia/Tokyo is pinned on both the scheduler and the trigger, so 22:00 means
 22:00 JST whatever the server's timezone (a UTC server would fire at 07:00 JST).
@@ -10,6 +11,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 logger = logging.getLogger(__name__)
 
@@ -76,3 +78,30 @@ def start(day_reset_hour: int) -> BackgroundScheduler | None:
         job.next_run_time.isoformat() if job and job.next_run_time else 'UNKNOWN',
     )
     return sched
+
+
+def add_presence_scan(interval_seconds: int, interface: str, grace_minutes: int) -> None:
+    """Register the Wi-Fi presence scan on the already-started scheduler."""
+    if _scheduler is None:
+        logger.warning('Wi-Fi presence scan NOT started: scheduler is not running.')
+        return
+    from backend.jobs import presence_scan
+    presence_scan.configure(interval_seconds)
+    # APScheduler logs two INFO lines per run; at once a minute that buries
+    # everything else. The job logs its own failures and recoveries.
+    logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
+    _scheduler.add_job(
+        presence_scan.run,
+        trigger=IntervalTrigger(seconds=interval_seconds, timezone=_TOKYO),
+        args=[interface, grace_minutes],
+        id='presence_scan',
+        name='Wi-Fi presence scan',
+        replace_existing=True,
+        next_run_time=datetime.now(_TOKYO),  # first scan now, not one interval from now
+        max_instances=1,                     # a slow scan must not pile up behind itself
+        coalesce=True,
+    )
+    logger.warning(
+        'Wi-Fi presence scan ARMED in pid %s: every %ds on %s, grace %d min.',
+        os.getpid(), interval_seconds, interface or 'the default interface', grace_minutes,
+    )

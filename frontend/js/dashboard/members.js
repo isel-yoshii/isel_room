@@ -22,6 +22,7 @@
             </div>
             <button class="icon-btn" onclick="openEditUserForm(${u.id}, '${argName}', '${argType}')" title="Edit Name / Role">✎</button>
             <button class="icon-btn" onclick="openFaceReregModal(${u.id}, '${argName}')" title="Add Face Variant">⊙</button>
+            <button class="icon-btn" onclick="openProfileModal(${u.id})" title="Wi-Fi Devices">Wi-Fi</button>
             <button class="del-btn" onclick="deleteUser(${u.id}, '${argName}')">Delete</button>
           </div>`;
       }, '<div class="log-empty">No Members Registered Yet</div>');

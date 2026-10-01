@@ -2,6 +2,7 @@
   const ACTION_TYPES = [
     'CHECKIN', 'CHECKOUT',
     'MANUAL_CHECKIN', 'MANUAL_CHECKOUT',
+    'WIFI_CHECKIN', 'WIFI_CHECKOUT',
     'AUTO_CHECKOUT',
     'REGISTER', 'DELETE',
     'PROMOTE',
@@ -10,13 +11,14 @@
     REGISTER: 'Registered', DELETE: 'Deleted',
     CHECKIN: 'Check-In', CHECKOUT: 'Check-Out',
     MANUAL_CHECKIN: 'Manual In', MANUAL_CHECKOUT: 'Manual Out',
+    WIFI_CHECKIN: 'Wi-Fi In', WIFI_CHECKOUT: 'Wi-Fi Out',
     AUTO_CHECKOUT: 'Auto-Out',
     PROMOTE: 'Promoted', POINTS_ADJUST: 'Points Adjusted',
   };
-  const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN']);
+  const IN_ACTIONS = new Set(['REGISTER', 'CHECKIN', 'MANUAL_CHECKIN', 'WIFI_CHECKIN']);
   const PRESET_GROUPS = {
     'all':        [],
-    'attendance': ['CHECKIN', 'CHECKOUT', 'MANUAL_CHECKIN', 'MANUAL_CHECKOUT', 'AUTO_CHECKOUT'],
+    'attendance': ['CHECKIN', 'CHECKOUT', 'MANUAL_CHECKIN', 'MANUAL_CHECKOUT', 'WIFI_CHECKIN', 'WIFI_CHECKOUT', 'AUTO_CHECKOUT'],
     'admin':      ['REGISTER', 'DELETE', 'PROMOTE'],
   };
 

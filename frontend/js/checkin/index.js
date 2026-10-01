@@ -38,8 +38,7 @@
           setTimeout(() => { if (getCheckinState() === 'fail') setState('idle'); }, 8000);
           return;
         }
-        const predictedEvent = authData.status ? 'OUT' : 'IN';
-        setState('confirmation', { name: authData.name, event: predictedEvent });
+        setState('confirmation', { name: authData.name, status: authData.status });
         pendingConfirm = { userId: authData.user_id };
       } else {
         setState('fail');
@@ -52,15 +51,20 @@
     }
   };
 
-  window.commitToggle = async function commitToggle(userId) {
+  // action is 'in' or 'out'. Explicit rather than a toggle: Wi-Fi may already
+  // have checked the person in, and a toggle would then check them out.
+  window.commitEntry = async function commitEntry(action) {
+    if (!pendingConfirm) return;
+    const userId = pendingConfirm.userId;
     pendingConfirm = null;
     try {
-      const result = await api.post('/api/toggle', { user_id: userId, check_in_method: 'face' });
-      setState('success', { name: result.name, event: result.event_type });
+      const result = await api.post('/api/toggle', { user_id: userId, check_in_method: 'face', action });
+      if (!result.event_type) throw new Error(result.message);
+      setState('success', { name: result.name, event: result.event_type, changed: result.changed });
       loadMemberStrip();
       setTimeout(() => setState('idle'), 3000);
     } catch (e) {
-      console.error('commitToggle error:', e);
+      console.error('commitEntry error:', e);
       setState('idle');
     }
   };
@@ -72,11 +76,7 @@
   };
 
   window.onScanBtnClick = function onScanBtnClick() {
-    if (pendingConfirm) {
-      commitToggle(pendingConfirm.userId);
-    } else {
-      scanFace();
-    }
+    if (!pendingConfirm) scanFace();
   };
 
   window.showCameraError = function showCameraError() {
@@ -117,17 +117,21 @@
 
       if (e.key === 'Enter') {
         if (e.repeat) return;
-        if (pendingConfirm) {
-          commitToggle(pendingConfirm.userId);
-        } else {
-          onScanBtnClick();
-        }
+        onScanBtnClick();
+      }
+
+      if (pendingConfirm && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        if (e.repeat) return;
+        commitEntry(e.key === 'ArrowLeft' ? 'in' : 'out');
       }
 
       if (e.key === ' ' || e.key === 'Spacebar') {
         e.preventDefault();
         const st = getCheckinState();
         if (pendingConfirm || st === 'fail' || st === 'idle') {
+          // Drop the face match first, or it outlives the picker and blocks the next scan.
+          if (pendingConfirm) cancelToggle();
           openManualPicker();
         }
       }
