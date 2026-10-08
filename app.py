@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from flask import Flask, render_template, jsonify, request
+from flask.helpers import get_debug_flag
 from werkzeug.exceptions import HTTPException
 from config import get_config
 from backend.utils import ApiError, ImageDecodeError
@@ -69,8 +70,12 @@ def create_app(config_name: str = 'dev') -> Flask:
     from backend.api import register_blueprints
     register_blueprints(app)
 
+    # The reloader parent only exists under `flask run --debug`, which is what
+    # sets FLASK_DEBUG. This used to test DevConfig.DEBUG instead, which is True
+    # under plain `flask run` too — where there is no reloader and no child — so
+    # Slack was silently never started by the command in our own README.
     _in_werkzeug_reloader_parent = (
-        app.config.get('DEBUG') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true'
+        get_debug_flag() and os.environ.get('WERKZEUG_RUN_MAIN') != 'true'
     )
 
     # Auto-checkout scheduler: fires in-app at DAY_RESET_HOUR:00 (Asia/Tokyo).
@@ -117,6 +122,9 @@ def create_app(config_name: str = 'dev') -> Flask:
             app.logger.exception(
                 'Slack integration failed to start; continuing without it. '
                 'Check-in, the dashboard and auto-checkout are unaffected.')
+    else:
+        app.logger.warning('Slack integration NOT started: %s',
+                           'TESTING' if app.config.get('TESTING') else 'reloader parent process')
 
     @app.cli.command('auto-checkout')
     def _cli_auto_checkout():

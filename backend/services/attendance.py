@@ -1,7 +1,8 @@
 from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
-from sqlalchemy import select
+from sqlalchemy import select, func
+from config import Config
 from backend.db import session_scope
 from backend.db.models import User, LabSession, AuditLog, Device
 from backend.utils import ApiError, minutes_between
@@ -95,7 +96,7 @@ def auto_checkout_all() -> int:
         ).scalars().all())
 
         for lab_sess in open_sessions:
-            lab_sess.checked_out_at = now
+            lab_sess.checked_out_at = _phone_left_at(session, lab_sess, now) or now
             lab_sess.check_in_method = 'auto_checkout'
             user = session.get(User, lab_sess.user_id)
             session.add(AuditLog(
@@ -178,6 +179,26 @@ def _get_user(session, user_id: int) -> User:
     if user is None:
         raise ApiError('User not found', 404)
     return user
+
+
+def _phone_left_at(session, lab_sess: LabSession, now: datetime) -> datetime | None:
+    """When the owner's phone was last on Wi-Fi, if that dates the end of this
+    visit better than `now` does.
+
+    Someone who left 15 minutes before the nightly reset is still inside their
+    grace period, so the reset — not the Wi-Fi timeout — closes them out, and
+    stamping `now` would pad the visit by those 15 minutes.
+    """
+    last_seen = session.execute(
+        select(func.max(Device.last_seen_at)).where(Device.user_id == lab_sess.user_id)
+    ).scalar()
+    if last_seen is None or last_seen < lab_sess.checked_in_at:
+        return None
+    # Unseen for longer than the grace period yet still checked in means scanning
+    # has been down, and a stale sighting is not evidence of when anyone left.
+    if now - last_seen > timedelta(minutes=Config.PRESENCE_GRACE_MINUTES):
+        return None
+    return last_seen
 
 
 def _set_device_lock(session, user_ids: list[int], locked: bool) -> None:

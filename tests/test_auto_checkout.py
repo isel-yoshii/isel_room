@@ -212,6 +212,32 @@ def test_scheduler_arms_under_the_documented_dev_command(monkeypatch):
             scheduler._scheduler = None
 
 
+def test_slack_starts_under_the_documented_dev_command(monkeypatch):
+    """Same guard, same bug as the scheduler above, left behind on Slack:
+    plain `flask run` has no reloader, so nothing may be skipped for it."""
+    import backend.integrations.slack as slack
+    from backend.jobs import scheduler
+    from app import create_app
+
+    started = []
+    monkeypatch.setattr(slack, 'init', lambda **kwargs: started.append(kwargs['channel']))
+    monkeypatch.delenv('WERKZEUG_RUN_MAIN', raising=False)
+    monkeypatch.delenv('FLASK_DEBUG', raising=False)
+    monkeypatch.setenv('ENABLE_SCHEDULER', '0')
+
+    create_app('dev')
+    assert len(started) == 1
+
+    # `flask run --debug`: the parent must still stand aside for the child.
+    started.clear()
+    monkeypatch.setenv('FLASK_DEBUG', '1')
+    create_app('dev')
+    assert started == []
+    monkeypatch.setenv('WERKZEUG_RUN_MAIN', 'true')
+    create_app('dev')
+    assert len(started) == 1
+
+
 def test_enable_scheduler_zero_still_opts_out(monkeypatch):
     from backend.jobs import scheduler
     from app import create_app

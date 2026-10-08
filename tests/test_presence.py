@@ -141,6 +141,46 @@ def test_nightly_auto_checkout_locks_phones_still_on_wifi(db_session):
     assert _device(db_session).locked is True
 
 
+def test_nightly_auto_checkout_is_dated_to_when_the_phone_left(db_session):
+    uid = _user_with_phone(db_session)
+    now = datetime.now()
+    presence.report([MAC], GRACE, now=now - timedelta(hours=3))
+    left = now - timedelta(minutes=15)   # inside the grace period: still checked in
+    presence.report([MAC], GRACE, now=left)
+
+    attendance.auto_checkout_all()
+
+    sess = db_session.query(LabSession).filter_by(user_id=uid).one()
+    assert sess.checked_out_at == left
+    assert sess.check_in_method == 'auto_checkout'
+
+
+def test_nightly_auto_checkout_ignores_a_sighting_older_than_the_grace_period(db_session):
+    # Still checked in with a sighting this old means scanning was down.
+    uid = _user_with_phone(db_session)
+    before = datetime.now()
+    presence.report([MAC], GRACE, now=before - timedelta(hours=3))
+
+    attendance.auto_checkout_all()
+
+    sess = db_session.query(LabSession).filter_by(user_id=uid).one()
+    assert sess.checked_out_at >= before
+
+
+def test_nightly_auto_checkout_ignores_a_phone_not_seen_during_the_visit(db_session):
+    uid = _user_with_phone(db_session)
+    before = datetime.now()
+    presence.report([MAC], GRACE, now=before - timedelta(minutes=10))
+    attendance.set_entry(uid, False, 'face')
+    attendance.set_entry(uid, True, 'face')    # new visit; phone not seen since
+
+    attendance.auto_checkout_all()
+
+    sess = (db_session.query(LabSession).filter_by(user_id=uid)
+            .order_by(LabSession.id.desc()).first())
+    assert sess.checked_out_at >= before
+
+
 def test_set_entry_to_the_current_state_is_a_noop(db_session):
     uid = _user_with_phone(db_session)
     presence.report([MAC], GRACE, now=datetime.now())
