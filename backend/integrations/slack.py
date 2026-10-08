@@ -5,6 +5,7 @@ Nothing runs at module import; safe to import without Slack tokens.
 """
 from __future__ import annotations
 import json
+import re
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -47,7 +48,9 @@ def init(bot_token: str, app_token: str, channel: str) -> None:
 
 
 def _register_handlers(app: App) -> None:
-    @app.command('/who')
+    # /who is a Slack built-in, so a new app cannot register it; installs made
+    # before Slack enforced that may still have it.
+    @app.command(re.compile(r'^/who(-?is-?in)?$'))
     def _who(ack, respond):
         ack()
         from backend.services.attendance import get_present_users_detailed
@@ -156,7 +159,9 @@ def update_status_board() -> None:
         same_day = state.get('date') == today and state.get('channel') == _channel
         if same_day and state.get('ts'):
             try:
-                _app.client.chat_update(channel=_channel, ts=state['ts'], text=text, blocks=blocks)
+                # chat.update takes a channel ID only; SLACK_CHANNEL may be a name.
+                _app.client.chat_update(channel=state.get('channel_id') or _channel,
+                                        ts=state['ts'], text=text, blocks=blocks)
                 return
             except SlackApiError as e:
                 if e.response.get('error') != 'message_not_found':
@@ -164,6 +169,7 @@ def update_status_board() -> None:
                 # Someone deleted today's message; fall through and post fresh.
 
         resp = _app.client.chat_postMessage(channel=_channel, text=text, blocks=blocks)
-        _save_state({'ts': resp['ts'], 'date': today, 'channel': _channel})
+        _save_state({'ts': resp['ts'], 'date': today, 'channel': _channel,
+                     'channel_id': resp['channel']})
     except Exception as e:
         print(f'Slack status board update failed: {e}')
